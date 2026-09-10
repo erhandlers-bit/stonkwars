@@ -56,7 +56,7 @@ for (let bar = 0; bar < BARS; bar++) {
       bass(tb + s * sixteenth, n, sixteenth * 0.9);
     }
   }
-  if (bar >= 8) { // the lead comes in halfway, doubled an octave up on the last four bars
+  if (false) { // pluck lead removed (owner 2026-09-10: it read as a beep under every line)
     const pat = leadPat[bar % 4];
     for (let e = 0; e < 8; e++) {
       const t = (bar * 4) * beat + e * beat / 2;
@@ -67,7 +67,7 @@ for (let bar = 0; bar < BARS; bar++) {
   }
 }
 // riser into the loop point: a filtered noise swell over the last bar
-add((BARS - 1) * 4 * beat, 4 * beat, (t) => rnd() * Math.pow(t / (4 * beat), 3) * 0.5, 0.18);
+// riser removed with the lead — the loop is drums + bass only now
 
 // ---- master: gentle saturation + peak normalise ----
 let peak = 0; for (let i = 0; i < total; i++) { L[i] = Math.tanh(L[i] * 1.2); R[i] = Math.tanh(R[i] * 1.2); peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i])); }
