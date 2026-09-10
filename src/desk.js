@@ -118,7 +118,8 @@ async function turn(who) {
   const r0 = st.rounds && st.rounds[0];
   const pregame = st.status === 'running' && st.roundIdx === 0 && r0 && now < r0.startAt;
   let introLine = '';
-  if (pregame) {
+  if (pregame) return; // owner 2026-09-10: the promo loops on the desk until the bell — no intros, no banter
+  if (false) {
     if (intro.startedAt !== st.startedAt) { intro.startedAt = st.startedAt; intro.done = []; intro.lastAt = 0; }
     const order = r0.matches.flatMap((m) => [m.a, m.b]);
     const next = order.find((id) => !intro.done.includes(id));

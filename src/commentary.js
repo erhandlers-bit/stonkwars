@@ -269,6 +269,7 @@ async function interview() {
   const sw = require('./stonkwars');
   const st = sw.status();
   if (st.status !== 'running') return;
+  if (st.roundIdx === 0 && st.rounds[0] && Date.now() < st.rounds[0].startAt) return; // pregame: video only
   const round = st.rounds[st.roundIdx];
   if (!round || Date.now() < round.startAt) return;
   let live = round.matches.filter((m) => !m.winner).flatMap((m) => [[m.a, m.id], [m.b, m.id]]);

@@ -178,7 +178,8 @@
   var audioBlocked=false;
   ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ if(audioBlocked){ audioBlocked=false; pump(); } }); });
   function pump(){
-    if(!voice||playing||introPlaying||!queue.length) return;
+    if(introPlaying){ queue=[]; return; } // nobody talks over the promo
+    if(!voice||playing||!queue.length) return;
     var l=queue.shift(); playing=true;
     mark(l,true);
     var a=new Audio('/api/tts/'+l.id);
@@ -257,10 +258,14 @@
     // director mode: rotate live matches every 90s
     // director mode follows the server's featured match (see desk.js featured())
   }
-  // INTRO (owner 2026-09-10): when a tournament starts, the promo plays on the desk before the desk starts talking
-  var introShownFor=null, introPlaying=false;
-  function maybeIntro(){ if(!S||S.status!=='running'||!S.startedAt||introShownFor===S.startedAt) return; introShownFor=S.startedAt; if(Date.now()-S.startedAt>120000) return; playIntro(); }
-  window.playIntro=playIntro; function playIntro(){ console.log('[intro] play'); var d=document.getElementById('desk'); if(!d||document.getElementById('introVid')) return; var v=document.createElement('video'); v.id='introVid'; v.className='intro'; v.src='/stonkwars/intro.mp4?v=1'; v.playsInline=true; v.preload='auto'; introPlaying=true; var done=function(e){ console.log('[intro] done', e&&e.type, v.error&&v.error.code); if(v.parentNode) v.remove(); introPlaying=false; pump(); }; v.onended=done; v.onerror=done; d.appendChild(v); v.play().catch(function(){ v.muted=true; v.play().catch(done); }); }
+  // PREGAME (owner 2026-09-10): the promo loops on the desk until the opening bell; the desk stays silent
+  var introPlaying=false;
+  function isPregame(){ return !!(S&&S.status==='running'&&S.roundIdx===0&&S.roundStartAt&&S.now<S.roundStartAt); }
+  function maybeIntro(){ if(isPregame()) ensureIntro(); else stopIntro(); }
+  function ensureIntro(){ var d=document.getElementById('desk'); if(!d||document.getElementById('introVid')) return; var v=document.createElement('video'); v.id='introVid'; v.className='intro'; v.src='/stonkwars/intro.mp4?v=1'; v.playsInline=true; v.loop=true; v.preload='auto'; introPlaying=true; queue=[]; d.appendChild(v); v.play().catch(function(){ v.muted=true; v.play().catch(function(){}); }); }
+  function stopIntro(){ var v=document.getElementById('introVid'); if(v){ v.pause(); v.remove(); } if(introPlaying){ introPlaying=false; pump(); } }
+  ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ var v=document.getElementById('introVid'); if(v&&v.muted){ v.muted=false; v.play().catch(function(){ v.muted=true; }); } }); });
+  window.playIntro=ensureIntro;
   function refreshHook(){ try{ reactToFeed(); reactToState(); maybeIntro(); }catch(x){} }
   function refresh(){ fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();refreshHook();}).catch(function(){}); }
   function pollPump(){ fetch('/api/stonkwars/pumpfeed').then(function(r){return r.json()}).then(function(j){document.getElementById('pfState').textContent=j.connected?'live':'reconnecting…';document.getElementById('pumpRows').innerHTML=(j.launches||[]).map(function(t){return '<div><span><a href="'+t.url+'" target="_blank">$'+esc(t.symbol||'?')+'</a> <span class="sub">'+esc((t.name||'').slice(0,28))+'</span></span><span class="sub">'+ago(t.at)+' ago'+(t.devBuySol?' · dev '+t.devBuySol.toFixed(2)+' SOL':'')+'</span></div>'}).join('')||'<div class="sub">waiting for launches…</div>';}).catch(function(){}); }
