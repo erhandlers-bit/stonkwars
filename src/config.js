@@ -61,5 +61,6 @@ module.exports = {
   // wallet holds at least STONK_HOLD_MIN_USD of STONK_HOLD_MINT (the stonkwars
   // coin) at settlement. Empty mint = falls back to STONK_BUYBACK_MINT.
   STONK_HOLD_MINT: '',
-  STONK_HOLD_MIN_USD: 10,
+  STONK_HOLD_MIN_USD: 0,
+  STONK_HOLD_MIN_TOKENS: 5_000_000, // owner 2026-09-10: "must hold at least 5 million tokens to qualify for a payout"
 };

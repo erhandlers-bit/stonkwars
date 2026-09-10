@@ -83,6 +83,7 @@ function holdMint() { return config.STONK_HOLD_MINT || config.STONK_BUYBACK_MINT
 // what the site calls the coin: Dexscreener's ticker once the mint is set, else the configured placeholder
 function coinInfo() { const mint = config.STONK_BUYBACK_MINT || holdMint() || null; const live = mint && priceCache.mint === mint ? priceCache.symbol : ''; return { mint, symbol: live || config.STONK_COIN_SYMBOL || 'COIN' }; }
 function holdMinUsd() { return Number(config.STONK_HOLD_MIN_USD || 0); }
+function holdMinTokens() { return Number(config.STONK_HOLD_MIN_TOKENS || 0); }
 const priceCache = { at: 0, mint: null, usd: 0, symbol: '' };
 async function coinPrice() {
   const mint = holdMint();
@@ -106,7 +107,7 @@ async function holding(wallet, fresh) {
   let tokens = 0;
   try { tokens = await tokensHeld(rpc(), new (w3().PublicKey)(wallet), mint); } catch { if (c) return c; }
   const usd = tokens * (price.usd || 0);
-  const out = { at: Date.now(), tokens, usd: +usd.toFixed(2), price: price.usd, symbol: price.symbol, eligible: usd >= holdMinUsd(), gated: holdMinUsd() > 0 };
+  const out = { at: Date.now(), tokens, usd: +usd.toFixed(2), price: price.usd, symbol: price.symbol, eligible: (holdMinTokens() ? tokens >= holdMinTokens() : true) && (holdMinUsd() ? usd >= holdMinUsd() : true), gated: holdMinUsd() > 0 || holdMinTokens() > 0 };
   holdCache[wallet] = out;
   return out;
 }
@@ -333,7 +334,7 @@ async function status(wallet) {
     pool: { sol: +pool.sol.toFixed(4), pct: pool.pct, walletSol: +pool.walletSol.toFixed(4), address: pool.address, paying: !!config.STONK_PAYOUT_ENABLED && !!payoutKeypair() },
     gate: { minSol: Number(config.STONK_VOTE_MIN_SOL || 0), tokenMint: config.STONK_VOTE_TOKEN_MINT || null, minTokens: Number(config.STONK_VOTE_MIN_TOKENS || 0) },
     coin: coinInfo(),
-    holdGate: { mint: holdMint() || null, minUsd: holdMinUsd(), symbol: price.symbol || coinInfo().symbol, priceUsd: price.usd || 0 },
+    holdGate: { mint: holdMint() || null, minUsd: holdMinUsd(), minTokens: holdMinTokens(), symbol: price.symbol || coinInfo().symbol, priceUsd: price.usd || 0 },
     myHold,
     settlements: state.settlements.slice(0, 10),
   };
