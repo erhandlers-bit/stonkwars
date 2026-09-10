@@ -29,6 +29,20 @@ function isAdmin(req) {
 }
 
 app.get('/api/stonkwars', (_req, res) => res.json(stonkwars.status()));
+// SHOWCASE feeds: commentary lines (poll with ?since=<last id>, optional
+// &match=<matchId>), voice for one line, and the pump.fun launch ticker.
+app.get('/api/stonkwars/commentary', (req, res) => {
+  const c = require('./commentary');
+  res.json({ ...c.status(), lines: c.since(Number(req.query.since) || 0, req.query.match ? String(req.query.match) : null) });
+});
+app.get('/api/tts/:id', async (req, res) => {
+  const c = require('./commentary');
+  const l = c.line(req.params.id);
+  if (!l) return res.status(404).end();
+  try { const buf = await c.tts(l); res.set('Content-Type', 'audio/mpeg'); res.set('Cache-Control', 'public, max-age=86400'); res.send(buf); }
+  catch (e) { res.status(503).json({ error: 'tts unavailable: ' + String(e.message).slice(0, 80) }); }
+});
+app.get('/api/stonkwars/pumpfeed', (_req, res) => res.json(require('./pumpfeed').status()));
 app.get('/api/stonkwars/votes', async (req, res) => res.json(await votes.status(String(req.query.wallet || ''))));
 app.post('/api/stonkwars/vote', express.json({ limit: '4kb' }), async (req, res) => res.json(await votes.vote(req.body)));
 
@@ -49,6 +63,8 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 function start() {
   feed.start();
   stonkwars.start();
+  try { require('./commentary').start(); } catch (e) { console.log('[commentary] not started: ' + e.message); }
+  try { require('./pumpfeed').start(); } catch (e) { console.log('[pumpfeed] not started: ' + e.message); }
   app.listen(config.PORT, '0.0.0.0', () => {
     console.log('[stonkwars] http://localhost:' + config.PORT + '  (admin: ' + (process.env.ADMIN_TOKEN ? 'token' : 'localhost only') + ')');
   });

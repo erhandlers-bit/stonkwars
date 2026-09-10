@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>STONK WARS · Live Match</title>
+<link rel="icon" type="image/png" href="/stonkwars/logo.png">
+<style>
+  :root{--bg:#07090f;--panel:#0e1220;--border:#1c2337;--text:#e8ecf5;--dim:#7d88a6;--green:#5fe89b;--red:#ff6b6b;--gold:#f5c542;--blue:#5fd0e8;--pink:#ff3fa4;--purple:#8b5cf6}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;overflow-x:hidden}
+  header{display:flex;align-items:center;gap:14px;padding:10px 20px;border-bottom:1px solid var(--border);background:linear-gradient(90deg,#0e1220,#07090f)}
+  header img{width:44px;height:44px;border-radius:10px}
+  header h1{margin:0;font-size:22px;letter-spacing:3px;font-weight:900}
+  header h1 span{color:var(--gold)}
+  .sub{color:var(--dim);font-size:12px}
+  .clock{margin-left:auto;text-align:right}
+  .clock .t{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+  .clock .r{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .btn{background:#161c2e;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-weight:700;font-size:12px}
+  .btn.on{border-color:var(--green);color:var(--green)}
+  /* commentators */
+  .booth{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px 20px;background:radial-gradient(ellipse at top,#161033 0%,#07090f 70%)}
+  .caster{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px;min-height:118px;position:relative;transition:box-shadow .2s}
+  .caster.talking{box-shadow:0 0 0 2px var(--pink),0 0 30px rgba(255,63,164,.35)}
+  .caster .av{width:96px;height:96px;border-radius:12px;overflow:hidden;background:#161c2e;flex:none;font-size:48px;display:flex;align-items:center;justify-content:center}
+  .caster .av img{width:100%;height:100%;object-fit:cover}
+  .caster .nm{font-weight:900;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--gold)}
+  .bubble{margin-top:6px;background:#141a2c;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:15px;line-height:1.35;min-height:52px}
+  .bubble.hy{border-color:#3a2a4a}
+  .caster.sloth .bubble{font-style:italic}
+  .interview{grid-column:1/3;display:none;background:linear-gradient(90deg,#1a1606,#0e1220);border:1px solid var(--gold);border-radius:14px;padding:10px;gap:12px;align-items:center}
+  .interview.show{display:flex}
+  .interview .av{width:120px;height:68px;border-radius:10px;overflow:hidden;flex:none}
+  .interview .av img{width:100%;height:100%;object-fit:cover}
+  .interview .tag{font-size:10px;letter-spacing:2px;color:var(--gold)}
+  .interview .q{font-size:15px;line-height:1.35}
+  /* the match */
+  .arena{display:grid;grid-template-columns:1fr 90px 1fr;gap:12px;padding:0 20px 14px;align-items:stretch}
+  .fighter{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+  .fighter.lead{border-color:var(--green)}
+  .fighter .hero{aspect-ratio:16/9;background:#161c2e;position:relative}
+  .fighter .hero img{width:100%;height:100%;object-fit:cover;display:block}
+  .fighter .hero .badge{position:absolute;left:10px;top:10px;background:rgba(7,9,15,.8);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px}
+  .fighter .body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .fighter .nm{font-size:18px;font-weight:900}
+  .fighter .eq{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+  .up{color:var(--green)} .dn{color:var(--red)}
+  .pos{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #141a2c}
+  .acts{font-size:12px;color:var(--dim);max-height:150px;overflow:auto}
+  .acts div{padding:4px 0;border-bottom:1px solid #141a2c;line-height:1.35}
+  .acts .buy{color:var(--blue)} .acts .sell{color:var(--text)}
+  .vs{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  .vs .v{font-size:34px;font-weight:900;color:var(--pink);letter-spacing:2px}
+  .vs .bar{width:14px;height:200px;background:#1a2236;border-radius:7px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+  .vs .bar i{display:block;background:var(--green);width:100%}
+  /* tickers */
+  .tickers{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 14px}
+  .ticker{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .ticker h3{margin:0;padding:8px 12px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+  .ticker .rows{max-height:210px;overflow:auto;font-size:12px}
+  .ticker .rows div{display:flex;justify-content:space-between;gap:8px;padding:5px 12px;border-bottom:1px solid #141a2c}
+  .ticker .rows a{color:var(--blue);text-decoration:none;font-weight:700}
+  .tape{padding:0 20px 20px}
+  .tape .rows{background:var(--panel);border:1px solid var(--border);border-radius:12px;max-height:200px;overflow:auto;font-size:12px}
+  .tape .rows div{padding:6px 12px;border-bottom:1px solid #141a2c;line-height:1.35}
+  .tape .k{color:var(--dim);font-size:10px;margin-right:6px;font-variant-numeric:tabular-nums}
+  .chip{display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;background:#161c2e;color:var(--dim);margin-left:4px}
+  @media (max-width:1000px){.booth,.arena,.tickers{grid-template-columns:1fr}.vs{flex-direction:row}.vs .bar{width:200px;height:14px;flex-direction:row}.interview{grid-column:auto}}
+</style>
+</head>
+<body>
+<header>
+  <img src="/stonkwars/logo.png" alt="">
+  <h1>STONK <span>WARS</span></h1>
+  <div><div class="sub" id="matchTitle">LIVE MATCH</div><div class="sub"><a href="/" style="color:var(--blue)">bracket</a> · <a href="/match.html?auto=1" style="color:var(--blue)">director mode</a></div></div>
+  <button class="btn" id="voiceBtn" onclick="voiceOn()">🔊 Enable voice</button>
+  <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
+</header>
+
+<section class="booth">
+  <div class="caster hyena" id="c-hyena"><div class="av" id="av-hyena">🐆</div><div style="flex:1"><div class="nm" id="nm-hyena">Rocky the Hyena</div><div class="bubble hy" id="b-hyena">…</div></div></div>
+  <div class="caster sloth" id="c-sloth"><div class="av" id="av-sloth">🦥</div><div style="flex:1"><div class="nm" id="nm-sloth">Professor Sloth</div><div class="bubble" id="b-sloth">…</div></div></div>
+  <div class="interview" id="iv"><div class="av" id="iv-av"></div><div><div class="tag">🎤 RINGSIDE INTERVIEW · <span id="iv-name"></span></div><div class="q" id="iv-text"></div></div></div>
+</section>
+
+<section class="arena">
+  <div class="fighter" id="fA"></div>
+  <div class="vs"><div class="v">VS</div><div class="bar"><i id="vsbar" style="height:50%"></i></div><div class="sub" id="vsline"></div></div>
+  <div class="fighter" id="fB"></div>
+</section>
+
+<section class="tickers">
+  <div class="ticker"><h3><span>🆕 New on pump.fun</span><span id="pfState" class="sub"></span></h3><div class="rows" id="pumpRows"></div></div>
+  <div class="ticker"><h3><span>📈 Live market — what they trade from</span><span id="mkState" class="sub"></span></h3><div class="rows" id="mktRows"></div></div>
+</section>
+
+<section class="tape"><div class="rows" id="tape"></div></section>
+
+<script>
+(function(){
+  var qs=new URLSearchParams(location.search);
+  var M=qs.get('m'); var AUTO=qs.get('auto')==='1';
+  var S=null, A={}, lastSeq=0, voice=false, queue=[], playing=false, lastRotate=0;
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function fmt(n){return '$'+Number(n).toLocaleString(undefined,{maximumFractionDigits:0})}
+  function neurons(n){return n>=1e9?(n/1e9).toFixed(n>=10e9?0:1)+'B':n>=1e6?(n/1e6).toFixed(0)+'M':(n/1e3).toFixed(0)+'K'}
+  function mmss(ms){ms=Math.max(0,ms);var s=Math.floor(ms/1000),m=Math.floor(s/60);s=s%60;return (m<10?'0':'')+m+':'+(s<10?'0':'')+s}
+  function ago(t){var s=Math.round((Date.now()-t)/1000);return s<60?s+'s':Math.round(s/60)+'m'}
+
+  // ---- voice: sequential playback of commentator/animal lines ----
+  window.voiceOn=function(){voice=!voice;document.getElementById('voiceBtn').textContent=voice?'🔊 Voice ON':'🔊 Enable voice';document.getElementById('voiceBtn').className='btn'+(voice?' on':'');if(voice)pump();};
+  function pump(){
+    if(!voice||playing||!queue.length) return;
+    var l=queue.shift(); playing=true;
+    var el=talkingEl(l); if(el) el.classList.add('talking');
+    var a=new Audio('/api/tts/'+l.id);
+    a.onended=a.onerror=function(){playing=false;if(el)el.classList.remove('talking');setTimeout(pump,250);};
+    a.play().catch(function(){playing=false;if(el)el.classList.remove('talking');setTimeout(pump,250);});
+  }
+  function talkingEl(l){ if(l.who==='hyena')return document.getElementById('c-hyena'); if(l.who==='sloth')return document.getElementById('c-sloth'); return document.getElementById('iv'); }
+
+  function showLine(l){
+    if(l.who==='hyena'||l.who==='sloth'){
+      document.getElementById('b-'+l.who).textContent=l.text;
+      if(l.kind==='interview'&&l.who){ /* keep interview card if an animal answered recently */ }
+    } else if(String(l.who).indexOf('animal:')===0){
+      var id=l.who.slice(7), a=A[id]||{};
+      var iv=document.getElementById('iv'); iv.classList.add('show');
+      document.getElementById('iv-av').innerHTML=a.image?'<img src="'+a.image+'">':'<div style="font-size:40px;text-align:center">'+(a.emoji||'')+'</div>';
+      document.getElementById('iv-name').textContent=(a.name||id).toUpperCase();
+      document.getElementById('iv-text').textContent='“'+l.text+'”';
+      clearTimeout(window._ivT); window._ivT=setTimeout(function(){iv.classList.remove('show')},25000);
+    }
+  }
+
+  function pollCommentary(){
+    fetch('/api/stonkwars/commentary?since='+lastSeq+(M?'&match='+encodeURIComponent(M):'')).then(function(r){return r.json()}).then(function(j){
+      var cast=j.cast||{};
+      ['hyena','sloth'].forEach(function(k){var c=cast[k];if(!c)return;document.getElementById('nm-'+k).textContent=c.name;var av=document.getElementById('av-'+k);if(c.image&&!av.querySelector('img'))av.innerHTML='<img src="'+c.image+'" onerror="this.remove()">';});
+      (j.lines||[]).forEach(function(l){ if(l.id>lastSeq)lastSeq=l.id; showLine(l); queue.push(l); });
+      if(queue.length>6) queue=queue.slice(-6); // never fall minutes behind live
+      pump();
+    }).catch(function(){});
+  }
+
+  // ---- the match ----
+  function fighter(id, opp, m){
+    var a=A[id]||{}, b=(S.books||{})[id]||{equity:S.config.startUsd,positions:[],closed:[]};
+    var pnl=b.equity-S.config.startUsd;
+    var acts=(S.feed||[]).filter(function(e){return e.animalId===id}).slice(0,6);
+    var lead=b.equity>((S.books||{})[opp]||{}).equity;
+    return '<div class="fighter'+(lead?' lead':'')+'"><div class="hero">'+(a.image?'<img src="'+a.image+'">':'')+'<div class="badge">#'+a.seed+' seed · '+neurons(a.neurons||0)+' neurons · '+esc((a.brain||{}).quirk||'')+'</div></div>'+
+      '<div class="body"><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+'</div>'+
+      '<div><span class="eq '+(pnl>=0?'up':'dn')+'">'+fmt(b.equity)+'</span> <span class="'+(pnl>=0?'up':'dn')+'" style="font-weight:700">'+(pnl>=0?'+':'')+fmt(pnl)+'</span> <span class="sub">· '+b.trades+' trades · '+b.wins+'W/'+b.losses+'L · cash '+fmt(b.cash||0)+'</span></div>'+
+      '<div>'+((b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+p.url+'" target="_blank" style="color:var(--blue);text-decoration:none">$'+esc(p.symbol)+'</a><span class="chip">'+esc(p.chainId||'')+'</span>'+(p.forgotten?' <span class="chip">🐟 forgotten</span>':'')+'</span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join('')||'<div class="sub">no open positions — watching the tape</div>')+'</div>'+
+      '<div class="acts">'+(acts.map(function(e){return '<div class="'+esc(e.kind)+'"><span class="sub">'+ago(e.at)+' ago</span> '+esc(e.text.replace(/^[^ ]+ [A-Za-z]+ /,''))+'</div>'}).join('')||'<div>no moves yet</div>')+'</div>'+
+      '</div></div>';
+  }
+  function currentMatch(){
+    var r=(S.rounds||[])[S.roundIdx]; if(!r) return null;
+    if(M){ for(var i=0;i<S.rounds.length;i++){var f=S.rounds[i].matches.filter(function(x){return x.id===M})[0]; if(f) return f;} }
+    var live=r.matches.filter(function(x){return !x.winner}); return live[0]||r.matches[0];
+  }
+  function render(){
+    if(!S) return;
+    var m=currentMatch();
+    if(!m){ document.getElementById('matchTitle').textContent=S.status==='idle'?'WAITING FOR THE OPENING BELL':'NO LIVE MATCH'; return; }
+    if(!M||M!==m.id){ M=m.id; lastSeq=0; }
+    var a=A[m.a]||{}, b=A[m.b]||{};
+    document.getElementById('matchTitle').textContent=(S.roundName||'')+' · '+a.name+' vs '+b.name;
+    document.title='STONK WARS · '+a.name+' vs '+b.name;
+    document.getElementById('fA').outerHTML=fighter(m.a,m.b,m).replace('<div class="fighter','<div id="fA" class="fighter');
+    document.getElementById('fB').outerHTML=fighter(m.b,m.a,m).replace('<div class="fighter','<div id="fB" class="fighter');
+    var ea=((S.books||{})[m.a]||{}).equity||0, eb=((S.books||{})[m.b]||{}).equity||0;
+    document.getElementById('vsbar').style.height=Math.round(ea/((ea+eb)||1)*100)+'%';
+    document.getElementById('vsline').textContent=fmt(ea)+' / '+fmt(eb);
+    var rn=document.getElementById('roundName'), ck=document.getElementById('clock');
+    if(S.status==='running'){var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now; if(toStart>0){rn.textContent='BELL IN';ck.textContent=mmss(toStart);} else {rn.textContent='TIME LEFT';ck.textContent=mmss(toEnd);} }
+    else {rn.textContent=S.status.toUpperCase();ck.textContent='--:--';}
+    document.getElementById('tape').innerHTML=(S.feed||[]).filter(function(e){return e.matchId===m.id||!e.matchId}).slice(0,30).map(function(e){return '<div class="'+esc(e.kind)+'"><span class="k">'+new Date(e.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})+'</span>'+esc(e.text)+'</div>'}).join('');
+    document.getElementById('mktRows').innerHTML=(S.market||[]).map(function(c){return '<div><span><a href="'+c.url+'" target="_blank">$'+esc(c.symbol)+'</a><span class="chip">'+esc(c.chainId)+'</span>'+(c.boosted?'<span class="chip">promo</span>':'')+'</span><span class="sub">'+c.ageMin+'m · $'+Math.round(c.liqUsd/1000)+'k pool · '+(c.liqUsd?(c.volH24/c.liqUsd).toFixed(1):'?')+'x churn</span><span class="'+(c.chgH24>=0?'up':'dn')+'">'+(c.chgH24>=0?'+':'')+c.chgH24+'%</span></div>'}).join('');
+    document.getElementById('mkState').textContent=(S.market||[]).length+' coins';
+    // director mode: rotate live matches every 90s
+    if(AUTO&&S.status==='running'&&Date.now()-lastRotate>90000){ var r=S.rounds[S.roundIdx]; var live=r.matches.filter(function(x){return !x.winner}); if(live.length>1){ var i=live.findIndex(function(x){return x.id===M}); M=live[(i+1)%live.length].id; lastSeq=0; queue=[]; } lastRotate=Date.now(); }
+  }
+  function refresh(){ fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();}).catch(function(){}); }
+  function pollPump(){ fetch('/api/stonkwars/pumpfeed').then(function(r){return r.json()}).then(function(j){document.getElementById('pfState').textContent=j.connected?'live':'reconnecting…';document.getElementById('pumpRows').innerHTML=(j.launches||[]).map(function(t){return '<div><span><a href="'+t.url+'" target="_blank">$'+esc(t.symbol||'?')+'</a> <span class="sub">'+esc((t.name||'').slice(0,28))+'</span></span><span class="sub">'+ago(t.at)+' ago'+(t.devBuySol?' · dev '+t.devBuySol.toFixed(2)+' SOL':'')+'</span></div>'}).join('')||'<div class="sub">waiting for launches…</div>';}).catch(function(){}); }
+  refresh(); setInterval(refresh,3000); pollCommentary(); setInterval(pollCommentary,2000); pollPump(); setInterval(pollPump,4000);
+  setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var ck=document.getElementById('clock');var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd);} },1000);
+})();
+</script>
+</body>
+</html>

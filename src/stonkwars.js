@@ -55,9 +55,13 @@ function save() {
   if (saveTimer) return;
   saveTimer = setTimeout(() => { saveTimer = null; try { fs.writeFileSync(STATE_FILE, JSON.stringify(state)); } catch { /* disk */ } }, 300);
 }
+const listeners = [];
+function onEvent(fn) { listeners.push(fn); }
 function event(kind, text, extra) {
-  state.feed.unshift({ at: Date.now(), kind, text, ...(extra || {}) });
+  const e = { at: Date.now(), kind, text, ...(extra || {}) };
+  state.feed.unshift(e);
   if (state.feed.length > 300) state.feed.length = 300;
+  for (const fn of listeners) { try { fn(e, state); } catch { /* a commentator crash never touches the bracket */ } }
 }
 
 // ---------- the coin feed (shared, fair) ----------
@@ -83,26 +87,52 @@ const SIGNALS = [
   { key: 'age', cost: 0.60, w: 0.8, f: (c) => { const h = (Date.now() - (c.pairCreatedAt || Date.now())) / 3600000; if (h >= 1 && h <= 12) return 1; if (h < 1) return 0.5; if (h <= 24) return 0.6; return 0.2; } },
   { key: 'mcapLiq', cost: 0.80, w: 0.8, f: (c) => { const r = c.liqUsd ? (c.mcapUsd || 0) / c.liqUsd : 999; return r <= 30 ? 1 : r <= 100 ? 0.5 : 0; } },
 ];
-function score(animal, coin, ctx) {
+// Human-readable value of a signal for the commentary / showcase view.
+function describe(key, coin) {
+  const churn = coin.liqUsd ? coin.volH24 / coin.liqUsd : 0;
+  const ageH = (Date.now() - (coin.pairCreatedAt || Date.now())) / 3600000;
+  switch (key) {
+    case 'momentum': return (coin.chgH24 >= 0 ? '+' : '') + Math.round(coin.chgH24 || 0) + '% today';
+    case 'pool': return '$' + Math.round((coin.liqUsd || 0) / 1000) + 'k pool';
+    case 'boost': return coin.boosted ? 'paid promo' : 'no promo';
+    case 'churn': return churn.toFixed(1) + 'x churn';
+    case 'age': return (ageH < 1 ? Math.round(ageH * 60) + 'm' : ageH.toFixed(1) + 'h') + ' old';
+    case 'mcapLiq': return 'mcap ' + Math.round(coin.liqUsd ? (coin.mcapUsd || 0) / coin.liqUsd : 0) + 'x pool';
+    default: return key;
+  }
+}
+
+// `out`, if given, is filled with WHY the score came out the way it did —
+// which signals this brain could see, what each said, the social nudges and
+// the noise. The showcase view reads this to explain every buy.
+function score(animal, coin, ctx, out) {
   const b = animal.brain;
   const depth = b.quirk === 'tools' ? Math.max(b.depth, 0.9) : b.depth; // the crow's tools
   let num = 0, den = 0;
+  const seen = [], blind = [];
   for (const s of SIGNALS) {
-    if (s.cost > depth) continue;
+    if (s.cost > depth) { blind.push(s.key); continue; }
     let w = s.w;
     if (b.quirk === 'hunt' && s.key === 'momentum') w *= 2;
     if (b.quirk === 'echolocate' && (s.key === 'churn' || s.key === 'momentum')) w *= 1.5;
-    num += w * s.f(coin, animal); den += w;
+    const v = s.f(coin, animal);
+    num += w * v; den += w;
+    seen.push({ key: s.key, value: +v.toFixed(2), text: describe(s.key, coin), good: v >= 0.6 });
   }
   let sc = den ? num / den : 0.5;
-  // social quirks
+  const nudges = [];
   const holders = ctx.holders[coin.address] || 0;
-  if (b.quirk === 'pack' && holders >= 2) sc += 0.15;
-  if (b.quirk === 'contrarian') { if (holders >= 2) sc -= 0.2; if (ctx.recentlySold[coin.address]) sc += 0.2; }
-  if (b.quirk === 'mimic' && ctx.leaderLastBuy === coin.address) sc += 0.3;
-  if (b.quirk === 'grudge' && ctx.grudges[animal.id] && ctx.grudges[animal.id][coin.address]) return -1;
-  // noise shrinks with depth
-  sc += (ctx.rng() * 2 - 1) * (1 - depth) * 0.4;
+  if (b.quirk === 'pack' && holders >= 2) { sc += 0.15; nudges.push(holders + ' others hold it — pack instinct'); }
+  if (b.quirk === 'contrarian') {
+    if (holders >= 2) { sc -= 0.2; nudges.push('too crowded — cat is not impressed'); }
+    if (ctx.recentlySold[coin.address]) { sc += 0.2; nudges.push('someone just dumped it — contrarian likes that'); }
+  }
+  if (b.quirk === 'mimic' && ctx.leaderLastBuy === coin.address) { sc += 0.3; nudges.push('the leader just bought this — parrot copies'); }
+  if (b.quirk === 'shiny' && coin.boosted) nudges.push('shiny paid promo — raccoon cannot resist');
+  if (b.quirk === 'grudge' && ctx.grudges[animal.id] && ctx.grudges[animal.id][coin.address]) { if (out) out.veto = 'burned by this coin before — never again'; return -1; }
+  const noise = (ctx.rng() * 2 - 1) * (1 - depth) * 0.4;
+  sc += noise;
+  if (out) Object.assign(out, { score: +sc.toFixed(2), signals: seen, blind, nudges, noise: +noise.toFixed(2) });
   return sc;
 }
 
@@ -111,7 +141,7 @@ function newBook(animalId) {
   return { animalId, cashUsd: config.STONK_START_USD || 1000, positions: {}, closed: [], realized: 0, trades: 0, wins: 0, losses: 0, grudges: {}, forgotten: {}, threshAdj: 0, lastTickAt: 0, lastBuy: null };
 }
 function equityOf(book) { let e = book.cashUsd; for (const p of Object.values(book.positions)) e += p.tokens * (p.priceUsd || p.entryPriceUsd); return e; }
-function buy(animal, book, coin, matchId) {
+function buy(animal, book, coin, matchId, why) {
   const eq = equityOf(book);
   let usd = Math.min(book.cashUsd, Math.max(10, animal.brain.sizeFrac * eq));
   if (usd < 10) return false;
@@ -125,7 +155,20 @@ function buy(animal, book, coin, matchId) {
     book.positions[coin.address] = { address: coin.address, chainId: coin.chainId, symbol: coin.symbol, url: coin.url, tokens, investedUsd: usd, entryPriceUsd: coin.priceUsd, priceUsd: coin.priceUsd, peakPriceUsd: coin.priceUsd, entryLiqUsd: coin.liqUsd, liqUsd: coin.liqUsd, volH24: coin.volH24, openedAt: Date.now() };
   }
   book.trades++; book.lastBuy = coin.address;
-  event('buy', animal.emoji + ' ' + animal.name + ' bought $' + coin.symbol + ' for $' + usd.toFixed(0) + (existing ? ' (again — it forgot it already owned it)' : ''), { animalId: animal.id, matchId, symbol: coin.symbol, usd, chainId: coin.chainId });
+  if (why) book.positions[coin.address].why = why;
+  // The reason, in words: which signals it could see and what they said.
+  const w = why || {};
+  const liked = (w.signals || []).filter((s) => s.good).map((s) => s.text);
+  const disliked = (w.signals || []).filter((s) => !s.good).map((s) => s.text);
+  const reason = [
+    liked.length ? 'liked ' + liked.join(', ') : null,
+    disliked.length ? 'ignored ' + disliked.join(', ') : null,
+    (w.blind || []).length ? 'cannot even perceive ' + w.blind.join('/') : null,
+    ...(w.nudges || []),
+    w.score != null ? 'score ' + w.score + ' vs threshold ' + w.threshold : null,
+  ].filter(Boolean).join(' · ');
+  event('buy', animal.emoji + ' ' + animal.name + ' bought $' + coin.symbol + ' for $' + usd.toFixed(0) + (existing ? ' (again — it forgot it already owned it)' : '') + (reason ? ' — ' + reason : ''),
+    { animalId: animal.id, matchId, symbol: coin.symbol, usd, chainId: coin.chainId, why: w, url: coin.url });
   return true;
 }
 function sell(animal, book, pos, frac, reason, matchId) {
@@ -142,7 +185,10 @@ function sell(animal, book, pos, frac, reason, matchId) {
   if (frac >= 1) delete book.positions[pos.address]; else { pos.tokens -= tokens; pos.investedUsd -= cost; }
   if (animal.brain.quirk === 'grudge' && pnl < 0) book.grudges[pos.address] = true;
   if (animal.brain.quirk === 'adaptive') book.threshAdj = Math.max(-0.1, Math.min(0.15, book.threshAdj + (pnl < 0 ? 0.05 : -0.03)));
-  event('sell', animal.emoji + ' ' + animal.name + ' sold $' + pos.symbol + ' — ' + reason + ' (' + (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2) + ')', { animalId: animal.id, matchId, symbol: pos.symbol, pnlUsd: pnl });
+  const heldMin = Math.round((Date.now() - pos.openedAt) / 60000);
+  const movePct = Math.round((price / pos.entryPriceUsd - 1) * 100);
+  event('sell', animal.emoji + ' ' + animal.name + ' sold ' + (frac >= 1 ? '' : Math.round(frac * 100) + '% of ') + '$' + pos.symbol + ' — ' + reason + ' (' + (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2) + ', ' + (movePct >= 0 ? '+' : '') + movePct + '% after ' + heldMin + 'm)',
+    { animalId: animal.id, matchId, symbol: pos.symbol, pnlUsd: pnl, movePct, heldMin, reason, frac, url: pos.url });
 }
 
 // ---------- one animal, one tick ----------
@@ -177,15 +223,19 @@ function act(animal, book, matchId, ctx, now) {
   const open = Object.keys(book.positions).length;
   if (open >= b.maxPositions) return;
   const coins = feedCoins().slice(0, b.memory); // what it can hold in mind
-  let best = null, bestScore = -1;
+  let best = null, bestScore = -1, bestWhy = null;
   ctx.grudges = { [animal.id]: book.grudges };
   for (const c of coins) {
     if (book.positions[c.address] && !book.forgotten[c.address]) continue; // already owns it (and remembers)
-    const s = score(animal, c, ctx);
-    if (s > bestScore) { bestScore = s; best = c; }
+    const why = {};
+    const s = score(animal, c, ctx, why);
+    if (s > bestScore) { bestScore = s; best = c; bestWhy = why; }
   }
   const threshold = b.threshold + (book.threshAdj || 0);
-  if (best && bestScore >= threshold && rng() < b.impulsivity) buy(animal, book, best, matchId);
+  if (best && bestScore >= threshold) {
+    if (rng() < b.impulsivity) buy(animal, book, best, matchId, { ...bestWhy, threshold: +threshold.toFixed(2) });
+    else if (rng() < 0.15) event('pass', animal.emoji + ' ' + animal.name + ' eyed $' + best.symbol + ' (score ' + bestWhy.score + ') and… did not pull the trigger', { animalId: animal.id, matchId, symbol: best.symbol });
+  }
 }
 
 // ---------- prices for held coins (chain-matched, every 15s) ----------
@@ -338,6 +388,8 @@ function status() {
     rounds: state.rounds, books, feed: state.feed.slice(0, 80),
     animals: ANIMALS.map((a) => ({ id: a.id, name: a.name, emoji: a.emoji, neurons: a.neurons, brain: a.brain, blurb: a.blurb, image: imageFor(a.id), seed: seedOrder().indexOf(a.id) + 1 })),
     config: { matchMs: config.STONK_MATCH_MS || 3600000, intermissionMs: config.STONK_INTERMISSION_MS || 180000, startUsd: config.STONK_START_USD || 1000, feedCoins: feedCoins().length },
+    // the live market every animal is choosing from — for the showcase ticker
+    market: feedCoins().slice(0, 24).map((c) => ({ symbol: c.symbol, chainId: c.chainId, priceUsd: c.priceUsd, liqUsd: Math.round(c.liqUsd), volH24: Math.round(c.volH24), chgH24: Math.round(c.chgH24 || 0), ageMin: Math.round((now - c.pairCreatedAt) / 60000), boosted: !!c.boosted, url: c.url })),
   };
 }
 function start() {
@@ -348,4 +400,4 @@ function start() {
   console.log('[stonkwars] PAPER · 16-animal bracket · ' + state.status + (state.status === 'running' ? ' (' + (ROUND_NAMES[state.roundIdx] || '?') + ')' : ''));
 }
 
-module.exports = { start, status, startTournament, reset, pause, resume, ANIMALS };
+module.exports = { start, status, startTournament, reset, pause, resume, ANIMALS, onEvent, equityOf, BY_ID, _state: state };

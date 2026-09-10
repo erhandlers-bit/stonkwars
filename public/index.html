@@ -74,7 +74,7 @@
   <h1>STONK <span>WARS</span></h1>
   <div>
     <div class="sub">16 animals · 16 virtual brains · $1,000 each · one hour to trade memecoins · winner advances</div>
-    <div class="sub"><span id="feedN"></span></div>
+    <div class="sub"><span id="feedN"></span> <a href="/match.html?auto=1" style="color:var(--blue);text-decoration:none;font-weight:700">🎥 showcase · director mode</a></div>
   </div>
   <div class="admin" id="admin">
     <button class="go" onclick="ctl('start')">▶ Start</button>
@@ -155,7 +155,8 @@
         var live=r&&S.roundIdx===i&&S.status==='running'&&S.now>=r.startAt&&S.now<r.endAt;
         if(!m){html+='<div class="match">'+side(null,{})+side(null,{})+'</div>';continue;}
         var ea=(S.books[m.a]||{}).equity||0, eb=(S.books[m.b]||{}).equity||0; var tot=ea+eb||1;
-        html+='<div class="match'+(live?' live':'')+(m.winner?' done':'')+'">'+side(m.a,m,live)+'<div class="bar"><i style="width:'+Math.round(ea/tot*100)+'%"></i></div>'+side(m.b,m,live)+'</div>';
+        html+='<div class="match'+(live?' live':'')+(m.winner?' done':'')+'">'+side(m.a,m,live)+'<div class="bar"><i style="width:'+Math.round(ea/tot*100)+'%"></i></div>'+side(m.b,m,live)+
+          '<a href="/match.html?m='+m.id+'" style="position:absolute;right:8px;top:8px;font-size:10px;letter-spacing:1px;padding:3px 7px;border-radius:5px;background:'+(live?'#123d1e':'#161c2e')+';color:'+(live?'var(--green)':'var(--dim)')+';border:1px solid '+(live?'var(--green)':'var(--border)')+';text-decoration:none;font-weight:700">'+(live?'▶ WATCH LIVE':'▶ WATCH')+'</a></div>';
       }
       col.innerHTML=html;
     }
