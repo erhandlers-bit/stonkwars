@@ -153,6 +153,7 @@ function whyText(w) {
 
 // ---------------- event -> lines ----------------
 function reactTo(e, st, rng) {
+  if (e.kind === 'result' && e.matchId) { try { const fid = require('./desk').featured(); if (fid && e.matchId !== fid) return; } catch { /* agents off */ } } // results of matches not on the stream stay quiet
   if (config.STONK_AGENTS && process.env.ANTHROPIC_API_KEY && !['round', 'result', 'champion', 'picks'].includes(e.kind)) return; // the desk agents (desk.js) react on their own
   const a = e.animalId ? require('./stonkwars').BY_ID[e.animalId] : null;
   // spoken text: no emoji (the voice reads them out loud), no double spaces
@@ -270,7 +271,8 @@ async function interview() {
   if (st.status !== 'running') return;
   const round = st.rounds[st.roundIdx];
   if (!round || Date.now() < round.startAt) return;
-  const live = round.matches.filter((m) => !m.winner).flatMap((m) => [[m.a, m.id], [m.b, m.id]]);
+  let live = round.matches.filter((m) => !m.winner).flatMap((m) => [[m.a, m.id], [m.b, m.id]]);
+  try { const fid = require('./desk').featured(); const onAir = live.filter(([, mid]) => mid === fid); if (onAir.length) live = onAir; } catch { /* agents off */ } // interview only who is on the stream
   if (!live.length) return;
   const [id, matchId] = live[Math.floor(Math.random() * live.length)];
   const a = sw.BY_ID[id];
@@ -404,7 +406,7 @@ function since(id, matchId) {
   for (const l of lines) { if (l.id <= id) break; if (!matchId || !l.matchId || l.matchId === matchId) out.push(l); }
   return out.reverse();
 }
-function status() { return { cast: CAST, latest: lines.slice(0, 40), seq }; }
+function status() { let featured = null; try { featured = require('./desk').featured(); } catch { /* agents off */ } return { cast: CAST, latest: lines.slice(0, 40), seq, featured }; }
 function line(id) { return lines.find((l) => l.id === Number(id)) || null; }
 
 function start() {

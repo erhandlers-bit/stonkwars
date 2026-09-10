@@ -59,6 +59,7 @@
   .vs .v{font-size:22px;font-weight:900;color:var(--pink);letter-spacing:2px}
   .vs .bar{flex:1;height:14px;background:#1a2236;border-radius:7px;overflow:hidden;display:flex;flex-direction:row;justify-content:flex-start}
   .vs .bar i{display:block;background:var(--green);height:100%}
+  .fighter .list{max-height:118px;overflow:auto}
   .fighter .sec{font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-top:4px}
   .fighter .pos a{color:var(--blue);text-decoration:none;font-weight:700}
   /* tickers */
@@ -148,7 +149,7 @@
   function react(kind){ sfx(SFX_FOR[kind]); var v=document.getElementById('deskReact'); if(!v||reactBusy) return; reactBusy=true; v.src='/stonkwars/desk-'+kind+'.mp4'; v.currentTime=0;
     var done=function(){ v.classList.remove('on'); reactBusy=false; }; v.onended=done; v.onerror=done;
     v.play().then(function(){ v.classList.add('on'); }).catch(done); }
-  function reactToFeed(){ if(!S||!S.feed) return; var fresh=S.feed.filter(function(e){return e.at>lastFeedAt}); if(!fresh.length) return; lastFeedAt=Math.max.apply(null,fresh.map(function(e){return e.at}));
+  function reactToFeed(){ if(!S||!S.feed) return; var fresh=S.feed.filter(function(e){return e.at>lastFeedAt}); if(!fresh.length) return; fresh=fresh.filter(function(e){ return !e.matchId||e.matchId===M; }); // only the match on screen lastFeedAt=Math.max.apply(null,fresh.map(function(e){return e.at}));
     var kinds=fresh.map(function(e){
       if(e.kind==='sell'&&e.reason==='rug') return 'rug'; if(e.kind==='sell'&&e.reason==='stop') return 'stop';
       if(e.kind==='sell'&&(e.reason==='take'||e.reason==='trail')) return 'take';
@@ -201,6 +202,7 @@
   function pollCommentary(){
     fetch('/api/stonkwars/commentary?since='+lastSeq+(M?'&match='+encodeURIComponent(M):'')).then(function(r){return r.json()}).then(function(j){
       var cast=j.cast||{};
+      if(AUTO&&j.featured&&j.featured!==M){ M=j.featured; lastSeq=0; queue=[]; refresh(); }
       ['stonks','notstonks'].forEach(function(k){var c=cast[k];if(!c)return;document.getElementById('nm-'+k).textContent=c.name;document.getElementById('nmb-'+k).textContent=c.name;});
       (j.lines||[]).forEach(function(l){ if(l.id>lastSeq)lastSeq=l.id; showLine(l); queue.push(l); }); try{ reactToLines(j.lines||[]); }catch(x){}
       if(queue.length>6) queue=queue.slice(-6); // never fall minutes behind live
@@ -218,8 +220,8 @@
     return '<div class="fighter'+(lead?' lead':'')+'"><div class="hero">'+(a.image?'<img src="'+a.image+'">':'')+'<div class="badge">#'+a.seed+' seed · '+neurons(a.neurons||0)+' neurons · '+esc((a.brain||{}).quirk||'')+'</div></div>'+
       '<div class="body"><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+'</div>'+
       '<div><span class="eq '+(pnl>=0?'up':'dn')+'">'+fmt(b.equity)+'</span> <span class="'+(pnl>=0?'up':'dn')+'" style="font-weight:700">'+(pnl>=0?'+':'')+fmt(pnl)+'</span> <span class="sub">· '+b.trades+' trades · '+b.wins+'W/'+b.losses+'L · cash '+fmt(b.cash||0)+'</span></div>'+
-      '<div class="sec">Holding</div><div>'+((b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+esc(p.url||chart(p))+'" target="_blank" rel="noopener">$'+esc(p.symbol)+' ↗</a><span class="chip">'+esc(p.chainId||'')+'</span>'+(p.forgotten?' <span class="chip">🐟 forgotten</span>':'')+'</span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join('')||'<div class="sub">nothing — all cash</div>')+'</div>'+
-      '<div class="sec">Sold</div><div>'+((b.closed||[]).slice(0,6).map(function(c){var pct=c.investedUsd?Math.round(c.pnlUsd/c.investedUsd*100):0;return '<div class="pos"><span><a href="'+esc(c.url||chart(c))+'" target="_blank" rel="noopener">$'+esc(c.symbol)+' ↗</a><span class="chip">'+esc(c.reason||'')+'</span></span><span class="'+(c.pnlUsd>=0?'up':'dn')+'">'+(c.pnlUsd>=0?'+':'')+fmt(c.pnlUsd)+' ('+(pct>=0?'+':'')+pct+'%)</span></div>'}).join('')||'<div class="sub">no sells yet</div>')+'</div>'+
+      '<div class="sec">Holding</div><div class="list">'+((b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+esc(p.url||chart(p))+'" target="_blank" rel="noopener">$'+esc(p.symbol)+' ↗</a><span class="chip">'+esc(p.chainId||'')+'</span>'+(p.forgotten?' <span class="chip">🐟 forgotten</span>':'')+'</span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join('')||'<div class="sub">nothing — all cash</div>')+'</div>'+
+      '<div class="sec">Sold</div><div class="list">'+((b.closed||[]).slice(0,6).map(function(c){var pct=c.investedUsd?Math.round(c.pnlUsd/c.investedUsd*100):0;return '<div class="pos"><span><a href="'+esc(c.url||chart(c))+'" target="_blank" rel="noopener">$'+esc(c.symbol)+' ↗</a><span class="chip">'+esc(c.reason||'')+'</span></span><span class="'+(c.pnlUsd>=0?'up':'dn')+'">'+(c.pnlUsd>=0?'+':'')+fmt(c.pnlUsd)+' ('+(pct>=0?'+':'')+pct+'%)</span></div>'}).join('')||'<div class="sub">no sells yet</div>')+'</div>'+
       '<div class="sec">Last moves</div><div class="acts">'+(acts.map(function(e){return '<div class="'+esc(e.kind)+'"><span class="sub">'+ago(e.at)+' ago</span> '+esc(e.text.replace(/^[^ ]+ [A-Za-z]+ /,''))+'</div>'}).join('')||'<div>no moves yet</div>')+'</div>'+
       '</div></div>';
   }
@@ -248,7 +250,7 @@
     document.getElementById('mktRows').innerHTML=(S.market||[]).map(function(c){return '<div><span><a href="'+c.url+'" target="_blank">$'+esc(c.symbol)+'</a><span class="chip">'+esc(c.chainId)+'</span>'+(c.boosted?'<span class="chip">promo</span>':'')+'</span><span class="sub">'+c.ageMin+'m · $'+Math.round(c.liqUsd/1000)+'k pool · '+(c.liqUsd?(c.volH24/c.liqUsd).toFixed(1):'?')+'x churn</span><span class="'+(c.chgH24>=0?'up':'dn')+'">'+(c.chgH24>=0?'+':'')+c.chgH24+'%</span></div>'}).join('');
     document.getElementById('mkState').textContent=(S.market||[]).length+' coins';
     // director mode: rotate live matches every 90s
-    if(AUTO&&S.status==='running'&&Date.now()-lastRotate>90000){ var r=S.rounds[S.roundIdx]; var live=r.matches.filter(function(x){return !x.winner}); if(live.length>1){ var i=live.findIndex(function(x){return x.id===M}); M=live[(i+1)%live.length].id; lastSeq=0; queue=[]; } lastRotate=Date.now(); }
+    // director mode follows the server's featured match (see desk.js featured())
   }
   function refreshHook(){ try{ reactToFeed(); reactToState(); }catch(x){} }
   function refresh(){ fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();refreshHook();}).catch(function(){}); }
