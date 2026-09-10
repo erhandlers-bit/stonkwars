@@ -283,38 +283,9 @@
       else if(S&&S.status==='running'){lock.textContent='picks locked for '+(v.roundName||'this round')+' — reopen at the next intermission';}
       else if(S&&S.status==='done'){lock.textContent='tournament over';}
       else {lock.textContent='picks open when the bracket is set';}
-      var need=hg.minTokens?(hg.minTokens>=1e6?(hg.minTokens/1e6)+'M':hg.minTokens.toLocaleString())+' '+coin:(hg.minUsd?'
+      var need=hg.minTokens?(hg.minTokens>=1e6?(hg.minTokens/1e6)+'M':hg.minTokens.toLocaleString())+' '+coin:(hg.minUsd?'$'+hg.minUsd+' of '+coin:''); if(need){ var h=document.getElementById('lkHold'); h.textContent=need; var fh=document.getElementById('flyHold'); if(fh) fh.textContent=need; }
       var mineN=v.mine?Object.keys(v.mine).length:0;
       var hold=v.myHold?(v.myHold.gated?(' · you hold <b class="'+(v.myHold.eligible?'up':'dn')+'">$'+Number(v.myHold.usd).toFixed(2)+'</b> of '+coin+' ('+Math.round(v.myHold.tokens||0).toLocaleString()+' tokens)'+(v.myHold.eligible?' ✓ eligible':' — need '+need+' to be paid')):''):'';
-      document.getElementById('pkMine').innerHTML=(PK.wallet?(mineN?('your picks: <b>'+mineN+' locked</b>'):'no picks locked yet')+hold:'');
-      if(v.mine&&!PK.touched){ PK.sel={}; for(var k in v.mine) PK.sel[k]=v.mine[k]; }
-      document.getElementById('pkChips').innerHTML='';
-      var tot=v.totalVotes||0; var t=document.getElementById('pkTally');
-      t.innerHTML=tot?(tot+' wallet'+(tot===1?'':'s')+' locked picks'):'';
-      var last=(v.settlements||[])[0];
-      if(last) t.innerHTML+=(t.innerHTML?' · ':'')+'last round: '+last.correct+' of '+last.votes+' wallets called winners ('+(last.shares||last.correct)+' shares) · '+(last.currency==='COIN'?(last.mode==='paid'?'airdropped ':'owed ')+Math.round(last.treasury&&last.treasury.toWinnersPro||0).toLocaleString()+' $'+SYM:((last.mode==='paid'?'airdropped ':'pool ')+Number(last.poolSol||0).toFixed(3)+' SOL'));
-      var fl=document.getElementById('flyLive'); if(fl){ var tr=last&&last.treasury; fl.innerHTML=(tr?('last round: claimed <b>'+Number(tr.claimedSol||0).toFixed(3)+' SOL</b> · bought <b>'+Math.round(tr.boughtPro||0).toLocaleString()+' $'+SYM+'</b> with '+Number(tr.buybackSol||0).toFixed(3)+' SOL · <b>'+Math.round(tr.toWinnersPro||0).toLocaleString()+' $'+SYM+'</b> to '+last.correct+' wallet'+(last.correct===1?'':'s')+(tr.mode==='dry'?' (dry run)':'')):'no round settled yet')+(pool.address?' · dev wallet <a href="https://solscan.io/account/'+pool.address+'" target="_blank" rel="noopener">'+short(pool.address)+'</a>':''); }
-      render(); pkCount();
-    }).catch(function(){});
-  }
-  function ledgerRefresh(){
-    fetch('/api/stonkwars/payouts').then(function(r){return r.json()}).then(function(l){
-      var el=document.getElementById('ledger'); if(!el) return; var rows=l.rows||[]; var LSYM=(l.coin&&l.coin.symbol)||'COIN';
-      if(!rows.length){ el.innerHTML='<span class="sub">no payouts yet — the first settlement lands at the end of round 1</span>'; return; }
-      el.innerHTML='<table class="led"><tr><th>round</th><th>wallet</th><th>shares</th><th>amount</th><th>status</th><th>tx</th></tr>'+rows.map(function(r){
-        return '<tr><td>'+(['R16','QF','SF','Final'][r.round]||r.round)+'</td><td><a href="https://solscan.io/account/'+esc(r.wallet)+'" target="_blank" rel="noopener">'+short(r.wallet)+'</a></td><td>'+r.shares+'</td><td><b>'+(r.currency==='COIN'?Math.round(r.amount).toLocaleString()+' $'+LSYM:Number(r.amount).toFixed(4)+' SOL')+'</b></td><td class="'+(r.status==='paid'?'up':(r.status==='failed'?'dn':'sub'))+'">'+r.status+'</td><td>'+(r.txid?'<a href="https://solscan.io/tx/'+esc(r.txid)+'" target="_blank" rel="noopener">'+r.txid.slice(0,6)+'…</a>':'—')+'</td></tr>'}).join('')+'</table>';
-    }).catch(function(){});
-  }
-  pkRefresh(); setInterval(pkRefresh,5000); ledgerRefresh(); setInterval(ledgerRefresh,30000);
-  refresh(); setInterval(refresh,3000);
-  setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var rn=document.getElementById('roundName'),ck=document.getElementById('clock');var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd);} },1000);
-})();
-</script>
-</body>
-</html>
-+hg.minUsd+' of '+coin:''); if(need){ var h=document.getElementById('lkHold'); h.textContent=need; var fh=document.getElementById('flyHold'); if(fh) fh.textContent=need; }
-      var mineN=v.mine?Object.keys(v.mine).length:0;
-      var hold=v.myHold?(v.myHold.gated?(' · you hold <b class="'+(v.myHold.eligible?'up':'dn')+'">$'+Number(v.myHold.usd).toFixed(2)+'</b> of '+coin+(v.myHold.eligible?' ✓ eligible':' — need $'+hg.minUsd+' to be paid')):''):'';
       document.getElementById('pkMine').innerHTML=(PK.wallet?(mineN?('your picks: <b>'+mineN+' locked</b>'):'no picks locked yet')+hold:'');
       if(v.mine&&!PK.touched){ PK.sel={}; for(var k in v.mine) PK.sel[k]=v.mine[k]; }
       document.getElementById('pkChips').innerHTML='';
