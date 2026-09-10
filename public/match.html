@@ -144,6 +144,8 @@
 
   // ---- the desk is video: an idle loop, plus a reaction clip when the tape says so (owner 2026-09-10) ----
   var reactBusy=false, lastFeedAt=Date.now();
+  function kickIdle(){ var v=document.getElementById('deskIdle'); if(v&&v.paused) v.play().catch(function(){}); }
+  kickIdle(); setTimeout(kickIdle,1500); document.addEventListener('click',kickIdle); document.addEventListener('visibilitychange',kickIdle);
   function react(kind){ var v=document.getElementById('deskReact'); if(!v||reactBusy) return; reactBusy=true; v.src='/stonkwars/desk-'+kind+'.mp4'; v.currentTime=0;
     var done=function(){ v.classList.remove('on'); reactBusy=false; }; v.onended=done; v.onerror=done;
     v.play().then(function(){ v.classList.add('on'); }).catch(done); }
