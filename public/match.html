@@ -147,7 +147,7 @@
   var reactBusy=false, lastFeedAt=Date.now();
   function kickIdle(){ var v=document.getElementById('deskIdle'); if(v&&v.paused) v.play().catch(function(){}); }
   kickIdle(); setTimeout(kickIdle,1500); document.addEventListener('click',kickIdle); document.addEventListener('visibilitychange',kickIdle);
-  function react(kind){ var v=document.getElementById('deskReact'); if(!v||reactBusy) return; reactBusy=true; v.src='/stonkwars/desk-'+kind+'.mp4'; v.currentTime=0;
+  function react(kind){ sfx(SFX_FOR[kind]); var v=document.getElementById('deskReact'); if(!v||reactBusy) return; reactBusy=true; v.src='/stonkwars/desk-'+kind+'.mp4'; v.currentTime=0;
     var done=function(){ v.classList.remove('on'); reactBusy=false; }; v.onended=done; v.onerror=done;
     v.play().then(function(){ v.classList.add('on'); }).catch(done); }
   function reactToFeed(){ if(!S||!S.feed) return; var fresh=S.feed.filter(function(e){return e.at>lastFeedAt}); if(!fresh.length) return; lastFeedAt=Math.max.apply(null,fresh.map(function(e){return e.at}));
@@ -167,12 +167,16 @@
   window.musicToggle=function(){ var a=document.getElementById('bgm'); if(!a) return; a.volume=0.3; a.play().then(function(){ musicOn=true; }).catch(function(){ musicOn=false; }); };
   // first click anywhere starts the music (browsers need a gesture); the 🎵 button still toggles it
   musicToggle(); ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ if(!musicOn) musicToggle(); }); });
+  // ---- soundboard: short stings on events and on lines the desk tags ----
+  var SFX_FOR={hype:'airhorn',rug:'scratch',stop:'trombone',take:'chaching',bell:'bell',champion:'applause',lead:'drumroll',fail:'buzzer',bored:'crickets',argue:'rimshot'};
+  var lastSfxAt=0;
+  function sfx(name){ if(!name) return; var now=Date.now(); if(now-lastSfxAt<1500) return; lastSfxAt=now; try{ var a=new Audio('/stonkwars/sfx/'+name+'.mp3'); a.volume=0.55; a.play().catch(function(){}); }catch(x){} }
   // ---- voice: sequential playback of commentator/animal lines ----
   window.voiceOn=function(){voice=!voice;if(voice&&!musicOn)musicToggle();document.getElementById('voiceBtn').textContent=voice?'🔊 Voice ON':'🔊 Enable voice';document.getElementById('voiceBtn').className='btn'+(voice?' on':'');if(voice)pump();};
   function pump(){
     if(!voice||playing||!queue.length) return;
     var l=queue.shift(); playing=true;
-    mark(l,true);
+    mark(l,true); if(l.sfx) sfx(l.sfx);
     var a=new Audio('/api/tts/'+l.id);
     a.onended=a.onerror=function(){playing=false;mark(l,false);setTimeout(pump,250);};
     a.play().catch(function(){playing=false;mark(l,false);setTimeout(pump,250);});

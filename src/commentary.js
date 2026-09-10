@@ -67,14 +67,14 @@ const recent = [];         // last events for the banter prompt
 
 function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
 function fill(t, v) { return t.replace(/\{(\w+)\}/g, (_, k) => (v[k] != null ? v[k] : '')); }
-function say(who, text, matchId, kind) {
+function say(who, text, matchId, kind, extra) {
   const now = Date.now();
   const gap = Number(config.STONK_LINE_GAP_MS || 3500);
   const protectedKind = kind === 'champion' || kind === 'round' || kind === 'result' || kind === 'interview';
   if (now - (lastSpoke[who] || 0) < gap && !protectedKind) return null; // do not talk over yourself
   lastSpoke[who] = now;
   const sp = speaker(who);
-  const l = { id: ++seq, at: now, who, name: sp.name, emoji: sp.emoji, image: sp.image, text, matchId: matchId || null, kind };
+  const l = { id: ++seq, at: now, who, name: sp.name, emoji: sp.emoji, image: sp.image, text, matchId: matchId || null, kind, ...(extra || {}) }; // extra: e.g. { sfx: 'airhorn' } from the soundboard
   lines.unshift(l);
   if (lines.length > 250) lines.length = 250;
   return l;
