@@ -3,8 +3,9 @@
 //   STONKS MAN       host + hype man. The Meme Man in the suit. Speaks in meme:
 //                     "Stonks." "Not stonks." "Line go up." Calmly certain,
 //                     wrong half the time, has never once doubted himself.
-//   PROFESSOR SLOTH   deadpan analyst. Always reacting to the trade from five
-//                     minutes ago. Dry as a bond prospectus.
+//   NOT STONKS MAN   the identical man in the identical suit, one seat to the
+//                     right. The bear. "Not stonks." "Line go down." Concedes
+//                     a win about once an hour, and hates it.
 //
 // Two layers:
 //   1. INSTANT lines — scripted pools keyed to what just happened (buy, big
@@ -23,8 +24,8 @@ const config = require('./config');
 
 const TTS_DIR = path.join(__dirname, '..', 'data', 'tts');
 const CAST = {
-  stonks: { name: 'Stonks Man', emoji: '📈', voice: 'en-US-AndrewNeural', rate: '+6%', pitch: '-4Hz', image: '/stonkwars/stonks.png' },
-  sloth: { name: 'Professor Sloth', emoji: '🦥', voice: 'en-US-ChristopherNeural', rate: '-28%', pitch: '-8Hz', image: '/stonkwars/sloth.png' },
+  stonks: { name: 'Stonks Man', emoji: '📈', voice: 'en-US-AndrewNeural', rate: '+6%', pitch: '-4Hz', image: '/stonkwars/stonks-r.png' },
+  notstonks: { name: 'Not Stonks Man', emoji: '📉', voice: 'en-US-ChristopherNeural', rate: '-2%', pitch: '-10Hz', image: '/stonkwars/stonks.png' },
 };
 
 // Every trading animal gets a voice too — for the interviews. Rate/pitch are
@@ -59,7 +60,7 @@ function speaker(who) {
 
 const lines = [];          // newest first
 let seq = 0;
-const lastSpoke = { stonks: 0, sloth: 0 };
+const lastSpoke = { stonks: 0, notstonks: 0 };
 const recent = [];         // last events for the banter prompt
 
 function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
@@ -100,47 +101,47 @@ const ROAST = { // animal-specific stop-out lines
 const POOL = {
   buy: {
     stonks: ['{animal} buys ${sym} for ${usd}. Stonks.', 'New position. ${sym}. ${usd}. {animal}. {why}. Line go up. Probably.', '{animal} enters ${sym}. I have not read the chart. I have felt the chart. Stonks.'],
-    sloth: ['{animal} has purchased ${sym}. Reasoning: {why}. I will have an opinion about this in approximately five minutes.', 'A buy from {animal}. ${sym}, ${usd}. The thesis, such as it is: {why}.', '{animal} bought ${sym}. I would like to note the signals it cannot see: {blind}. Bold.'],
+    notstonks: ['Not stonks. {animal} bought ${sym}. I have seen this chart. It ends.', 'Bought at the top. It is always the top. Not stonks.', '{animal} paid ${usd} for ${sym}. That is ${usd} it used to have.'],
   },
   bigbuy: {
     stonks: ['${usd} into ${sym}. {animal} has put on the suit. This is stonks of the highest order.', 'Big. {animal} drops ${usd} on ${sym}. Either the line go up, or we learn something. Both are stonks.', '{animal} goes heavy on ${sym}. ${usd}. I would have done the same. I would have done it worse.'],
-    sloth: ['{animal} has committed ${usd} to ${sym}. That is a large fraction of its net worth. I admire the confidence. I do not share it.', 'A sizable position from {animal}: ${usd} in ${sym}. Statistically, this is where the highlight reel and the blooper reel diverge.'],
+    notstonks: ['${usd}. On ${sym}. Not stonks. Very not stonks.', 'Big buys are how you lose big. {animal} is about to learn this. Not stonks.', 'I admire the size. I do not admire the coin. Not stonks.'],
   },
   rebuy: {
     stonks: ['Goldfish buys ${sym} again. It does not know. Stonks squared.', 'The goldfish has rediscovered ${sym}. Fresh eyes. Same coin. Line go up this time, hopefully.'],
-    sloth: ['The goldfish has purchased ${sym} a second time, having forgotten the first. This is called averaging in, if you are generous.', 'Goldfish rebuys ${sym}. Its memory is three seconds. Its conviction, apparently, is eternal.'],
+    notstonks: ['It bought ${sym} again. Averaging in. Into a hole. Not stonks.', 'Same coin. Second time. Same result. Second time. Not stonks.'],
   },
   forget: {
     stonks: ['The goldfish has forgotten it owns ${sym}. Diamond hands by amnesia. Stonks.', 'Goldfish is looking at ${sym}, its own position, like a stranger on a bus. Not stonks. But not not stonks.'],
-    sloth: ['The goldfish has forgotten ${sym}. The position is now unmanaged. No stop, no target, no memory. Pure diamond hands by accident.'],
+    notstonks: ['It forgot ${sym}. No stop. No plan. This is how the money leaves. Not stonks.', 'Unmanaged position. Diamond hands by accident. Not stonks. But I respect the commitment.'],
   },
   stop: {
     stonks: ['{animal} stopped out of ${sym}. Minus {pct} percent. Not stonks. {roast}', '${sym} bit {animal}. Minus {pct}. The line went the other way. There is another way. {roast}', 'Stop loss. {animal}. ${sym}. {pct} percent gone. I am told this is called risk management. {roast}'],
-    sloth: ['{animal} has exited ${sym} at a loss. {roast}', 'Stop loss triggered for {animal} on ${sym}. {roast} Moving on. Slowly.', '{roast} That was {animal}, on ${sym}, {pct} percent underwater. I am told this is normal.'],
+    notstonks: ['I said not stonks. It was not stonks. {roast}', 'Minus {pct}. The line went down. I told you the line goes down. {roast}', '{roast} The market took the money. The market keeps the money. Not stonks.'],
   },
   take: {
     stonks: ['{animal} sells ${sym} for plus {pct} percent. Stonks. Certified.', 'Profit. {animal}. ${sym}. Plus {pct}. The line did the thing. Stonks.', '{animal} takes money out of ${sym}, plus {pct} percent. I am adjusting my tie in approval.'],
-    sloth: ['{animal} took profit on ${sym}, up {pct} percent. A disciplined exit. I am mildly moved.', 'Profit banked by {animal} on ${sym}. Plus {pct}. Someone in this bracket read a book.'],
+    notstonks: ['Plus {pct}. It took profit. I did not think it would. Stonks. I said it. Do not make me say it again.', 'Fine. Stonks. One time. The next one is not stonks.', 'Profit banked. The line went up and it left before the line came back down. Reluctantly stonks.'],
   },
   trail: {
     stonks: ['{animal} trails out of ${sym}. Plus {pct}. Rode the line up, got off before it fell. Stonks.', 'Trailing stop. ${sym}. {animal}. Plus {pct} percent. Let it run, then leave. This is the way of the suit.'],
-    sloth: ['{animal} exited ${sym} on a trailing stop, up {pct}. The trend ended. It noticed. That is the whole game.'],
+    notstonks: ['Trailing stop. It gave some back. I would have given all of it back. Mildly stonks.', 'Up {pct} and out. The correct amount of fear. Stonks. Barely.'],
   },
   rug: {
     stonks: ['Rug. The liquidity in ${sym} is leaving. {animal} is also leaving. Not stonks. Very not stonks.', 'The dev of ${sym} has pulled the pool. {animal} saw it. Nobody outruns a rug. Not stonks.'],
-    sloth: ['The developer of ${sym} has, and I quote the blockchain, "left". {animal} is exiting through the gift shop.', 'Liquidity on ${sym} has departed for a better life. {animal} follows. This is why we do not name our coins after laptops.'],
+    notstonks: ['Rug. As I said. As I always say. Not stonks.', 'The liquidity left. The dev left. {animal} should also leave. Not stonks.'],
   },
-  flow: { stonks: ['{animal} leaves ${sym}. The volume died. When the line stops moving, you stop holding. Stonks.'], sloth: ['{animal} left ${sym} because the flow went quiet. Echolocation confirms: nobody is home.'] },
-  time: { stonks: ['{animal} got bored of ${sym} after {min} minutes. Attention is also a position. Not stonks. Not unstonks.'], sloth: ['{animal} exited ${sym} after {min} minutes, citing boredom. Relatable.'] },
-  pass: { stonks: ['{animal} looked at ${sym} and did not buy. Sometimes the best trade is no trade. Sometimes it is not. I forget which.'], sloth: ['{animal} considered ${sym} and declined. Restraint. In this bracket. Astonishing.'] },
+  flow: { stonks: ['{animal} leaves ${sym}. The volume died. When the line stops moving, you stop holding. Stonks.'], notstonks: ['The volume died. The coin died. It just does not know yet. Not stonks.'] },
+  time: { stonks: ['{animal} got bored of ${sym} after {min} minutes. Attention is also a position. Not stonks. Not unstonks.'], notstonks: ['{min} minutes and it got bored. The coin was boring. This is the correct response. Not stonks. But not wrong.'] },
+  pass: { stonks: ['{animal} looked at ${sym} and did not buy. Sometimes the best trade is no trade. Sometimes it is not. I forget which.'], notstonks: ['It did not buy ${sym}. Not stonks avoided. This is the best trade of the day.'] },
   lead: {
     stonks: ['Lead change. {animal} takes the match. {eq} versus {oppEq}. The {opp} is not stonks right now.', '{animal} pulls ahead. {eq} to {oppEq}. Line go up for one of them. Line go down for the other. That is how lines work.'],
-    sloth: ['{animal} now leads the match, {eq} to {oppEq}. For those keeping score at home: it is me. I am keeping score.'],
+    notstonks: ['{animal} leads. {eq} to {oppEq}. Leads are temporary. Losses are forever. Not stonks for the {opp}.'],
   },
-  round: { stonks: ['The bell. {text} Sixteen brains. One hour. Stonks.', '{text} Everybody buy something. Or do not. Both are strategies.'], sloth: ['{text} I have prepared no notes. Let us begin.'] },
-  result: { stonks: ['It is over. {text} Stonks for one. Not stonks for the other.', '{text} The loser keeps the lesson. The winner keeps the money. Stonks.'], sloth: ['{text} A result. Someone will explain it to the loser later.'] },
-  champion: { stonks: ['{text} We have a champion. The line went up the most. Give this animal a trophy and a tax advisor. Stonks.'], sloth: ['{text} Congratulations. I would like to review the tape, slowly, over the next several hours.'] },
-  picks: { stonks: ['Pick em results. {text} If you called it, check your wallet. If you did not, the line will go up next time. It usually does not.'], sloth: ['{text} The crowd, as always, was mostly wrong. That is what makes them the crowd.'] },
+  round: { stonks: ['The bell. {text} Sixteen brains. One hour. Stonks.', '{text} Everybody buy something. Or do not. Both are strategies.'], notstonks: ['{text} Sixteen animals are about to lose money in sixteen different ways. Not stonks.'] },
+  result: { stonks: ['It is over. {text} Stonks for one. Not stonks for the other.', '{text} The loser keeps the lesson. The winner keeps the money. Stonks.'], notstonks: ['{text} One of them is up. Both of them are worse off than they think.'] },
+  champion: { stonks: ['{text} We have a champion. The line went up the most. Give this animal a trophy and a tax advisor. Stonks.'], notstonks: ['{text} A champion. The last one to go to zero. Congratulations. Not stonks for everyone else.'] },
+  picks: { stonks: ['Pick em results. {text} If you called it, check your wallet. If you did not, the line will go up next time. It usually does not.'], notstonks: ['{text} The crowd picked. The crowd is usually not stonks. Some of you were stonks this time. Enjoy it.'] },
 };
 
 function whyText(w) {
@@ -161,22 +162,22 @@ function reactTo(e, st, rng) {
     const again = /again/.test(e.text || '');
     const kind = again ? 'rebuy' : big ? 'bigbuy' : 'buy';
     say('stonks', fill(pick(rng, POOL[kind].stonks), v), e.matchId, kind);
-    if (kind !== 'buy' || rng() < 0.5) say('sloth', fill(pick(rng, POOL[kind].sloth), v), e.matchId, kind);
+    if (kind !== 'buy' || rng() < 0.5) say('notstonks', fill(pick(rng, POOL[kind].notstonks), v), e.matchId, kind);
   } else if (e.kind === 'sell') {
     const r = e.reason || '';
     let kind = 'stop';
     if (/took profit/.test(r)) kind = 'take'; else if (/trail/.test(r)) kind = 'trail'; else if (/drain/.test(r)) kind = 'rug'; else if (/quiet/.test(r)) kind = 'flow'; else if (/interest/.test(r)) kind = 'time';
     v.roast = kind === 'stop' ? pick(rng, ROAST[e.animalId] || ['A loss is a loss.']) : '';
     say('stonks', fill(pick(rng, POOL[kind].stonks), v), e.matchId, kind);
-    if (kind !== 'time' || rng() < 0.5) say('sloth', fill(pick(rng, POOL[kind].sloth), v), e.matchId, kind);
+    if (kind !== 'time' || rng() < 0.5) say('notstonks', fill(pick(rng, POOL[kind].notstonks), v), e.matchId, kind);
   } else if (e.kind === 'quirk') {
     say('stonks', fill(pick(rng, POOL.forget.stonks), { sym: (e.text || '').replace(/.*\$/, '') }), e.matchId, 'forget');
-    if (rng() < 0.6) say('sloth', fill(pick(rng, POOL.forget.sloth), { sym: (e.text || '').replace(/.*\$/, '') }), e.matchId, 'forget');
+    if (rng() < 0.6) say('notstonks', fill(pick(rng, POOL.forget.notstonks), { sym: (e.text || '').replace(/.*\$/, '') }), e.matchId, 'forget');
   } else if (e.kind === 'pass') {
-    if (rng() < 0.5) say(rng() < 0.5 ? 'stonks' : 'sloth', fill(pick(rng, POOL.pass[rng() < 0.5 ? 'stonks' : 'sloth']), v), e.matchId, 'pass');
+    if (rng() < 0.5) say(rng() < 0.5 ? 'stonks' : 'notstonks', fill(pick(rng, POOL.pass[rng() < 0.5 ? 'stonks' : 'notstonks']), v), e.matchId, 'pass');
   } else if (e.kind === 'round' || e.kind === 'result' || e.kind === 'champion' || e.kind === 'picks') {
     say('stonks', fill(pick(rng, POOL[e.kind].stonks), v), e.matchId, e.kind);
-    say('sloth', fill(pick(rng, POOL[e.kind].sloth), v), e.matchId, e.kind);
+    say('notstonks', fill(pick(rng, POOL[e.kind].notstonks), v), e.matchId, e.kind);
   }
 }
 
@@ -195,7 +196,7 @@ function watchLeads(st, rng) {
       const a = sw.BY_ID[leader], o = sw.BY_ID[leader === m.a ? m.b : m.a];
       const v = { animal: a.name, opp: o.name.toLowerCase(), eq: '$' + Math.round(Math.max(ea, eb)), oppEq: '$' + Math.round(Math.min(ea, eb)) };
       say('stonks', fill(pick(rng, POOL.lead.stonks), v), m.id, 'lead');
-      if (rng() < 0.5) say('sloth', fill(pick(rng, POOL.lead.sloth), v), m.id, 'lead');
+      if (rng() < 0.5) say('notstonks', fill(pick(rng, POOL.lead.notstonks), v), m.id, 'lead');
     }
     lastLeader[m.id] = leader;
   }
@@ -214,23 +215,27 @@ async function banter() {
     return A.name + ' $' + Math.round(st.books[m.a].equity) + ' vs ' + B.name + ' $' + Math.round(st.books[m.b].equity) + (m.winner ? ' (won by ' + sw.BY_ID[m.winner].name + ')' : '');
   }).join('\n');
   const last = recent.slice(-12).map((e) => '- ' + e.text).join('\n');
-  const prompt = 'You write two animal sports commentators for STONK WARS, a live bracket where 16 animals with brains scaled to their real neuron counts trade memecoins for an hour per round.\n' +
-    'STONKS MAN: the host — the Meme Man in the suit. Calm, certain, meme cadence: short declaratives, "Stonks." "Not stonks." "Line go up." Roasts losers with total composure, treats every big buy as destiny, never uses exclamation marks.\n' +
-    'PROFESSOR SLOTH: deadpan, slow, academic, dry one-liners, often reacting to something from several minutes ago.\n' +
-    'Be genuinely funny — specific to what actually happened, never generic. Roast mistakes, hype big plays, mock rugs. Keep each line under 30 words. No hashtags, no emojis.\n\n' +
+  const prompt = 'You write the two commentators of STONK WARS, a live bracket where 16 animals with brains scaled to their real neuron counts trade memecoins for an hour per round. The two commentators are the SAME man — the Stonks meme guy in the suit — sitting side by side at a desk, and they argue.\n' +
+    'STONKS MAN (left seat): the bull. Everything is stonks. Calm, certain, meme cadence: short declaratives, "Stonks." "Line go up." Treats every big buy as destiny.\n' +
+    'NOT STONKS MAN (right seat): the identical man, the bear. Everything is going to zero. Same cadence: "Not stonks." "Line go down." Dry doom; concedes a win about once an hour and hates it.\n' +
+    'Write a short back-and-forth between them: 3 or 4 lines, alternating, each line replying to the previous one (disagree, one-up, correct, concede). Be genuinely funny and specific to what actually happened, never generic. Under 25 words per line. No exclamation marks, no hashtags, no emojis.\n\n' +
     'ROUND: ' + st.roundName + '\nSTANDINGS:\n' + standings + '\n\nLAST EVENTS:\n' + (last || '- quiet so far') +
-    '\n\nReturn exactly two lines, in this format:\nSTONKS: ...\nSLOTH: ...';
+    '\n\nReturn only the lines, one per line, each prefixed with the speaker:\nSTONKS: ...\nNOT STONKS: ...\nSTONKS: ...';
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: config.STONK_BANTER_MODEL || 'claude-haiku-4-5-20251001', max_tokens: 160, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: config.STONK_BANTER_MODEL || 'claude-haiku-4-5-20251001', max_tokens: 320, messages: [{ role: 'user', content: prompt }] }),
       signal: AbortSignal.timeout(20000),
     });
     const j = await r.json();
     const text = (j.content || []).map((b) => b.text || '').join('');
-    const h = /STONKS(?: MAN)?:\s*(.+)/i.exec(text), s = /SLOTH:\s*(.+)/i.exec(text);
-    if (h) say('stonks', h[1].trim(), null, 'banter');
-    if (s) say('sloth', s[1].trim(), null, 'banter');
+    let n = 0;
+    for (const raw of text.split('\n')) {
+      const m = /^\s*(NOT\s*STONKS|STONKS)(?:\s*MAN)?\s*:\s*(.+)/i.exec(raw);
+      if (!m || n >= 4) continue;
+      say(/^not/i.test(m[1]) ? 'notstonks' : 'stonks', m[2].trim(), null, 'banter');
+      n++;
+    }
   } catch { /* banter is optional */ }
 }
 
@@ -267,7 +272,7 @@ async function interview() {
   const [id, matchId] = live[Math.floor(Math.random() * live.length)];
   const a = sw.BY_ID[id];
   const b = st.books[id];
-  const asker = Math.random() < 0.7 ? 'stonks' : 'sloth';
+  const asker = Math.random() < 0.6 ? 'stonks' : 'notstonks';
   const questions = [
     'What is the plan here?', 'Talk me through that last trade.', 'You are ' + (b.equity >= 1000 ? 'up' : 'down') + ' $' + Math.abs(Math.round(b.equity - 1000)) + ' — how are you feeling?',
     'Your opponent is watching. Anything to say to them?', 'Why THAT coin?', 'Do you know what you are holding right now?',
@@ -295,12 +300,12 @@ async function interview() {
   if (!answer) answer = SCRIPTED_ANSWERS[id] || 'No comment. I am an animal.';
   const lead = asker === 'stonks'
     ? 'Going ringside. ' + a.name + '. ' + q
-    : 'I have a question for ' + a.name + ', if it can hear me. ' + q;
+    : 'Ringside. ' + a.name + '. This will not go well. ' + q;
   say(asker, lead, matchId, 'interview');
   say('animal:' + id, answer, matchId, 'interview');
   const tag = asker === 'stonks'
-    ? ['Stonks. Back to you, Professor.', 'I understood some of that. Line go up.', 'That is a trader. Or a cry for help. Both are stonks.'][Math.floor(Math.random() * 3)]
-    : ['Illuminating. Back to the desk.', 'I will be thinking about that answer for the rest of the round.', 'Noted. Slowly.'][Math.floor(Math.random() * 3)];
+    ? ['Stonks. Back to you, other me.', 'I understood some of that. Line go up.', 'That is a trader. Or a cry for help. Both are stonks.'][Math.floor(Math.random() * 3)]
+    : ['Not stonks. Back to the desk.', 'I have heard enough. Line go down.', 'That animal is not stonks. Next.'][Math.floor(Math.random() * 3)];
   say(asker, tag, matchId, 'interview');
 }
 
@@ -342,7 +347,7 @@ function start() {
   if (bm > 0) setInterval(() => banter().catch(() => {}), bm).unref();
   const im = config.STONK_INTERVIEW_MS == null ? 240000 : Number(config.STONK_INTERVIEW_MS);
   if (im > 0) setInterval(() => interview().catch(() => {}), im).unref();
-  console.log('[commentary] Stonks Man (host) + Professor Sloth on the call' + (process.env.ANTHROPIC_API_KEY && bm > 0 ? ' (+ Claude banter every ' + Math.round(bm / 1000) + 's)' : ' (scripted only)'));
+  console.log('[commentary] Stonks Man + Not Stonks Man at the desk' + (process.env.ANTHROPIC_API_KEY && bm > 0 ? ' (+ Claude banter every ' + Math.round(bm / 1000) + 's)' : ' (scripted only)'));
 }
 
 module.exports = { start, since, status, line, tts, interview, CAST };
