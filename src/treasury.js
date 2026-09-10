@@ -97,7 +97,7 @@ async function buyback(conn, kp, lamports) {
 
 // ---- 3. AIRDROP $PRO ----
 function u64le(n) { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; }
-async function airdrop(conn, kp, winners, perWallet) {
+async function airdrop(conn, kp, winners, perShare) {
   const { PublicKey, Transaction, TransactionInstruction, SystemProgram, sendAndConfirmTransaction } = w3();
   const mint = new PublicKey(config.STONK_BUYBACK_MINT);
   const src = ata(kp.publicKey, mint);
@@ -105,8 +105,11 @@ async function airdrop(conn, kp, winners, perWallet) {
   for (let i = 0; i < winners.length; i += 5) { // ATA creates are chunky; 5 per tx stays under limits
     const batch = winners.slice(i, i + 5);
     const tx = new Transaction();
-    for (const w of batch) {
-      let owner; try { owner = new PublicKey(w); } catch { out.push({ wallet: w, error: 'bad address' }); continue; }
+    const amounts = {};
+    for (const e of batch) {
+      const w = typeof e === 'string' ? e : e.wallet; const shares = typeof e === 'string' ? 1 : (e.shares || 1);
+      const amt = perShare * BigInt(shares); amounts[w] = { amt, shares };
+      let owner; try { owner = new PublicKey(w); } catch { out.push({ wallet: w, shares, error: 'bad address' }); continue; }
       const dest = ata(owner, mint);
       // create the recipient's token account if missing (idempotent: instruction data [1])
       tx.add(new TransactionInstruction({ programId: new PublicKey(ATA_PROGRAM), data: Buffer.from([1]), keys: [
@@ -115,16 +118,16 @@ async function airdrop(conn, kp, winners, perWallet) {
         { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, { pubkey: new PublicKey(TOKEN_PROGRAM), isSigner: false, isWritable: false },
       ] }));
       // SPL transfer (instruction 3)
-      tx.add(new TransactionInstruction({ programId: new PublicKey(TOKEN_PROGRAM), data: Buffer.concat([Buffer.from([3]), u64le(perWallet)]), keys: [
+      tx.add(new TransactionInstruction({ programId: new PublicKey(TOKEN_PROGRAM), data: Buffer.concat([Buffer.from([3]), u64le(amt)]), keys: [
         { pubkey: src, isSigner: false, isWritable: true }, { pubkey: dest, isSigner: false, isWritable: true }, { pubkey: kp.publicKey, isSigner: true, isWritable: false },
       ] }));
     }
     if (!tx.instructions.length) continue;
     try {
       const sig = await sendAndConfirmTransaction(conn, tx, [kp], { commitment: 'confirmed' });
-      for (const w of batch) out.push({ wallet: w, pro: Number(perWallet) / 1e6, txid: sig });
+      for (const e of batch) { const w = typeof e === 'string' ? e : e.wallet; if (amounts[w]) out.push({ wallet: w, shares: amounts[w].shares, pro: Number(amounts[w].amt) / 1e6, txid: sig }); }
     } catch (e) {
-      for (const w of batch) out.push({ wallet: w, pro: Number(perWallet) / 1e6, error: String(e.message).slice(0, 100) });
+      for (const en of batch) { const w = typeof en === 'string' ? en : en.wallet; if (amounts[w]) out.push({ wallet: w, shares: amounts[w].shares, pro: Number(amounts[w].amt) / 1e6, error: String(e.message).slice(0, 100) }); }
     }
   }
   return out;
@@ -154,16 +157,18 @@ async function settleRound(roundIdx, winners) {
       const toWinners = (b.received * BigInt(Math.round(Number(config.STONK_WINNER_SHARE ?? 0.5) * 10000))) / 10000n;
       rec.toWinnersPro = Number(toWinners) / 1e6;
       if (winners.length && toWinners > 0n) {
-        const per = toWinners / BigInt(winners.length);
-        rec.perWinnerPro = Number(per) / 1e6;
+        const totalShares = BigInt(winners.reduce((a, w) => a + (typeof w === 'string' ? 1 : (w.shares || 1)), 0) || 1);
+        const per = toWinners / totalShares; // one share per correct pick
+        rec.perSharePro = Number(per) / 1e6; rec.perWinnerPro = rec.perSharePro;
         rec.transfers = await airdrop(conn, kp, winners, per);
       } else rec.notes.push(winners.length ? 'nothing to send' : 'no correct pickers this round — the $PRO stays in the dev wallet');
     } else {
       const q = await quote(buybackLamports);
       rec.boughtPro = Number(q.outAmount) / 1e6;
       rec.toWinnersPro = rec.boughtPro * Number(config.STONK_WINNER_SHARE ?? 0.5);
-      rec.perWinnerPro = winners.length ? rec.toWinnersPro / winners.length : 0;
-      rec.transfers = winners.map((w) => ({ wallet: w, pro: rec.perWinnerPro, owed: true }));
+      const totalShares = winners.reduce((a, w) => a + (typeof w === 'string' ? 1 : (w.shares || 1)), 0);
+      rec.perSharePro = totalShares ? rec.toWinnersPro / totalShares : 0; rec.perWinnerPro = rec.perSharePro;
+      rec.transfers = winners.map((w) => { const shares = typeof w === 'string' ? 1 : (w.shares || 1); return { wallet: typeof w === 'string' ? w : w.wallet, shares, pro: rec.perSharePro * shares, owed: true }; });
       rec.notes.push('DRY RUN — would claim ' + rec.claimedSol + ' SOL, buy ~' + Math.round(rec.boughtPro).toLocaleString() + ' PRO with ' + rec.buybackSol + ' SOL, send ' + Math.round(rec.toWinnersPro).toLocaleString() + ' PRO to ' + winners.length + ' winners');
     }
   } catch (e) { rec.notes.push('FAILED: ' + String(e.message).slice(0, 160)); }

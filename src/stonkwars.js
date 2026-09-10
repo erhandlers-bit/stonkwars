@@ -386,6 +386,7 @@ function status() {
     status: state.status, startedAt: state.startedAt, now, champion: state.champion,
     roundIdx: state.roundIdx, roundName: round ? round.name : null, roundStartAt: round ? round.startAt : null, roundEndAt: round ? round.endAt : null,
     rounds: state.rounds, books, feed: state.feed.slice(0, 80),
+    preview: state.status === 'idle' ? makeRound(0, seedOrder(), 0) : null, // the bracket people pick on before the bell
     animals: ANIMALS.map((a) => ({ id: a.id, name: a.name, emoji: a.emoji, neurons: a.neurons, brain: a.brain, blurb: a.blurb, image: imageFor(a.id), seed: seedOrder().indexOf(a.id) + 1 })),
     config: { matchMs: config.STONK_MATCH_MS || 3600000, intermissionMs: config.STONK_INTERMISSION_MS || 180000, startUsd: config.STONK_START_USD || 1000, feedCoins: feedCoins().length },
     // the live market every animal is choosing from — for the showcase ticker

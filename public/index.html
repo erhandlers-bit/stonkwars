@@ -44,6 +44,23 @@
   .up{color:var(--green)} .dn{color:var(--red)}
   .bar{height:3px;background:#1a2236;border-radius:2px;margin:2px 6px 0;overflow:hidden}
   .bar i{display:block;height:100%;background:var(--green)}
+  .side.sel{outline:2px solid var(--gold);background:#1a1606}
+  .side .tl{font-size:10px;color:var(--dim);margin-left:4px;font-weight:400;white-space:nowrap}
+  .match.pickable{border-color:#3a2f12}
+  .lockbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 22px;border-top:1px solid var(--border);background:#0b0f1c;font-size:13px}
+  .lockbar .go{background:var(--gold);color:#000;border:0;border-radius:8px;padding:10px 16px;font-weight:900;cursor:pointer;letter-spacing:1px;font-size:13px}
+  .lockbar .go[disabled]{opacity:.5;cursor:default}
+  .lockbar a{color:var(--blue);text-decoration:none;font-weight:700}
+  footer{padding:22px;border-top:1px solid var(--border);background:#07090f;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  footer h3{margin:0 0 8px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
+  footer a{color:var(--blue);text-decoration:none}
+  .fly{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .fly div{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:12px;line-height:1.4}
+  .fly b{display:block;color:var(--gold);font-size:18px;margin-bottom:4px}
+  table.led{width:100%;border-collapse:collapse;font-size:12px}
+  table.led th,table.led td{padding:6px 8px;border-bottom:1px solid #141a2c;text-align:left;white-space:nowrap}
+  table.led th{color:var(--dim);font-size:10px;letter-spacing:1px;text-transform:uppercase}
+  @media (max-width:1100px){footer{grid-template-columns:1fr}.fly{grid-template-columns:1fr 1fr}}
   .champ{background:linear-gradient(160deg,#1a1606,#0e1220);border:1px solid var(--gold);border-radius:14px;padding:14px;text-align:center}
   .champ .av{width:100%;height:auto;aspect-ratio:16/9;margin:0 auto 10px;font-size:64px;border-radius:14px;border:2px solid var(--gold)}
   .champ .t{color:var(--gold);font-size:11px;letter-spacing:3px}
@@ -64,7 +81,7 @@
   .admin button{background:#161c2e;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-weight:700}
   .admin button.go{border-color:var(--green);color:var(--green)}
   .admin button.stop{border-color:var(--red);color:var(--red)}
-  .idle{padding:40px;text-align:center;color:var(--dim);font-size:16px}
+  .idle{padding:12px;text-align:center;color:var(--dim);font-size:16px}
   @media (max-width:1100px){main{grid-template-columns:1fr}.bracket{grid-template-columns:1fr;}.col{flex-direction:row;flex-wrap:wrap}.match{flex:1 1 260px}}
 </style>
 </head>
@@ -99,20 +116,33 @@
 </section>
 <main>
   <div>
-    <div class="idle" id="idle">
-      <div style="font-size:12px;letter-spacing:3px;color:var(--gold);margin-bottom:14px">MEET THE CONTENDERS · WAITING FOR THE OPENING BELL</div>
-      <div id="roster" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;text-align:left"></div>
-    </div>
-    <div class="bracket" id="bracket" style="display:none">
+    <div class="idle" id="idle"><div style="font-size:12px;letter-spacing:3px;color:var(--gold)">WAITING FOR THE OPENING BELL · PICK YOUR WINNERS BELOW</div></div>
+    <div class="bracket" id="bracket">
       <div class="col" id="c0"><h3>Round of 16</h3></div>
       <div class="col" id="c1"><h3>Quarterfinals</h3></div>
       <div class="col" id="c2"><h3>Semifinals</h3></div>
       <div class="col" id="c3"><h3>Final</h3></div>
       <div class="col"><div class="champ" id="champ"><div class="t">CHAMPION</div><div class="av">🏆</div><div class="n" id="champName">TBD</div><div class="sub" id="champSub"></div></div></div>
     </div>
+    <div class="lockbar" id="lockbar">
+      <span id="lkCount">pick a winner in every match</span>
+      <button class="go" id="lkBtn" onclick="pkLock()">🗳️ Lock in my picks</button>
+      <span id="lkMsg" style="font-size:12px"></span>
+      <span class="sub" style="margin-left:auto">to get paid you must hold <b id="lkHold" style="color:var(--gold)">$10 of the coin</b> · <a href="#flywheel">how the flywheel works</a> · <a href="#payouts">payouts ledger</a></span>
+    </div>
   </div>
   <div class="detail" id="detail"><span class="sub">Click an animal to see its brain and its positions.</span></div>
 </main>
+<footer>
+  <div id="flywheel"><h3>The flywheel</h3><div class="fly">
+    <div><b>1</b>16 traders trade meme coins for an hour per round. You pick the winner of every match and lock the set with your wallet. Free.</div>
+    <div><b>2</b>Every round, all creator fees the coin has earned are claimed.</div>
+    <div><b>3</b>Half of those fees buy the coin on the open market. A buyback, every round.</div>
+    <div><b>4</b>Half of the coin bought is split among everyone who picked winners — one share per correct pick. To be paid you must hold at least <span id="flyHold">$10</span> of the coin in the wallet you picked with.</div>
+    <div><b>5</b>The rest stays with the project. More volume → more fees → bigger buybacks → bigger prizes. Line go up.</div>
+  </div><div class="sub" id="flyLive" style="margin-top:8px"></div></div>
+  <div id="payouts"><h3>Payouts — every wallet, every amount</h3><div id="ledger" style="max-height:380px;overflow:auto"><span class="sub">no settlements yet</span></div></div>
+</footer>
 <script>
 (function(){
   var S=null, sel=null;
@@ -126,12 +156,13 @@
   function neurons(n){return n>=1e9?(n/1e9).toFixed(n>=10e9?0:1)+'B':n>=1e6?(n/1e6).toFixed(0)+'M':(n/1e3).toFixed(0)+'K'}
   function av(a){return '<div class="av">'+(a.image?'<img src="'+a.image+'" alt="">':a.emoji)+'</div>'}
   window.ctl=function(k){var t=localStorage.getItem('stonkAdmin')||prompt('admin token');if(t)localStorage.setItem('stonkAdmin',t);fetch('/api/stonkwars/'+k,{method:'POST',headers:{'x-admin-token':t||''}}).then(function(r){return r.json()}).then(function(j){if(!j.ok&&j.reason)alert(j.reason);refresh();})};
-  function side(id,m,isLive){
+  function side(id,m,isLive,pickable){
     if(!id) return '<div class="side tbd"><div class="av">?</div><div><div class="nm">TBD</div></div></div>';
     var a=A[id], b=(S.books||{})[id]; var eq=b?b.equity:S.config.startUsd; var pnl=eq-S.config.startUsd;
     var cls='side'; if(m.winner){cls+=m.winner===id?' win':' lose';}
     var final=m.finalEq&&m.finalEq[id]!=null?m.finalEq[id]:null; if(final!=null){eq=final;pnl=final-S.config.startUsd;}
-    return '<div class="'+cls+'" onclick="pick(\''+id+'\')">'+av(a)+'<div><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+'</div><div class="sd">#'+a.seed+' · '+neurons(a.neurons)+' neurons</div></div>'+
+    var tl=pickable?tallyPct(m.id,id):null; if(pickable&&PK.sel[m.id]===id) cls+=' sel';
+    return '<div class="'+cls+'" onclick="'+(pickable?'pkSel(\''+m.id+'\',\''+id+'\')':'pick(\''+id+'\')')+'">'+av(a)+'<div><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+(pickable?' <span class="tl" title="brain &amp; positions" onclick="event.stopPropagation();pick(\''+id+'\')">ℹ</span>':'')+(tl!=null?' <span class="tl">'+tl+'% picked</span>':'')+'</div><div class="sd">#'+a.seed+' · '+neurons(a.neurons)+' neurons</div></div>'+
       '<div class="eq"><div class="v">'+fmt(eq)+'</div><div class="p '+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</div></div></div>';
   }
   function render(){
@@ -139,16 +170,9 @@
     document.getElementById('feedN').textContent=S.config.feedCoins?'· watching '+S.config.feedCoins+' fresh coins across '+4+' chains':'';
     var idle=S.status==='idle';
     document.getElementById('idle').style.display=idle?'':'none';
-    document.getElementById('bracket').style.display=idle?'none':'grid';
-    if(idle){
-      var list=(S.animals||[]).slice().sort(function(a,b){return a.seed-b.seed});
-      document.getElementById('roster').innerHTML=list.map(function(a){
-        return '<div class="match" style="cursor:pointer" onclick="pick(\''+a.id+'\')"><div class="av" style="width:100%;height:auto;aspect-ratio:16/9;font-size:40px">'+(a.image?'<img src="'+a.image+'" alt="">':a.emoji)+'</div>'+
-          '<div style="padding:6px 4px 2px"><span class="nm">#'+a.seed+' '+esc(a.name)+'</span> <span class="sd">'+neurons(a.neurons)+' neurons</span><div class="sub" style="margin-top:3px">'+esc(a.blurb)+'</div></div></div>';
-      }).join('');
-    }
     for(var i=0;i<4;i++){
-      var col=document.getElementById('c'+i); var r=(S.rounds||[])[i];
+      var col=document.getElementById('c'+i); var r=(S.rounds||[])[i]||(i===0&&S.preview?S.preview:null);
+      var pickable=!!(PK.votes&&PK.votes.open&&PK.votes.roundIdx===i);
       var html='<h3>'+['Round of 16','Quarterfinals','Semifinals','Final'][i]+'</h3>';
       var n=[8,4,2,1][i];
       for(var k=0;k<n;k++){
@@ -156,7 +180,7 @@
         var live=r&&S.roundIdx===i&&S.status==='running'&&S.now>=r.startAt&&S.now<r.endAt;
         if(!m){html+='<div class="match">'+side(null,{})+side(null,{})+'</div>';continue;}
         var ea=(S.books[m.a]||{}).equity||0, eb=(S.books[m.b]||{}).equity||0; var tot=ea+eb||1;
-        html+='<div class="match'+(live?' live':'')+(m.winner?' done':'')+'">'+side(m.a,m,live)+'<div class="bar"><i style="width:'+Math.round(ea/tot*100)+'%"></i></div>'+side(m.b,m,live)+
+        html+='<div class="match'+(live?' live':'')+(m.winner?' done':'')+(pickable?' pickable':'')+'">'+side(m.a,m,live,pickable)+'<div class="bar"><i style="width:'+Math.round(ea/tot*100)+'%"></i></div>'+side(m.b,m,live,pickable)+
           '<a href="/match.html?m='+m.id+'" onclick="return watchMatch(\''+m.id+'\')" style="position:absolute;right:8px;top:8px;font-size:10px;letter-spacing:1px;padding:3px 7px;border-radius:5px;background:'+(live?'#123d1e':'#161c2e')+';color:'+(live?'var(--green)':'var(--dim)')+';border:1px solid '+(live?'var(--green)':'var(--border)')+';text-decoration:none;font-weight:700">'+(live?'▶ WATCH LIVE':'▶ WATCH')+'</a></div>';
       }
       col.innerHTML=html;
@@ -197,50 +221,70 @@
     fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();}).catch(function(){});
   }
   // ---- PICK 'EM: free picks signed by a Solana wallet; prize is the owner's creator fees ----
-  var PK={wallet:null,votes:null};
+  var PK={wallet:null,votes:null,sel:{},touched:false};
   function b64(u8){var s='';for(var i=0;i<u8.length;i++)s+=String.fromCharCode(u8[i]);return btoa(s)}
   window.pkConnect=function(){
     var sol=window.solana||(window.phantom&&window.phantom.solana);
     if(!sol){document.getElementById('pkMsg').innerHTML='<a href="https://phantom.app" target="_blank" style="color:var(--blue)">Install Phantom</a> to pick.';return;}
     sol.connect().then(function(r){PK.wallet=(r&&r.publicKey?r.publicKey:sol.publicKey).toString();document.getElementById('pkConnect').textContent=PK.wallet.slice(0,4)+'…'+PK.wallet.slice(-4);pkRefresh();}).catch(function(e){document.getElementById('pkMsg').textContent='wallet: '+(e.message||e)});
   };
-  window.pkPick=function(animal){
+  window.pkSel=function(mid,id){ PK.sel[mid]=id; PK.touched=true; render(); pkCount(); };
+  function openMatches(){ return (PK.votes&&PK.votes.matches)||[]; }
+  function pkCount(){ var ms=openMatches(); var n=ms.filter(function(m){return PK.sel[m.id]}).length; var c=document.getElementById('lkCount'); var b=document.getElementById('lkBtn');
+    if(!PK.votes||!PK.votes.open){ c.textContent=(S&&S.status==='running')?'picks are locked for '+(PK.votes&&PK.votes.roundName||'this round')+' — they reopen at the next intermission':(S&&S.status==='done'?'tournament over':'picks open soon'); b.disabled=true; return; }
+    var mine=PK.votes.mine?Object.keys(PK.votes.mine).length:0; b.disabled=n===0;
+    c.innerHTML='<b>'+n+' of '+ms.length+'</b> winners picked'+(mine?' · <span class="up">'+mine+' locked on-chain</span>':'')+(PK.votes.preview?' · picks lock at the opening bell':(PK.votes.locksAt?' · lock in '+mmss(PK.votes.locksAt-Date.now()):'')); }
+  function tallyPct(mid,id){ var t=PK.votes&&PK.votes.tally&&PK.votes.tally[mid]; if(!t) return null; var tot=0; for(var k in t) tot+=t[k]; return tot?Math.round((t[id]||0)/tot*100):null; }
+  window.pkLock=function(){
     if(!PK.wallet){pkConnect();return;}
     var sol=window.solana||(window.phantom&&window.phantom.solana);
-    var round=PK.votes?PK.votes.roundIdx:(S?S.roundIdx:0); var ts=Date.now();
-    var msg='STONK WARS pick\nround: '+round+'\nanimal: '+animal+'\nwallet: '+PK.wallet+'\nts: '+ts;
-    var m=document.getElementById('pkMsg'); m.style.color='var(--amber,#f5c542)'; m.textContent='sign the pick in Phantom…';
+    var round=PK.votes?PK.votes.roundIdx:0; var picks={}; openMatches().forEach(function(m){ if(PK.sel[m.id]) picks[m.id]=PK.sel[m.id]; });
+    var keys=Object.keys(picks).sort(); if(!keys.length){document.getElementById('lkMsg').textContent='pick at least one winner first';return;}
+    var ts=Date.now(); var msg='STONK WARS picks\nround: '+round+'\npicks: '+keys.map(function(k){return k+'='+picks[k]}).join(' ')+'\nwallet: '+PK.wallet+'\nts: '+ts;
+    var m=document.getElementById('lkMsg'); m.style.color='var(--amber,#f5c542)'; m.textContent='sign your '+keys.length+' picks in Phantom…';
     sol.signMessage(new TextEncoder().encode(msg),'utf8').then(function(r){
       var sig=b64(r.signature||r);
-      return fetch('/api/stonkwars/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:PK.wallet,animal:animal,round:round,ts:ts,signature:sig})}).then(function(x){return x.json()});
+      return fetch('/api/stonkwars/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:PK.wallet,picks:picks,round:round,ts:ts,signature:sig})}).then(function(x){return x.json()});
     }).then(function(j){
-      m.style.color=j.ok?'var(--green,#5fe89b)':'var(--red,#ff6b6b)'; m.textContent=j.ok?('✓ locked in: '+(A[j.animal]||{}).name+(j.changed?' (changed)':'')):('✗ '+(j.reason||'failed'));
+      m.style.color=j.ok?'var(--green,#5fe89b)':'var(--red,#ff6b6b)'; m.textContent=j.ok?('✓ '+j.count+' picks locked'+(j.changed?' (updated)':'')):('✗ '+(j.reason||'failed'));
       pkRefresh();
     }).catch(function(e){m.style.color='var(--red,#ff6b6b)';m.textContent='✗ '+(e.message||e)});
   };
+  function short(w){return w?w.slice(0,4)+'…'+w.slice(-4):''}
   function pkRefresh(){
     fetch('/api/stonkwars/votes'+(PK.wallet?'?wallet='+encodeURIComponent(PK.wallet):'')).then(function(r){return r.json()}).then(function(v){
-      PK.votes=v;
-      var pool=v.pool||{};
-      document.getElementById('pkPool').innerHTML='prize this round <b style="color:var(--gold)">paid in $PRO</b> <span class="sub">— every round the creator fees are claimed, half buys $PRO, and half of that $PRO is split evenly among everyone who picked a winner'+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+'</span>';
+      PK.votes=v; var pool=v.pool||{}; var hg=v.holdGate||{};
+      var coin=hg.symbol?'$'+hg.symbol:'the coin';
+      document.getElementById('pkPool').innerHTML='prize this round <b style="color:var(--gold)">paid in $PRO</b> <span class="sub">— every round the creator fees are claimed, half buys $PRO, and half of that $PRO is split among everyone who picked winners (one share per correct pick)'+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+'</span>';
       var lock=document.getElementById('pkLock');
-      if(v.open){lock.innerHTML='picks lock in <b>'+mmss(v.locksAt-Date.now())+'</b>';}
+      if(v.open&&v.preview){lock.innerHTML='<b style="color:var(--green)">picks are OPEN</b> — lock at the opening bell';}
+      else if(v.open){lock.innerHTML='picks lock in <b>'+mmss(v.locksAt-Date.now())+'</b>';}
       else if(S&&S.status==='running'){lock.textContent='picks locked for '+(v.roundName||'this round')+' — reopen at the next intermission';}
       else if(S&&S.status==='done'){lock.textContent='tournament over';}
-      else {lock.textContent='picks open when the tournament starts';}
-      document.getElementById('pkMine').innerHTML=v.mine?('your pick: <b>'+((A[v.mine]||{}).emoji||'')+' '+((A[v.mine]||{}).name||v.mine)+'</b>'):(PK.wallet?'no pick yet':'');
-      var chips=document.getElementById('pkChips');
-      if(v.open){
-        chips.innerHTML=(v.live||[]).map(function(id){var a=A[id]||{name:id,emoji:''};var me=v.mine===id;return '<button onclick="pkPick(\''+id+'\')" style="background:'+(me?'#0f2a1c':'#161c2e')+';color:'+(me?'var(--green)':'var(--text)')+';border:1px solid '+(me?'var(--green)':'var(--border)')+';border-radius:14px;padding:4px 10px;cursor:pointer;font-size:12px">'+a.emoji+' '+esc(a.name)+(v.tally&&v.tally[id]?' <span class="sub">'+v.tally[id]+'</span>':'')+'</button>'}).join('');
-      } else chips.innerHTML='';
+      else {lock.textContent='picks open when the bracket is set';}
+      if(hg.minUsd){ var h=document.getElementById('lkHold'); h.textContent='$'+hg.minUsd+' of '+coin; var fh=document.getElementById('flyHold'); if(fh) fh.textContent='$'+hg.minUsd; }
+      var mineN=v.mine?Object.keys(v.mine).length:0;
+      var hold=v.myHold?(v.myHold.gated?(' · you hold <b class="'+(v.myHold.eligible?'up':'dn')+'">$'+Number(v.myHold.usd).toFixed(2)+'</b> of '+coin+(v.myHold.eligible?' ✓ eligible':' — need $'+hg.minUsd+' to be paid')):''):'';
+      document.getElementById('pkMine').innerHTML=(PK.wallet?(mineN?('your picks: <b>'+mineN+' locked</b>'):'no picks locked yet')+hold:'');
+      if(v.mine&&!PK.touched){ PK.sel={}; for(var k in v.mine) PK.sel[k]=v.mine[k]; }
+      document.getElementById('pkChips').innerHTML='';
       var tot=v.totalVotes||0; var t=document.getElementById('pkTally');
-      var top=Object.keys(v.tally||{}).sort(function(a,b){return v.tally[b]-v.tally[a]}).slice(0,6);
-      t.innerHTML=tot?(tot+' picks · crowd favorites: '+top.map(function(id){return ((A[id]||{}).emoji||'')+' '+((A[id]||{}).name||id)+' '+Math.round(v.tally[id]/tot*100)+'%'}).join(' · ')):'';
+      t.innerHTML=tot?(tot+' wallet'+(tot===1?'':'s')+' locked picks'):'';
       var last=(v.settlements||[])[0];
-      if(last) t.innerHTML+=(t.innerHTML?'<br>':'')+'last round: '+last.correct+' of '+last.votes+' called it · '+(last.mode==='paid'?'airdropped ':'pool ')+last.poolSol.toFixed(3)+' SOL'+(last.correct?' · '+last.perWalletSol.toFixed(4)+' SOL each':'');
+      if(last) t.innerHTML+=(t.innerHTML?' · ':'')+'last round: '+last.correct+' of '+last.votes+' wallets called winners ('+(last.shares||last.correct)+' shares) · '+(last.currency==='PRO'?(last.mode==='paid'?'airdropped ':'owed ')+Math.round(last.treasury&&last.treasury.toWinnersPro||0).toLocaleString()+' $PRO':((last.mode==='paid'?'airdropped ':'pool ')+Number(last.poolSol||0).toFixed(3)+' SOL'));
+      var fl=document.getElementById('flyLive'); if(fl){ var tr=last&&last.treasury; fl.innerHTML=(tr?('last round: claimed <b>'+Number(tr.claimedSol||0).toFixed(3)+' SOL</b> · bought <b>'+Math.round(tr.boughtPro||0).toLocaleString()+' $PRO</b> with '+Number(tr.buybackSol||0).toFixed(3)+' SOL · <b>'+Math.round(tr.toWinnersPro||0).toLocaleString()+' $PRO</b> to '+last.correct+' wallet'+(last.correct===1?'':'s')+(tr.mode==='dry'?' (dry run)':'')):'no round settled yet')+(pool.address?' · dev wallet <a href="https://solscan.io/account/'+pool.address+'" target="_blank" rel="noopener">'+short(pool.address)+'</a>':''); }
+      render(); pkCount();
     }).catch(function(){});
   }
-  pkRefresh(); setInterval(pkRefresh,5000);
+  function ledgerRefresh(){
+    fetch('/api/stonkwars/payouts').then(function(r){return r.json()}).then(function(l){
+      var el=document.getElementById('ledger'); if(!el) return; var rows=l.rows||[];
+      if(!rows.length){ el.innerHTML='<span class="sub">no payouts yet — the first settlement lands at the end of round 1</span>'; return; }
+      el.innerHTML='<table class="led"><tr><th>round</th><th>wallet</th><th>shares</th><th>amount</th><th>status</th><th>tx</th></tr>'+rows.map(function(r){
+        return '<tr><td>'+(['R16','QF','SF','Final'][r.round]||r.round)+'</td><td><a href="https://solscan.io/account/'+esc(r.wallet)+'" target="_blank" rel="noopener">'+short(r.wallet)+'</a></td><td>'+r.shares+'</td><td><b>'+(r.currency==='PRO'?Math.round(r.amount).toLocaleString()+' $PRO':Number(r.amount).toFixed(4)+' SOL')+'</b></td><td class="'+(r.status==='paid'?'up':(r.status==='failed'?'dn':'sub'))+'">'+r.status+'</td><td>'+(r.txid?'<a href="https://solscan.io/tx/'+esc(r.txid)+'" target="_blank" rel="noopener">'+r.txid.slice(0,6)+'…</a>':'—')+'</td></tr>'}).join('')+'</table>';
+    }).catch(function(){});
+  }
+  pkRefresh(); setInterval(pkRefresh,5000); ledgerRefresh(); setInterval(ledgerRefresh,30000);
   refresh(); setInterval(refresh,3000);
   setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var rn=document.getElementById('roundName'),ck=document.getElementById('clock');var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd);} },1000);
 })();

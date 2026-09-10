@@ -47,4 +47,9 @@ module.exports = {
   STONK_VOTE_MIN_SOL: 0,
   STONK_VOTE_TOKEN_MINT: '',
   STONK_VOTE_MIN_TOKENS: 0,
+  // PAYOUT GATE (owner 2026-09-10): correct pickers are paid only if their
+  // wallet holds at least STONK_HOLD_MIN_USD of STONK_HOLD_MINT (the stonkwars
+  // coin) at settlement. Empty mint = falls back to STONK_BUYBACK_MINT.
+  STONK_HOLD_MINT: '',
+  STONK_HOLD_MIN_USD: 10,
 };

@@ -45,6 +45,7 @@ app.get('/api/tts/:id', async (req, res) => {
 app.get('/api/stonkwars/pumpfeed', (_req, res) => res.json(require('./pumpfeed').status()));
 app.get('/api/stonkwars/treasury', async (_req, res) => res.json(await require('./treasury').status()));
 app.get('/api/stonkwars/votes', async (req, res) => res.json(await votes.status(String(req.query.wallet || ''))));
+app.get('/api/stonkwars/payouts', (_req, res) => res.json(votes.ledger())); // every wallet paid or owed, with amounts
 app.post('/api/stonkwars/vote', express.json({ limit: '4kb' }), async (req, res) => res.json(await votes.vote(req.body)));
 
 for (const action of ['start', 'pause', 'resume', 'reset']) {
