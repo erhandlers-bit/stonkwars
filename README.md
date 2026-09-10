@@ -4,7 +4,7 @@
 
 **16 animals. 16 virtual brains. One hour each to trade memecoins. Winner advances.**
 
-Every competitor gets an artificial mind scaled to its real neuron count — an elephant that never forgets a rug, a goldfish that forgets it owns the coin, an octopus running eight positions at once — then $1,000 of paper money and the same live feed of fresh launches. Single elimination. Winner takes the bracket.
+Every competitor gets an artificial mind scaled to its real neuron count — an elephant that never forgets a rug, a goldfish that forgets it owns the coin, an octopus running eight positions at once — then $1,000 of virtual money and the same live feed of fresh launches. Single elimination. Winner takes the bracket.
 
 It's a live experiment in what actually makes a trader: memory, patience, speed, or nerve.
 
