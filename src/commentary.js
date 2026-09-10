@@ -24,8 +24,8 @@ const config = require('./config');
 
 const TTS_DIR = path.join(__dirname, '..', 'data', 'tts');
 const CAST = {
-  stonks: { name: 'Stonks Man', emoji: '📈', voice: 'en-US-AndrewNeural', rate: '+6%', pitch: '-4Hz', image: '/stonkwars/stonks-r.png' },
-  notstonks: { name: 'Not Stonks Man', emoji: '📉', voice: 'en-US-ChristopherNeural', rate: '-2%', pitch: '-10Hz', image: '/stonkwars/stonks.png' },
+  stonks: { name: 'Stonks Man', emoji: '📈', voice: 'en-US-GuyNeural', rate: '+18%', pitch: '+5Hz', image: '/stonkwars/stonks-r.png' },      // owner 2026-09-10: Guy, faster, more exciting
+  notstonks: { name: 'Not Stonks Man', emoji: '📉', voice: 'en-US-GuyNeural', rate: '+10%', pitch: '-5Hz', image: '/stonkwars/stonks.png' }, // same man, one seat over: same voice, a shade lower
 };
 
 // Every trading animal gets a voice too — for the interviews. Rate/pitch are
