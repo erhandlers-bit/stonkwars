@@ -3,8 +3,11 @@
 // fees after each match buys my proscrim coin. then 50% of my buyback is
 // split and given to the winners."
 //
-// Per round:
-//   1. CLAIM   all unclaimed pump.fun creator fees into the dev wallet
+// Every STONK_CLAIM_MS (5 min, owner 2026-09-10: "every 5 minutes is when it should
+// collect the fees"): SWEEP — claim whatever sits in the pump.fun creator vault
+// into the dev wallet and add it to the round's tally.
+// Per round (settlement):
+//   1. CLAIM   the remainder still in the vault; fees = sweeps since last settlement + remainder
 //   2. BUYBACK swap STONK_BUYBACK_PCT (50%) of what was claimed into the coin
 //   3. AIRDROP send STONK_WINNER_SHARE (50%) of the the coin bought, split evenly,
 //              to every wallet that picked a winner this round
@@ -26,7 +29,7 @@ const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 const ATA_PROGRAM = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
 const JUP = 'https://lite-api.jup.ag/swap/v1';
 
-const state = { rounds: [], totals: { claimedSol: 0, boughtPro: 0, sentPro: 0, winnersPaid: 0 } };
+const state = { rounds: [], totals: { claimedSol: 0, boughtPro: 0, sentPro: 0, winnersPaid: 0 }, accrued: { sol: 0, claims: [] }, lastSweep: null };
 function load() { try { Object.assign(state, JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))); } catch { /* fresh */ } }
 function save() { try { fs.writeFileSync(STATE_FILE, JSON.stringify(state)); } catch { /* disk */ } }
 
@@ -143,14 +146,20 @@ async function settleRound(roundIdx, winners) {
   let unclaimed = (await conn.getBalance(vault)) / 1e9;
   if (process.env.STONK_TREASURY_SIMULATE_SOL && !isLive()) unclaimed = Number(process.env.STONK_TREASURY_SIMULATE_SOL); // rehearsal only
   const minSol = Number(config.STONK_TREASURY_MIN_SOL || 0.01);
-  if (unclaimed < minSol) { rec.notes.push('unclaimed fees ' + unclaimed.toFixed(4) + ' SOL below minimum ' + minSol); return finish(rec); }
-  rec.claimedSol = +unclaimed.toFixed(6);
-  const buybackLamports = Math.floor(unclaimed * 1e9 * Number(config.STONK_BUYBACK_PCT ?? 0.5));
+  // this round's fees = what the 5-minute sweeps already claimed since the last settlement + what still sits in the vault
+  const swept = isLive() ? Number((state.accrued && state.accrued.sol) || 0) : 0;
+  rec.sweptSol = +swept.toFixed(6);
+  const claimNow = unclaimed >= minSol; // dust stays in the vault for the next sweep
+  const fees = swept + (claimNow ? unclaimed : 0);
+  if (fees < minSol) { rec.notes.push('fees this round ' + fees.toFixed(4) + ' SOL below minimum ' + minSol); return finish(rec); }
+  rec.claimedSol = +fees.toFixed(6);
+  const buybackLamports = Math.floor(fees * 1e9 * Number(config.STONK_BUYBACK_PCT ?? 0.5));
   rec.buybackSol = +(buybackLamports / 1e9).toFixed(6);
   try {
     if (isLive()) {
       const kp = keypair();
-      rec.txs.claim = await claim(conn, kp);
+      if (claimNow) rec.txs.claim = await claim(conn, kp);
+      state.accrued.sol = 0; save(); // the round's tally is spent; sweeps start a fresh one
       const b = await buyback(conn, kp, buybackLamports);
       rec.txs.swap = b.sig;
       rec.boughtPro = Number(b.received) / 1e6;
@@ -177,7 +186,7 @@ async function settleRound(roundIdx, winners) {
 function finish(rec) {
   state.rounds.unshift(rec); if (state.rounds.length > 40) state.rounds.length = 40;
   if (rec.mode === 'live') {
-    state.totals.claimedSol += rec.claimedSol; state.totals.boughtPro += rec.boughtPro;
+    state.totals.claimedSol += rec.claimedSol - (rec.sweptSol || 0); state.totals.boughtPro += rec.boughtPro; // sweeps were counted as they happened
     state.totals.sentPro += rec.transfers.filter((t) => t.txid).reduce((a, t) => a + t.pro, 0);
     state.totals.winnersPaid += rec.transfers.filter((t) => t.txid).length;
   }
@@ -192,7 +201,31 @@ async function status() {
     live: isLive(), dev, unclaimedSol: unclaimed == null ? null : +unclaimed.toFixed(4),
     buybackPct: Number(config.STONK_BUYBACK_PCT ?? 0.5), winnerShare: Number(config.STONK_WINNER_SHARE ?? 0.5), mint: config.STONK_BUYBACK_MINT || null,
     totals: state.totals, rounds: state.rounds.slice(0, 8),
+    sweep: { everyMs: Number(config.STONK_CLAIM_MS || 300000), last: state.lastSweep, accruedSol: +Number((state.accrued && state.accrued.sol) || 0).toFixed(6), claims: ((state.accrued && state.accrued.claims) || []).slice(0, 12) },
   };
 }
-function start() { load(); }
-module.exports = { start, settleRound, status, quote };
+// ---- the 5-minute sweep ----
+async function sweep() {
+  const dev = devPubkey(); if (!dev) return;
+  const conn = rpc();
+  const unclaimed = (await conn.getBalance(creatorVault(dev))) / 1e9;
+  const minSol = Number(config.STONK_TREASURY_MIN_SOL || 0.01);
+  state.lastSweep = { at: Date.now(), unclaimedSol: +unclaimed.toFixed(6), live: isLive() };
+  if (unclaimed >= minSol) {
+    if (isLive()) {
+      const sig = await claim(conn, keypair());
+      state.accrued.sol += unclaimed; state.totals.claimedSol += unclaimed;
+      state.accrued.claims.unshift({ at: Date.now(), sol: +unclaimed.toFixed(6), txid: sig });
+      console.log('[treasury] swept ' + unclaimed.toFixed(4) + ' SOL of creator fees (round tally ' + state.accrued.sol.toFixed(4) + ')');
+    } else state.accrued.claims.unshift({ at: Date.now(), sol: +unclaimed.toFixed(6), dry: true }); // dry run: noted, left in the vault
+    if (state.accrued.claims.length > 200) state.accrued.claims.length = 200;
+  }
+  save();
+}
+function start() {
+  load();
+  if (!state.accrued) state.accrued = { sol: 0, claims: [] };
+  const ms = Number(config.STONK_CLAIM_MS || 300000);
+  if (ms > 0 && devPubkey()) { setInterval(() => sweep().catch((e) => console.log('[treasury] sweep: ' + String(e.message).slice(0, 100))), ms).unref(); console.log('[treasury] claiming creator fees every ' + Math.round(ms / 60000) + ' min (' + (isLive() ? 'LIVE' : 'dry run') + ')'); }
+}
+module.exports = { start, settleRound, status, quote, sweep };

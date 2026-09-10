@@ -52,6 +52,7 @@ module.exports = {
   STONK_SWAP_SLIPPAGE_BPS: 300,     // 3% on the Jupiter swap
   STONK_TREASURY_MIN_SOL: 0.01,     // skip the round if unclaimed fees are below this
   STONK_CLAIM_PRIORITY_FEE: 0.00005,
+  STONK_CLAIM_MS: 5 * 60_000,        // claim creator fees into the dev wallet this often (owner 2026-09-10: "every 5 minutes")
 
   // Sybil brakes (default off). Gate on holding the project token once it exists.
   STONK_VOTE_MIN_SOL: 0,
