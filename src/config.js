@@ -29,6 +29,20 @@ module.exports = {
   STONK_BANTER_MODEL: 'claude-haiku-4-5-20251001', // cheap and fast; four hours costs cents
   STONK_LINE_GAP_MS: 3500,          // a commentator will not talk over itself faster than this
 
+  // --- TREASURY (owner 2026-09-10): claim fees -> buy the coin -> pay winners IN the coin ---
+  // Per round: claim all pump.fun creator fees; swap STONK_BUYBACK_PCT of them
+  // into STONK_BUYBACK_MINT; send STONK_WINNER_SHARE of the coin bought, split
+  // evenly, to the correct pickers. LIVE needs STONK_TREASURY_ENABLED true and
+  // STONK_PAYOUT_KEY = the DEV (creator) wallet key — the claim must be signed
+  // by the creator. Otherwise it dry-runs and records what it would have done.
+  STONK_TREASURY_ENABLED: false,
+  STONK_BUYBACK_MINT: '7k4JoPp1CEnm3ypLwnpqoEc9ysw95oeTdxdrTFBQpump', // $PRO (ProScrim), 6 decimals
+  STONK_BUYBACK_PCT: 0.5,           // half of claimed fees buy the coin
+  STONK_WINNER_SHARE: 0.5,          // half of the coin bought goes to the correct pickers
+  STONK_SWAP_SLIPPAGE_BPS: 300,     // 3% on the Jupiter swap
+  STONK_TREASURY_MIN_SOL: 0.01,     // skip the round if unclaimed fees are below this
+  STONK_CLAIM_PRIORITY_FEE: 0.00005,
+
   // Sybil brakes (default off). Gate on holding the project token once it exists.
   STONK_VOTE_MIN_SOL: 0,
   STONK_VOTE_TOKEN_MINT: '',

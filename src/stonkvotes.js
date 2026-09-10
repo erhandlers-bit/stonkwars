@@ -166,6 +166,23 @@ async function settle(roundIdx, round) {
   const per = correct.length ? pool.sol / correct.length : 0;
   const rec = { roundIdx, at: Date.now(), votes: Object.keys(r.votes).length, correct: correct.length, accruedSol: +(pool.accruedSol || 0).toFixed(6), poolSol: +pool.sol.toFixed(6), perWalletSol: +per.toFixed(6), mode: 'owed', txs: [] };
   const kp = payoutKeypair();
+  // TREASURY MODE (owner 2026-09-10): when a buyback mint is configured the
+  // round is settled by treasury.js — claim fees, buy the coin, send half of
+  // the buyback to the correct pickers AS THAT COIN. The SOL path below stays
+  // for deployments without a token.
+  if (config.STONK_BUYBACK_MINT) {
+    try {
+      const t = await require('./treasury').settleRound(roundIdx, correct);
+      rec.mode = t.mode === 'live' ? 'paid' : 'owed';
+      rec.treasury = t;
+      rec.poolSol = t.buybackSol; rec.perWalletSol = 0; rec.perWalletPro = t.perWinnerPro; rec.currency = 'PRO';
+      rec.txs = (t.transfers || []).map((x) => ({ wallet: x.wallet, pro: x.pro, txid: x.txid, error: x.error, owed: !x.txid }));
+      if (t.notes && t.notes.length) rec.note = t.notes.join('; ');
+    } catch (e) { rec.note = 'treasury failed: ' + String(e.message).slice(0, 120); }
+    if (pool.cum != null) state.lastCum = pool.cum;
+    r.settled = rec; state.settlements.unshift(rec); if (state.settlements.length > 50) state.settlements.length = 50; save();
+    return rec;
+  }
   const live = !!config.STONK_PAYOUT_ENABLED && !!kp && per >= minPer && correct.length > 0;
   if (live) {
     rec.mode = 'paid';
@@ -217,4 +234,4 @@ async function status(wallet) {
 }
 
 function start() { load(); }
-module.exports = { start, vote, settle, status, messageFor, onTournamentStart };
+module.exports = { start, vote, settle, status, messageFor, onTournamentStart, payoutKeypair };

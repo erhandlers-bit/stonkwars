@@ -221,7 +221,7 @@
     fetch('/api/stonkwars/votes'+(PK.wallet?'?wallet='+encodeURIComponent(PK.wallet):'')).then(function(r){return r.json()}).then(function(v){
       PK.votes=v;
       var pool=v.pool||{};
-      document.getElementById('pkPool').innerHTML='pool this round <b style="color:var(--gold)">'+(pool.sol||0).toFixed(3)+' SOL</b> <span class="sub">('+Math.round((pool.pct||0.25)*100)+'% of creator fees accrued this round'+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+')</span>';
+      document.getElementById('pkPool').innerHTML='prize this round <b style="color:var(--gold)">paid in $PRO</b> <span class="sub">— every round the creator fees are claimed, half buys $PRO, and half of that $PRO is split evenly among everyone who picked a winner'+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+'</span>';
       var lock=document.getElementById('pkLock');
       if(v.open){lock.innerHTML='picks lock in <b>'+mmss(v.locksAt-Date.now())+'</b>';}
       else if(S&&S.status==='running'){lock.textContent='picks locked for '+(v.roundName||'this round')+' — reopen at the next intermission';}

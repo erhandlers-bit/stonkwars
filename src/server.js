@@ -43,6 +43,7 @@ app.get('/api/tts/:id', async (req, res) => {
   catch (e) { res.status(503).json({ error: 'tts unavailable: ' + String(e.message).slice(0, 80) }); }
 });
 app.get('/api/stonkwars/pumpfeed', (_req, res) => res.json(require('./pumpfeed').status()));
+app.get('/api/stonkwars/treasury', async (_req, res) => res.json(await require('./treasury').status()));
 app.get('/api/stonkwars/votes', async (req, res) => res.json(await votes.status(String(req.query.wallet || ''))));
 app.post('/api/stonkwars/vote', express.json({ limit: '4kb' }), async (req, res) => res.json(await votes.vote(req.body)));
 
@@ -65,6 +66,7 @@ function start() {
   stonkwars.start();
   try { require('./commentary').start(); } catch (e) { console.log('[commentary] not started: ' + e.message); }
   try { require('./pumpfeed').start(); } catch (e) { console.log('[pumpfeed] not started: ' + e.message); }
+  try { require('./treasury').start(); } catch (e) { console.log('[treasury] not started: ' + e.message); }
   app.listen(config.PORT, '0.0.0.0', () => {
     console.log('[stonkwars] http://localhost:' + config.PORT + '  (admin: ' + (process.env.ADMIN_TOKEN ? 'token' : 'localhost only') + ')');
   });
