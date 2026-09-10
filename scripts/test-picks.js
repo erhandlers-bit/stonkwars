@@ -49,10 +49,11 @@ const ok = (name, cond, detail) => { console.log((cond ? '  PASS  ' : '  FAIL  '
   const pre = await votes.status(wallet);
   ok('idle tournament: preview round is open for picks', pre.open === true && pre.preview === true && pre.roundIdx === 0, JSON.stringify({ open: pre.open, preview: pre.preview }));
   fake.status = 'running'; fake.roundIdx = 0; fake.rounds = [fakeRound]; fake.preview = null;
-  // bell rings: locked
-  fakeRound.startAt = Date.now() - 1000;
+  // 20 minutes into every match: locked (a pick 5 minutes in would still be fine)
+  fakeRound.startAt = Date.now() - 25 * 60000;
+  for (const m of fakeRound.matches) m.startAt = fakeRound.startAt;
   const locked = await votes.vote({ wallet, picks, round: 0, ts: Date.now(), signature: sign(votes.messageFor(wallet, 0, picks, Date.now())) });
-  ok('pick after the bell rejected', locked.ok === false, locked.reason);
+  ok('pick 20+ minutes into the match rejected', locked.ok === false, locked.reason);
   // settle: elephant + rat won (2 correct), parrot won (1 wrong) -> 2 shares
   fakeRound.matches[0].winner = 'elephant'; fakeRound.matches[1].winner = 'rat'; fakeRound.matches[2].winner = 'parrot';
   const rec = await votes.settle(0, fakeRound);
