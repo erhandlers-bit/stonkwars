@@ -107,7 +107,7 @@ async function turn(who) {
   const st = sw.status();
   const fid = featured();
   const newEvents = events.filter((e) => e.id > me.seenEvent && e.kind !== 'error' && (!e.matchId || e.matchId === fid)).slice(-8); // only the featured match's trades
-  const newChat = chat.since(me.seenChat).filter((m) => !m.bot).slice(-10);
+  const newChat = chat.since(me.seenChat).filter((m) => !m.bot && now - m.at < 120000).slice(-6); // fresh chat only — never read old messages back
   const otherSpoke = other.lastLineAt > me.lastTurnAt;
   const quiet = now - me.lastLineAt > 60_000;
   me.lastTurnAt = now;
@@ -118,7 +118,7 @@ async function turn(who) {
   const r0 = st.rounds && st.rounds[0];
   const pregame = st.status === 'running' && st.roundIdx === 0 && r0 && now < r0.startAt;
   let introLine = '';
-  if (pregame) return; // owner 2026-09-10: the promo loops on the desk until the bell — no intros, no banter
+  if (pregame) { me.seenEvent = evSeq; me.seenChat = chat.status().seq; return; } // pregame: promo only; forget whatever was said meanwhile
   if (false) {
     if (intro.startedAt !== st.startedAt) { intro.startedAt = st.startedAt; intro.done = []; intro.lastAt = 0; }
     const order = r0.matches.flatMap((m) => [m.a, m.b]);
