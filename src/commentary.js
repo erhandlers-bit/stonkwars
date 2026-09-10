@@ -24,8 +24,10 @@ const config = require('./config');
 
 const TTS_DIR = path.join(__dirname, '..', 'data', 'tts');
 const CAST = {
-  stonks: { name: 'Stonks Man', emoji: '📈', voice: 'en-US-GuyNeural', rate: '+38%', pitch: '+5Hz', image: '/stonkwars/stonks-r.png' },      // owner 2026-09-10: Guy, faster, more exciting
-  notstonks: { name: 'Not Stonks Man', emoji: '📉', voice: 'en-US-GuyNeural', rate: '+30%', pitch: '-5Hz', image: '/stonkwars/stonks.png' }, // same man, one seat over: same voice, a shade lower
+  // el = ElevenLabs settings (used when ELEVENLABS_API_KEY is set): same voice for both seats — Brian, a deep
+  // broadcast narrator; Stonks Man quicker and more expressive, Not Stonks Man flatter and slower (owner 2026-09-10)
+  stonks: { name: 'Stonks Man', emoji: '📈', voice: 'en-US-GuyNeural', rate: '+38%', pitch: '+5Hz', image: '/stonkwars/stonks-r.png', el: { voice: 'nPczCjzI2devNBz1zQrb', speed: 1.15, stability: 0.35, style: 0.6 } },      // owner 2026-09-10: Guy, faster, more exciting
+  notstonks: { name: 'Not Stonks Man', emoji: '📉', voice: 'en-US-GuyNeural', rate: '+30%', pitch: '-5Hz', image: '/stonkwars/stonks.png', el: { voice: 'nPczCjzI2devNBz1zQrb', speed: 1.05, stability: 0.7, style: 0.15 } }, // same man, one seat over: same voice, a shade lower
 };
 
 // Every trading animal gets a voice too — for the interviews. Rate/pitch are
@@ -368,11 +370,24 @@ async function chatBanter() {
 let ttsLib = null;
 async function tts(line) {
   try { fs.mkdirSync(TTS_DIR, { recursive: true }); } catch { /* exists */ }
-  const file = path.join(TTS_DIR, crypto.createHash('md5').update(line.who + '|' + line.text).digest('hex') + '.mp3');
+  const file = path.join(TTS_DIR, crypto.createHash('md5').update((process.env.ELEVENLABS_API_KEY ? 'el|' : 'edge|') + line.who + '|' + line.text).digest('hex') + '.mp3');
   if (fs.existsSync(file)) return fs.readFileSync(file);
+  const c = speaker(line.who);
+  // ElevenLabs first (realistic), Edge if there is no key or the call fails — the show never goes silent
+  if (process.env.ELEVENLABS_API_KEY && c.el) {
+    try {
+      const el = c.el;
+      const r = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + (process.env.ELEVENLABS_VOICE_ID || el.voice) + '?output_format=mp3_44100_96', {
+        method: 'POST', headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY, 'content-type': 'application/json' },
+        body: JSON.stringify({ text: line.text, model_id: process.env.ELEVENLABS_MODEL || 'eleven_turbo_v2_5', voice_settings: { stability: el.stability, similarity_boost: 0.8, style: el.style, use_speaker_boost: true, speed: el.speed } }),
+        signal: AbortSignal.timeout(20000),
+      });
+      if (r.ok) { const buf = Buffer.from(await r.arrayBuffer()); if (buf.length > 1000) { try { fs.writeFileSync(file, buf); } catch { /* optional */ } return buf; } }
+      else console.log('[tts] elevenlabs ' + r.status + ' — falling back to Edge for this line');
+    } catch (e) { console.log('[tts] elevenlabs failed: ' + String(e.message).slice(0, 80)); }
+  }
   if (!ttsLib) ttsLib = require('msedge-tts');
   const { MsEdgeTTS, OUTPUT_FORMAT } = ttsLib;
-  const c = speaker(line.who);
   const t = new MsEdgeTTS();
   await t.setMetadata(c.voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
   const { audioStream } = t.toStream(line.text, { rate: c.rate, pitch: c.pitch });
