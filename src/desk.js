@@ -65,6 +65,7 @@ const agents = {
   stonks: { seenEvent: 0, seenChat: 0, lastTurnAt: 0, lastLineAt: 0, calls: 0, spoke: 0, errors: 0 },
   notstonks: { seenEvent: 0, seenChat: 0, lastTurnAt: 0, lastLineAt: 0, calls: 0, spoke: 0, errors: 0 },
 };
+const intro = { startedAt: null, done: [], lastAt: 0 }; // pregame introductions, in bracket order
 let evSeq = 0;
 const events = []; // ring of engine events with ids
 let backoffUntil = 0;
@@ -115,12 +116,29 @@ async function turn(who) {
   if (!newEvents.length && !newChat.length && !otherSpoke && !quiet) return; // nothing new: no call, no cost
   if (st.status !== 'running' && !newChat.length) return; // between tournaments the desk only answers the chat
   me.seenEvent = evSeq; me.seenChat = chat.status().seq;
+  // PREGAME (owner 2026-09-10): before the opening bell, introduce every contender with their real stats
+  const r0 = st.rounds && st.rounds[0];
+  const pregame = st.status === 'running' && st.roundIdx === 0 && r0 && now < r0.startAt;
+  let introLine = '';
+  if (pregame) {
+    if (intro.startedAt !== st.startedAt) { intro.startedAt = st.startedAt; intro.done = []; intro.lastAt = 0; }
+    const order = r0.matches.flatMap((m) => [m.a, m.b]);
+    const next = order.find((id) => !intro.done.includes(id));
+    if (next && now - intro.lastAt >= Number(config.STONK_INTRO_GAP_MS || 22000)) {
+      const a = sw.BY_ID[next]; const br = a.brain; const m = r0.matches.find((x) => x.a === next || x.b === next); const opp = sw.BY_ID[m.a === next ? m.b : m.a];
+      const seed = st.animals ? (st.animals.find((x) => x.id === next) || {}).seed : '';
+      introLine = 'INTRODUCE THIS CONTENDER NOW (the crowd is meeting the field before the bell): ' + a.name.toUpperCase() + ' — seed #' + seed + ', ' + a.neurons.toLocaleString() + ' neurons, memory ' + br.memory + ' coins, reacts in ' + (br.reactionMs / 1000) + 's, up to ' + br.maxPositions + ' positions, bets ' + Math.round(br.sizeFrac * 100) + '% per trade, impulsivity ' + Math.round(br.impulsivity * 100) + '%, pattern depth ' + Math.round(br.depth * 100) + '%, stop -' + Math.round(br.stopPct * 100) + '%, take +' + Math.round(br.takePct * 100) + '%, patience ' + br.maxHoldMin + ' min, quirk: ' + br.quirk + '. Press kit: ' + (BIOS[next] || '') + '. Scouting note: ' + (a.blurb || '') + '. Round-of-16 opponent: ' + opp.name + '. ' +
+        'Do the full fake-serious broadcast introduction in ONE line, under 45 words, quoting at least three of those exact numbers and what they mean for how it trades. Do not say [silent].';
+      intro.done.push(next); intro.lastAt = now;
+    } else if (!newChat.length && !otherSpoke) return; // between introductions: only chat or a reply to the other man
+  }
 
   const transcript = commentary.status().latest.slice(0, 10).reverse()
     .filter((l) => l.who === 'stonks' || l.who === 'notstonks' || String(l.who).startsWith('animal:'))
     .map((l) => (l.who === 'stonks' ? 'STONKS MAN' : l.who === 'notstonks' ? 'NOT STONKS MAN' : (l.name || 'A TRADER').toUpperCase() + ' (interviewed)') + ': ' + l.text).join('\n');
   const obs =
-    'CONTEXT: ' + standings(sw, st) + '\n\n' +
+    'CONTEXT: ' + (pregame ? 'PREGAME COUNTDOWN — ' + Math.max(0, Math.round((r0.startAt - now) / 60000)) + ' min ' + Math.max(0, Math.round(((r0.startAt - now) % 60000) / 1000)) + ' s to the opening bell of the ' + (r0.name || 'Round of 16') + '. The stream shows the whole bracket; you may talk about any contender introduced so far (' + (intro.done.map((id) => sw.BY_ID[id].name).join(', ') || 'none yet') + ').' : standings(sw, st)) + '\n\n' +
+    (introLine ? introLine + '\n\n' : '') +
     'NEW SINCE YOUR LAST TURN:\n' + (newEvents.length ? newEvents.map((e) => '- ' + strip(e.text)).join('\n') : '- nothing happened') + '\n\n' +
     'STREAM CHAT NOT YET ANSWERED:\n' + (newChat.length ? newChat.map((m) => '- ' + (m.dev ? 'DEV (the dev)' : m.name) + ': ' + m.text).join('\n') : '- (no new messages)') + '\n\n' +
     'ON-AIR TRANSCRIPT (oldest first):\n' + (transcript || '(silence so far)') + '\n\n' +

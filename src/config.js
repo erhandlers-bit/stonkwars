@@ -32,6 +32,8 @@ module.exports = {
   STONK_AGENTS: true,
   STONK_AGENT_MODEL: 'claude-opus-5',
   STONK_AGENT_TICK_MS: 12_000,       // one seat takes a turn this often (a seat only calls the model when something is new)
+  STONK_PREGAME_MS: 10 * 60_000,    // owner 2026-09-10: 10-minute countdown before the opening bell; the desk introduces the field
+  STONK_INTRO_GAP_MS: 22_000,       // one contender introduced this often during the pregame (16 x 22s = ~6 min)
   STONK_INTERVIEW_MS: 4 * 60_000,   // a commentator interviews a random live animal this often
   STONK_BANTER_MODEL: 'claude-haiku-4-5-20251001', // cheap and fast; four hours costs cents
   STONK_LINE_GAP_MS: 3500,          // a commentator will not talk over itself faster than this

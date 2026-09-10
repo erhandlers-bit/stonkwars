@@ -230,7 +230,8 @@
     if(!m){ document.getElementById('matchTitle').textContent=S.status==='idle'?'WAITING FOR THE OPENING BELL':'NO LIVE MATCH'; return; }
     if(!M||M!==m.id){ M=m.id; lastSeq=0; }
     var a=A[m.a]||{}, b=A[m.b]||{};
-    document.getElementById('matchTitle').textContent=(S.roundName||'')+' · '+a.name+' vs '+b.name;
+    var pre=S.status==='running'&&S.roundIdx===0&&S.now<S.roundStartAt;
+    document.getElementById('matchTitle').textContent=pre?('⏱ OPENING BELL IN '+mmss(S.roundStartAt-S.now)+' · MEET THE CONTENDERS'):((S.roundName||'')+' · '+a.name+' vs '+b.name);
     document.title='STONK WARS · '+a.name+' vs '+b.name;
     document.getElementById('fA').outerHTML=fighter(m.a,m.b,m).replace('<div class="fighter','<div id="fA" class="fighter');
     document.getElementById('fB').outerHTML=fighter(m.b,m.a,m).replace('<div class="fighter','<div id="fB" class="fighter');
@@ -267,7 +268,7 @@
   try{ var sn=localStorage.getItem('stonkChatName'); if(sn) document.getElementById('chatName').value=sn; if(localStorage.getItem('stonkChatKey')) document.getElementById('chatName').value='DEV'; }catch(x){}
   pollChat(); setInterval(pollChat,2000);
   refresh(); setInterval(refresh,3000); pollCommentary(); setInterval(pollCommentary,2000); pollPump(); setInterval(pollPump,4000);
-  setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var ck=document.getElementById('clock');var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd);} },1000);
+  setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var ck=document.getElementById('clock');var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd); if(S.roundIdx===0&&toStart>0){ var mt=document.getElementById('matchTitle'); if(mt) mt.textContent='⏱ OPENING BELL IN '+mmss(toStart)+' · MEET THE CONTENDERS'; } } },1000);
 })();
 </script>
 </body>

@@ -285,7 +285,7 @@ function startTournament() {
   for (const a of ANIMALS) state.books[a.id] = newBook(a.id);
   // Pre-bell window: the first round starts after one intermission so the
   // crowd can lock in their picks (stonkvotes.js) before anyone trades.
-  const pre = config.STONK_INTERMISSION_MS || 180000;
+  const pre = config.STONK_PREGAME_MS || config.STONK_INTERMISSION_MS || 180000; // the pregame show (10 min) before round 1
   state.rounds.push(makeRound(0, seedOrder(), Date.now() + pre));
   event('round', '🏟️ STONK WARS — picks are OPEN. Round of 16 bell rings in ' + Math.round(pre / 60000) + ' min. 16 brains, $1,000 each, one hour.');
   try { require('./stonkvotes').onTournamentStart().catch(() => {}); } catch { /* optional */ } // snapshot the creator-fee baseline
