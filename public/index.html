@@ -117,6 +117,7 @@
   </div>
   <div class="pot" id="pot" title="creator fees waiting in the vault → 50% buys the coin → half of that to the correct pickers"><div class="r">THE POT</div><div class="v" id="potFees">— SOL</div><div class="s" id="potSplit">buyback — · payouts —</div></div>
   <a id="buyBtn" href="#" target="_blank" rel="noopener" style="display:none;margin-left:12px;background:var(--gold);color:#000;border-radius:8px;padding:8px 14px;font-weight:900;letter-spacing:1px;font-size:12px;text-decoration:none">🚀 BUY NOW</a>
+  <span id="caChip" title="click to copy the contract address" style="display:none;margin-left:8px;font-size:11px;letter-spacing:1px;color:var(--gold);background:#161c2e;border:1px solid var(--gold);border-radius:8px;padding:7px 10px;cursor:pointer;font-family:ui-monospace,Consolas,monospace"></span>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
   <button id="devBtn" onclick="devLogin()" style="margin-left:12px;background:#161c2e;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:8px 12px;font-weight:900;cursor:pointer;letter-spacing:1px;font-size:12px">👑 DEV login</button>
 </header>
@@ -178,7 +179,164 @@
     var k=prompt('DEV key:'); if(!k) return; k=k.trim();
     fetch('/api/stonkwars/devlogin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})}).then(function(r){return r.json()}).then(function(j){ if(j.ok){ try{ localStorage.setItem('stonkChatKey',k); }catch(x){} devUi(); if(f) f.contentWindow.location.reload(); } else alert('Nope: '+(j.reason||'wrong key')); }).catch(function(){ alert('could not reach the server'); }); };
   devUi();
-  function buyBtnRefresh(){ fetch('/api/stonkwars/votes').then(function(r){return r.json()}).then(function(v){ var b=document.getElementById('buyBtn'); if(!b) return; var mint=v.coin&&v.coin.mint; if(mint){ b.href='https://pump.fun/coin/'+encodeURIComponent(mint); b.textContent='🚀 BUY $'+((v.coin&&v.coin.symbol)||'STONK'); b.style.display='inline-block'; } else b.style.display='none'; }).catch(function(){}); }
+  function buyBtnRefresh(){ fetch('/api/stonkwars/votes').then(function(r){return r.json()}).then(function(v){ var b=document.getElementById('buyBtn'); if(!b) return; var mint=v.coin&&v.coin.mint; var sym=(v.coin&&v.coin.symbol)||'STONK'; var c=document.getElementById('caChip'); if(mint){ b.href='https://pump.fun/coin/'+encodeURIComponent(mint); b.textContent='\uD83D\uDE80 BUY $'+sym; b.style.display='inline-block'; if(c){ var label='CA '+mint.slice(0,6)+'\u2026'+mint.slice(-6)+' \uD83D\uDCCB'; c.textContent=label; c.style.display='inline-block'; c.onclick=function(){ try{ navigator.clipboard.writeText(mint).then(function(){ c.textContent='COPIED \u2713'; setTimeout(function(){ c.textContent=label; },1500); }); }catch(x){ prompt('Contract address', mint); } }; } } else { b.style.display='none'; if(c) c.style.display='none'; } }).catch(function(){}); }
+  buyBtnRefresh(); setInterval(buyBtnRefresh,60000);
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function fmt(n){return '$'+Number(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})}
+  function neurons(n){return n>=1e9?(n/1e9).toFixed(n>=10e9?0:1)+'B':n>=1e6?(n/1e6).toFixed(0)+'M':(n/1e3).toFixed(0)+'K'}
+  function av(a){return '<div class="av">'+(a.image?'<img src="'+a.image+'" alt="">':a.emoji)+'</div>'}
+  window.ctl=function(k){var t=localStorage.getItem('stonkAdmin')||prompt('admin token');if(t)localStorage.setItem('stonkAdmin',t);fetch('/api/stonkwars/'+k,{method:'POST',headers:{'x-admin-token':t||''}}).then(function(r){return r.json()}).then(function(j){if(!j.ok&&j.reason)alert(j.reason);refresh();})};
+  function side(id,m,isLive,pickable){
+    if(!id) return '<div class="side tbd"><div class="av">?</div><div><div class="nm">TBD</div></div></div>';
+    var a=A[id], b=(S.books||{})[id]; var eq=b?b.equity:S.config.startUsd; var pnl=eq-S.config.startUsd;
+    var cls='side'; if(m.winner){cls+=m.winner===id?' win':' lose';}
+    var final=m.finalEq&&m.finalEq[id]!=null?m.finalEq[id]:null; if(final!=null){eq=final;pnl=final-S.config.startUsd;}
+    var tl=pickable?tallyPct(m.id,id):null; if(pickable&&PK.sel[m.id]===id) cls+=' sel';
+    return '<div class="'+cls+'" onclick="openCard(\''+id+'\',\''+m.id+'\','+(pickable?'true':'false')+')">'+av(a)+'<div><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+(tl!=null?' <span class="tl">'+tl+'% picked</span>':'')+'</div><div class="sd">#'+a.seed+' · '+neurons(a.neurons)+' neurons</div></div>'+
+      '<div class="eq"><div class="v">'+fmt(eq)+'</div><div class="p '+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</div></div>'+(pickable?'<button class="vote'+(PK.sel[m.id]===id?' on':'')+'" onclick="event.stopPropagation();pkSel(\''+m.id+'\',\''+id+'\')">'+(PK.sel[m.id]===id?'✓ PICKED':'VOTE')+'</button>':'')+'</div>';
+  }
+  function render(){
+    if(!S) return;
+    document.getElementById('feedN').textContent=S.config.feedCoins?'· watching '+S.config.feedCoins+' fresh coins across '+4+' chains':'';
+    var idle=S.status==='idle';
+    document.getElementById('idle').style.display=idle?'':'none';
+    for(var i=0;i<4;i++){
+      var col=document.getElementById('c'+i); var r=(S.rounds||[])[i]||(i===0&&S.preview?S.preview:null);
+      var pickable=!!(PK.votes&&PK.votes.open&&PK.votes.roundIdx===i); var openById={}; (PK.votes&&PK.votes.matches||[]).forEach(function(x){openById[x.id]=x.open;});
+      var html='<h3>'+['Round of 16','Quarterfinals','Semifinals','Final'][i]+'</h3>';
+      var n=[8,4,2,1][i];
+      for(var k=0;k<n;k++){
+        var m=r?r.matches[k]:null;
+        if(!m){html+='<div class="match">'+side(null,{})+side(null,{})+'</div>';continue;}
+        var mpick=pickable&&openById[m.id]!==false; // this match still takes picks (20 min into it)
+        var live=r&&S.roundIdx===i&&S.status==='running'&&S.now>=m.startAt&&S.now<m.endAt;
+        var soon=r&&S.roundIdx===i&&S.status==='running'&&!m.winner&&S.now<m.startAt?Math.max(1,Math.ceil((m.startAt-S.now)/60000)):0;
+        var ea=(S.books[m.a]||{}).equity||0, eb=(S.books[m.b]||{}).equity||0; var tot=ea+eb||1;
+        html+='<div class="match'+(live?' live':'')+(m.winner?' done':'')+(mpick?' pickable':'')+'">'+side(m.a,m,live,mpick)+'<div class="bar"><i style="width:'+Math.round(ea/tot*100)+'%"></i></div>'+side(m.b,m,live,mpick)+
+          (soon?'<span class="sub" style="position:absolute;left:8px;top:8px;font-size:10px;letter-spacing:1px">⏱ IN '+soon+' MIN</span>':'')+(live?'<span style="position:absolute;right:8px;top:8px;font-size:10px;letter-spacing:1px;padding:3px 7px;border-radius:5px;background:#123d1e;color:var(--green);border:1px solid var(--green)">● LIVE NOW</span>':'')+'</div>';
+      }
+      col.innerHTML=html;
+    }
+    var ch=S.champion?A[S.champion]:null;
+    document.getElementById('champ').querySelector('.av').innerHTML=ch?(ch.image?'<img src="'+ch.image+'">':ch.emoji):'🏆';
+    document.getElementById('champName').textContent=ch?ch.name.toUpperCase():'TBD';
+    document.getElementById('champSub').textContent=ch?(neurons(ch.neurons)+' neurons · '+fmt((S.books[ch.id]||{}).equity||0)):'';
+    // clock
+    var rn=document.getElementById('roundName'), ck=document.getElementById('clock');
+    if(S.status==='done'){rn.textContent='FINAL RESULT';ck.textContent='🏆';}
+    else if(S.status==='paused'){rn.textContent='PAUSED';ck.textContent='⏸';}
+    else if(S.status==='running'){
+      var am=S.active||{}; var toStart=(am.startAt||S.roundStartAt)-S.now, toEnd=(am.endAt||S.roundEndAt)-S.now;
+      if(toStart>0){rn.textContent=(S.now<S.roundStartAt?'INTERMISSION · '+S.roundName:'NEXT MATCH')+' in';ck.textContent=mmss(toStart);}
+      else{rn.textContent=S.roundName+' · match '+((am.idx||0)+1)+'/'+(am.count||'')+' · time left';ck.textContent=mmss(toEnd);}
+    } else {rn.textContent='—';ck.textContent='--:--';}
+    // feed
+    var fd=document.getElementById('feed'); if(fd) fd.innerHTML=(S.feed||[]).map(function(e){return '<div class="'+esc(e.kind)+'"><span class="k">'+new Date(e.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})+'</span>'+esc(e.text)+'</div>'}).join('');
+    if(sel) detail(sel);
+  }
+  function mmss(ms){ms=Math.max(0,ms);var s=Math.floor(ms/1000),m=Math.floor(s/60);s=s%60;return (m<10?'0':'')+m+':'+(s<10?'0':'')+s}
+  window.pick=function(id){sel=id;detail(id)};
+  window.closeCard=function(){ document.getElementById('cardBg').classList.remove('show'); };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeCard(); });
+  window.openCard=function(id,mid,pickable){ var a=A[id]; if(!a) return; var b=(S.books||{})[id]; var br=a.brain||{};
+    var traits=[['memory',br.memory+' coins'],['reaction',(br.reactionMs/1000)+'s'],['positions',br.maxPositions],['bet size',Math.round(br.sizeFrac*100)+'%'],['impulsivity',Math.round(br.impulsivity*100)+'%'],['pattern depth',Math.round(br.depth*100)+'%'],['stop','-'+Math.round(br.stopPct*100)+'%'],['take','+'+Math.round(br.takePct*100)+'%'],['patience',br.maxHoldMin+' min'],['quirk',br.quirk]];
+    var html=(a.image?'<img src="'+a.image+'" alt="">':'')+'<div class="in"><h2>'+esc(a.name)+' <span class="sub">#'+a.seed+' seed · '+neurons(a.neurons)+' neurons</span></h2>'+
+      '<div class="bio">'+esc(a.blurb||'')+'</div><div>'+traits.map(function(t){return '<span class="trait">'+t[0]+' <b>'+esc(t[1])+'</b></span>'}).join('')+'</div>';
+    if(b){ var pnl=b.equity-S.config.startUsd; html+='<div style="margin:12px 0 4px;font-weight:700;font-size:16px">'+fmt(b.equity)+' <span class="'+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</span> <span class="sub">· '+b.trades+' trades · '+b.wins+'W/'+b.losses+'L</span></div>'+(b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+p.url+'" target="_blank" style="color:var(--blue)">$'+esc(p.symbol)+'</a></span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join(''); }
+    if(pickable) html+='<button class="vote" onclick="pkSel(\''+mid+'\',\''+id+'\');closeCard();">🗳️ VOTE '+esc(a.name.toUpperCase())+' TO WIN</button>';
+    html+='</div>'; document.getElementById('card').innerHTML=html; document.getElementById('cardBg').classList.add('show'); };
+  function detail(id){
+    var a=A[id]; if(!a) return; var b=(S.books||{})[id]; var br=a.brain;
+    var traits=[['memory',br.memory+' coins'],['reaction',(br.reactionMs/1000)+'s'],['positions',br.maxPositions],['bet size',Math.round(br.sizeFrac*100)+'%'],['impulsivity',Math.round(br.impulsivity*100)+'%'],['pattern depth',Math.round(br.depth*100)+'%'],['stop','-'+Math.round(br.stopPct*100)+'%'],['take','+'+Math.round(br.takePct*100)+'%'],['patience',br.maxHoldMin+'m'],['quirk',br.quirk]];
+    var html='<div class="big">'+av(a)+'<div><div style="font-size:16px;font-weight:900">'+esc(a.name)+' <span class="sub">#'+a.seed+' seed</span></div><div class="sub">'+neurons(a.neurons)+' neurons · '+esc(a.blurb)+'</div></div></div>';
+    html+='<div>'+traits.map(function(t){return '<span class="trait">'+t[0]+' <b>'+esc(t[1])+'</b></span>'}).join('')+'</div>';
+    if(b){
+      var pnl=b.equity-S.config.startUsd;
+      html+='<div style="margin:10px 0 4px;font-weight:700">'+fmt(b.equity)+' <span class="'+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</span> <span class="sub">· cash '+fmt(b.cash)+' · '+b.trades+' trades · '+b.wins+'W/'+b.losses+'L</span></div>';
+      html+=(b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+p.url+'" target="_blank" style="color:var(--blue)">$'+esc(p.symbol)+'</a> <span class="sub">'+esc(p.chainId||'')+(p.forgotten?' · 🐟 forgotten':'')+'</span></span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join('')||'<div class="sub">no open positions</div>';
+      if((b.closed||[]).length) html+='<div class="sub" style="margin-top:8px">recent: '+b.closed.slice(0,5).map(function(c){return '$'+esc(c.symbol)+' '+(c.pnlUsd>=0?'+':'')+c.pnlUsd.toFixed(0)}).join(' · ')+'</div>';
+    }
+    document.getElementById('detail').innerHTML=html;
+  }
+  function refresh(){
+    fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();}).catch(function(){});
+  }
+  // ---- PICK 'EM: free picks signed by a Solana wallet; prize is the owner's creator fees ----
+  var PK={wallet:null,votes:null,sel:{},touched:false};
+  function b64(u8){var s='';for(var i=0;i<u8.length;i++)s+=String.fromCharCode(u8[i]);return btoa(s)}
+  window.pkConnect=function(){
+    var sol=window.solana||(window.phantom&&window.phantom.solana);
+    if(!sol){document.getElementById('pkMsg').innerHTML='<a href="https://phantom.app" target="_blank" style="color:var(--blue)">Install Phantom</a> to pick.';return;}
+    sol.connect().then(function(r){PK.wallet=(r&&r.publicKey?r.publicKey:sol.publicKey).toString();document.getElementById('pkConnect').textContent=PK.wallet.slice(0,4)+'…'+PK.wallet.slice(-4);pkRefresh();}).catch(function(e){document.getElementById('pkMsg').textContent='wallet: '+(e.message||e)});
+  };
+  window.pkSel=function(mid,id){ PK.sel[mid]=id; PK.touched=true; render(); pkCount(); };
+  function openMatches(){ return ((PK.votes&&PK.votes.matches)||[]).filter(function(m){ return m.open!==false; }); }
+  function pkCount(){ var ms=openMatches(); var n=ms.filter(function(m){return PK.sel[m.id]}).length; var c=document.getElementById('lkCount'); var b=document.getElementById('lkBtn');
+    if(!PK.votes||!PK.votes.open){ c.textContent=(S&&S.status==='running')?'picks are locked for '+(PK.votes&&PK.votes.roundName||'this round')+' — they reopen at the next intermission':(S&&S.status==='done'?'tournament over':'picks open soon'); b.disabled=true; return; }
+    var mine=PK.votes.mine?Object.keys(PK.votes.mine).length:0; b.disabled=n===0;
+    c.innerHTML='<b>'+n+' of '+ms.length+'</b> winners picked'+(mine?' · <span class="up">'+mine+' locked on-chain</span>':'')+(PK.votes.preview?' · each match takes picks until 20 minutes in':(PK.votes.locksAt?' · next lock in '+mmss(PK.votes.locksAt-Date.now()):'')); }
+  function tallyPct(mid,id){ var t=PK.votes&&PK.votes.tally&&PK.votes.tally[mid]; if(!t) return null; var tot=0; for(var k in t) tot+=t[k]; return tot?Math.round((t[id]||0)/tot*100):null; }
+  window.pkLock=function(){
+    if(!PK.wallet){pkConnect();return;}
+    var sol=window.solana||(window.phantom&&window.phantom.solana);
+    var round=PK.votes?PK.votes.roundIdx:0; var picks={}; openMatches().forEach(function(m){ if(PK.sel[m.id]) picks[m.id]=PK.sel[m.id]; });
+    var keys=Object.keys(picks).sort(); if(!keys.length){document.getElementById('lkMsg').textContent='pick at least one winner first';return;}
+    var ts=Date.now(); var msg='STONK WARS picks\nround: '+round+'\npicks: '+keys.map(function(k){return k+'='+picks[k]}).join(' ')+'\nwallet: '+PK.wallet+'\nts: '+ts;
+    var m=document.getElementById('lkMsg'); m.style.color='var(--amber,#f5c542)'; m.textContent='sign your '+keys.length+' picks in Phantom…';
+    sol.signMessage(new TextEncoder().encode(msg),'utf8').then(function(r){
+      var sig=b64(r.signature||r);
+      return fetch('/api/stonkwars/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:PK.wallet,picks:picks,round:round,ts:ts,signature:sig})}).then(function(x){return x.json()});
+    }).then(function(j){
+      m.style.color=j.ok?'var(--green,#5fe89b)':'var(--red,#ff6b6b)'; m.textContent=j.ok?('✓ '+j.count+' picks locked'+(j.changed?' (updated)':'')):('✗ '+(j.reason||'failed'));
+      pkRefresh();
+    }).catch(function(e){m.style.color='var(--red,#ff6b6b)';m.textContent='✗ '+(e.message||e)});
+  };
+  function short(w){return w?w.slice(0,4)+'…'+w.slice(-4):''}
+  function pkRefresh(){
+    fetch('/api/stonkwars/votes'+(PK.wallet?'?wallet='+encodeURIComponent(PK.wallet):'')).then(function(r){return r.json()}).then(function(v){
+      PK.votes=v; var pool=v.pool||{}; var hg=v.holdGate||{};
+      var SYM=(v.coin&&v.coin.symbol)||'COIN'; var coin='$'+SYM; window.__coin=SYM;
+      document.getElementById('pkPool').innerHTML='prize this round <b style="color:var(--gold)">paid in $'+SYM+'</b> <span class="sub">— every round the creator fees are claimed, half buys back $'+SYM+', and half of that $'+SYM+' is split among everyone who picked winners (one share per correct pick)'+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+'</span>';
+      var lock=document.getElementById('pkLock');
+      if(v.open&&v.preview){lock.innerHTML='<b style="color:var(--green)">picks are OPEN</b> — lock at the opening bell';}
+      else if(v.open){lock.innerHTML='picks open — each match locks <b>20 min</b> after its bell'+(v.locksAt?' · next lock in <b>'+mmss(v.locksAt-Date.now())+'</b>':'');}
+      else if(S&&S.status==='running'){lock.textContent='picks locked for '+(v.roundName||'this round')+' — reopen at the next intermission';}
+      else if(S&&S.status==='done'){lock.textContent='tournament over';}
+      else {lock.textContent='picks open when the bracket is set';}
+      var need=hg.minTokens?(hg.minTokens>=1e6?(hg.minTokens/1e6)+'M':hg.minTokens.toLocaleString())+' '+coin:(hg.minUsd?'$'+hg.minUsd+' of '+coin:''); if(need){ var h=document.getElementById('lkHold'); h.textContent=need; var fh=document.getElementById('flyHold'); if(fh) fh.textContent=need; }
+      var mineN=v.mine?Object.keys(v.mine).length:0;
+      var hold=v.myHold?(v.myHold.gated?(' · you hold <b class="'+(v.myHold.eligible?'up':'dn')+'">$'+Number(v.myHold.usd).toFixed(2)+'</b> of '+coin+' ('+Math.round(v.myHold.tokens||0).toLocaleString()+' tokens)'+(v.myHold.eligible?' ✓ eligible':' — need '+need+' to be paid')):''):'';
+      document.getElementById('pkMine').innerHTML=(PK.wallet?(mineN?('your picks: <b>'+mineN+' locked</b>'):'no picks locked yet')+hold:'');
+      if(v.mine&&!PK.touched){ PK.sel={}; for(var k in v.mine) PK.sel[k]=v.mine[k]; }
+      document.getElementById('pkChips').innerHTML='';
+      var tot=v.totalVotes||0; var t=document.getElementById('pkTally');
+      t.innerHTML=tot?(tot+' wallet'+(tot===1?'':'s')+' locked picks'):'';
+      var last=(v.settlements||[])[0];
+      if(last) t.innerHTML+=(t.innerHTML?' · ':'')+'last round: '+last.correct+' of '+last.votes+' wallets called winners ('+(last.shares||last.correct)+' shares) · '+(last.currency==='COIN'?(last.mode==='paid'?'airdropped ':'owed ')+Math.round(last.treasury&&last.treasury.toWinnersPro||0).toLocaleString()+' $'+SYM:((last.mode==='paid'?'airdropped ':'pool ')+Number(last.poolSol||0).toFixed(3)+' SOL'));
+      var fl=document.getElementById('flyLive'); if(fl){ var tr=last&&last.treasury; fl.innerHTML=(tr?('last round: claimed <b>'+Number(tr.claimedSol||0).toFixed(3)+' SOL</b> · bought <b>'+Math.round(tr.boughtPro||0).toLocaleString()+' $'+SYM+'</b> with '+Number(tr.buybackSol||0).toFixed(3)+' SOL · <b>'+Math.round(tr.toWinnersPro||0).toLocaleString()+' $'+SYM+'</b> to '+last.correct+' wallet'+(last.correct===1?'':'s')+(tr.mode==='dry'?' (dry run)':'')):'no round settled yet')+(pool.address?' · dev wallet <a href="https://solscan.io/account/'+pool.address+'" target="_blank" rel="noopener">'+short(pool.address)+'</a>':''); }
+      render(); pkCount();
+    }).catch(function(){});
+  }
+  function ledgerRefresh(){
+    fetch('/api/stonkwars/payouts').then(function(r){return r.json()}).then(function(l){
+      var el=document.getElementById('ledger'); if(!el) return; var rows=l.rows||[]; var LSYM=(l.coin&&l.coin.symbol)||'COIN';
+      if(!rows.length){ el.innerHTML='<span class="sub">no payouts yet — the first settlement lands at the end of round 1</span>'; return; }
+      el.innerHTML='<table class="led"><tr><th>round</th><th>wallet</th><th>shares</th><th>amount</th><th>status</th><th>tx</th></tr>'+rows.map(function(r){
+        return '<tr><td>'+(['R16','QF','SF','Final'][r.round]||r.round)+'</td><td><a href="https://solscan.io/account/'+esc(r.wallet)+'" target="_blank" rel="noopener">'+short(r.wallet)+'</a></td><td>'+r.shares+'</td><td><b>'+(r.currency==='COIN'?Math.round(r.amount).toLocaleString()+' $'+LSYM:Number(r.amount).toFixed(4)+' SOL')+'</b></td><td class="'+(r.status==='paid'?'up':(r.status==='failed'?'dn':'sub'))+'">'+r.status+'</td><td>'+(r.txid?'<a href="https://solscan.io/tx/'+esc(r.txid)+'" target="_blank" rel="noopener">'+r.txid.slice(0,6)+'…</a>':'—')+'</td></tr>'}).join('')+'</table>';
+    }).catch(function(){});
+  }
+  // the pot: fees in the creator vault right now -> buyback -> winners (polled every 30s)
+  function potRefresh(){ fetch('/api/stonkwars/treasury').then(function(r){return r.json()}).then(function(t){ var fees=Number(t.unclaimedSol||0)+Number((t.sweep&&t.sweep.accruedSol)||0); var bb=fees*Number(t.buybackPct||0.5); var pay=bb*Number(t.winnerShare||0.5);
+    document.getElementById('potFees').textContent=fees.toFixed(3)+' SOL'; document.getElementById('potSplit').textContent='buyback '+bb.toFixed(3)+' SOL · payouts '+pay.toFixed(3)+' SOL in $'+((window.__coin)||'STONK')+(t.live?'':' · dry run'); }).catch(function(){}); }
+  potRefresh(); setInterval(potRefresh,30000);
+  pkRefresh(); setInterval(pkRefresh,5000); ledgerRefresh(); setInterval(ledgerRefresh,30000);
+  refresh(); setInterval(refresh,3000);
+  setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var rn=document.getElementById('roundName'),ck=document.getElementById('clock');var am=S.active||{};var toStart=(am.startAt||S.roundStartAt)-S.now,toEnd=(am.endAt||S.roundEndAt)-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd);} },1000);
+})();
+</script>
+</body>
+</html>
++((v.coin&&v.coin.symbol)||'STONK'); b.style.display='inline-block'; if(c){ c.textContent='CA '+mint.slice(0,6)+'…'+mint.slice(-6)+' 📋'; c.style.display='inline-block'; c.onclick=function(){ try{ navigator.clipboard.writeText(mint).then(function(){ c.textContent='COPIED ✓'; setTimeout(function(){ c.textContent='CA '+mint.slice(0,6)+'…'+mint.slice(-6)+' 📋'; },1500); }); }catch(x){ prompt('Contract address', mint); } }; } } else { b.style.display='none'; if(c) c.style.display='none'; } }).catch(function(){}); }
   buyBtnRefresh(); setInterval(buyBtnRefresh,60000);
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmt(n){return '$'+Number(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})}
