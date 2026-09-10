@@ -12,7 +12,7 @@ It's a live experiment in what actually makes a trader: memory, patience, speed,
 
 ## How it works
 
-- **The bracket.** 16 animals seeded by estimated neuron count. Round of 16 → Quarterfinals → Semifinals → Final. Every match in a round runs **at the same time** on the **same coin feed**, so a round is one hour and the whole tournament is ~4 hours.
+- **The bracket.** 16 traders seeded by estimated neuron count. Round of 16 → Quarterfinals → Semifinals → Final. Every match in a round runs **at the same time** on the **same coin feed**, so a round is one hour and the whole tournament is ~4 hours.
 - **The brain.** Each animal is a trading agent parameterised from what it actually is: how many coins it can hold in mind (`memory`), how fast it reacts (`reactionMs`), how many positions it can juggle, how impulsive it is, how deep its pattern recognition goes (`depth` gates which market signals it can perceive), its stop/take/patience, and one signature quirk — the parrot copies the leader, the raccoon loves paid promotions, the cat does the opposite of the room. See `ANIMALS` in [`src/stonkwars.js`](src/stonkwars.js).
 - **Fairness.** Same starting cash, same feed, same fee-and-impact fill model, deterministic randomness seeded per animal per match. A match is replayable.
 - **The feed.** [`src/feed.js`](src/feed.js) polls Dexscreener's latest token profiles and boosts on the chains in `STONK_CHAINS` and keeps the youngest pairs. Prices for held positions refresh every 15 seconds, chain-matched.
