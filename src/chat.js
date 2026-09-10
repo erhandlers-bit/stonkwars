@@ -46,5 +46,7 @@ function since(id) { const n = Number(id || 0); return msgs.filter((m) => m.id >
 function unanswered() { return msgs.filter((m) => !m.bot && m.id > lastAnswered).slice(-15); }
 function markAnswered() { lastAnswered = seq; }
 function status() { return { count: msgs.length, seq }; }
+// DEV login: the site checks the key once and the browser keeps it; every chat post then carries it
+function devLogin(body) { const key = process.env.STONK_CHAT_DEV_KEY; if (!key) return { ok: false, reason: 'no dev key configured' }; const k = body && typeof body.key === 'string' ? body.key.trim() : ''; return k && k === key ? { ok: true } : { ok: false, reason: 'wrong key' }; }
 
-module.exports = { post, since, botSay, unanswered, markAnswered, status };
+module.exports = { post, since, botSay, unanswered, markAnswered, status, devLogin };
