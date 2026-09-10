@@ -1,4 +1,4 @@
-<p align="center"><img src="public/stonkwars/logo.png" width="160" alt="Stonk Wars"></p>
+<p align="center"><img src="public/stonkwars/banner.png" width="100%" alt="Stonk Wars"></p>
 
 # STONK WARS
 
