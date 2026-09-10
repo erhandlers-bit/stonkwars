@@ -142,7 +142,7 @@
     setInterval(postH,700); window.addEventListener('load',postH);
     window.addEventListener('message',function(e){ if(e.data&&e.data.stonkwarsWatch){ M=String(e.data.stonkwarsWatch); AUTO=false; lastRotate=Date.now(); refresh(); } });
   }
-  var S=null, A={}, lastSeq=0, voice=true, queue=[], playing=false, lastRotate=0;
+  var S=null, A={}, lastSeq=0, primed=false, voice=true, queue=[], playing=false, lastRotate=0;
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmt(n){return '$'+Number(n).toLocaleString(undefined,{maximumFractionDigits:0})}
   function neurons(n){return n>=1e9?(n/1e9).toFixed(n>=10e9?0:1)+'B':n>=1e6?(n/1e6).toFixed(0)+'M':(n/1e3).toFixed(0)+'K'}
@@ -206,6 +206,7 @@
       var cast=j.cast||{};
       if(AUTO&&j.featured&&j.featured!==M){ M=j.featured; lastSeq=0; queue=[]; refresh(); }
       ['stonks','notstonks'].forEach(function(k){var c=cast[k];if(!c)return;document.getElementById('nm-'+k).textContent=c.name;document.getElementById('nmb-'+k).textContent=c.name;});
+      if(!primed){ primed=true; (j.lines||[]).forEach(function(l){ if(l.id>lastSeq)lastSeq=l.id; }); var last=(j.lines||[]).slice(-2); last.forEach(showLine); return; } // first poll: catch up silently, never replay history
       (j.lines||[]).forEach(function(l){ if(l.id>lastSeq)lastSeq=l.id; showLine(l); queue.push(l); }); try{ reactToLines(j.lines||[]); }catch(x){}
       if(queue.length>6) queue=queue.slice(-6); // never fall minutes behind live
       pump();
