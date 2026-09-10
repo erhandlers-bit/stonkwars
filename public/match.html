@@ -146,7 +146,7 @@
   var reactBusy=false, lastFeedAt=Date.now();
   function kickIdle(){ var v=document.getElementById('deskIdle'); if(v&&v.paused) v.play().catch(function(){}); }
   kickIdle(); setTimeout(kickIdle,1500); document.addEventListener('click',kickIdle); document.addEventListener('visibilitychange',kickIdle);
-  function react(kind){ sfx(SFX_FOR[kind]); var v=document.getElementById('deskReact'); if(!v||reactBusy) return; reactBusy=true; v.src='/stonkwars/desk-'+kind+'.mp4'; v.currentTime=0;
+  function react(kind){ var v=document.getElementById('deskReact'); if(!v||reactBusy) return; reactBusy=true; v.src='/stonkwars/desk-'+kind+'.mp4'; v.currentTime=0;
     var done=function(){ v.classList.remove('on'); reactBusy=false; }; v.onended=done; v.onerror=done;
     v.play().then(function(){ v.classList.add('on'); }).catch(done); }
   function reactToFeed(){ if(!S||!S.feed) return; var fresh=S.feed.filter(function(e){return e.at>lastFeedAt}); if(!fresh.length) return; fresh=fresh.filter(function(e){ return !e.matchId||e.matchId===M; }); // only the match on screen lastFeedAt=Math.max.apply(null,fresh.map(function(e){return e.at}));
@@ -167,9 +167,7 @@
   // first click anywhere starts the music (browsers need a gesture); the 🎵 button still toggles it
   musicToggle(); ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ if(!musicOn) musicToggle(); }); });
   // ---- soundboard: short stings on events and on lines the desk tags ----
-  var SFX_FOR={bell:'bell',champion:'airhorn'}; // owner 2026-09-10: sound only when a round starts (bell) and when it is over — the air horn for the winner
-  var lastSfxAt=0;
-  function sfx(name){ if(!name) return; var now=Date.now(); if(now-lastSfxAt<5000) return; lastSfxAt=now; try{ var a=new Audio('/stonkwars/sfx/'+name+'.mp3?v=2'); a.volume=0.55; a.play().catch(function(){}); }catch(x){} }
+  function sfx(){} // soundboard removed (owner 2026-09-10: distracting)
   // ---- voice: sequential playback of commentator/animal lines ----
   // voice is always on (owner 2026-09-10): the first click/key/tap unlocks audio, then the queue plays itself
   var audioBlocked=false;
