@@ -7,7 +7,7 @@ module.exports = {
   // one hour per round; all matches in a round run at once. Env overrides
   // exist so a rehearsal can run with 3-minute rounds: STONK_MATCH_MS=180000
   STONK_MATCH_MS: Number(process.env.STONK_MATCH_MS) || 60 * 60_000, // owner 2026-09-10: one hour of trading per match, one match at a time
-  STONK_INTERMISSION_MS: Number(process.env.STONK_INTERMISSION_MS) || 3 * 60_000, // break between rounds (and the pick window before round 1)
+  STONK_INTERMISSION_MS: Number(process.env.STONK_INTERMISSION_MS) || 5 * 60_000, // owner 2026-09-10: 5-minute bell between rounds
   STONK_MATCH_GAP_MS: process.env.STONK_MATCH_GAP_MS != null ? Number(process.env.STONK_MATCH_GAP_MS) : 60_000,       // breather between consecutive matches of a round (the desk previews the next one)
   STONK_BUST_USD: 30,                 // equity at/under this = busted, match lost immediately
   STONK_CHAINS: ['solana', 'base', 'bsc'], // chains the shared coin feed watches
@@ -34,8 +34,8 @@ module.exports = {
   STONK_AGENTS: true,
   STONK_AGENT_MODEL: 'claude-opus-5',
   STONK_AGENT_TICK_MS: 12_000,       // one seat takes a turn this often (a seat only calls the model when something is new)
-  STONK_PREGAME_MS: Number(process.env.STONK_PREGAME_MS) || 10 * 60_000,    // owner 2026-09-10: 10-minute countdown before the opening bell; the desk introduces the field
-  STONK_INTRO_GAP_MS: 22_000,       // one contender introduced this often during the pregame (16 x 22s = ~6 min)
+  STONK_PREGAME_MS: Number(process.env.STONK_PREGAME_MS) || 5 * 60_000,     // owner 2026-09-10: 5-minute pregame (video -> intros -> banter)
+  STONK_INTRO_GAP_MS: 15_000,       // one contender introduced this often during the pregame (16 x 15s = 4 min)
   STONK_INTERVIEW_MS: 4 * 60_000,   // a commentator interviews a random live animal this often
   STONK_BANTER_MODEL: 'claude-haiku-4-5-20251001', // cheap and fast; four hours costs cents
   STONK_LINE_GAP_MS: 3500,          // a commentator will not talk over itself faster than this
