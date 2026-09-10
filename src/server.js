@@ -11,6 +11,7 @@ const express = require('express');
 const config = require('./config');
 const stonkwars = require('./stonkwars');
 const votes = require('./stonkvotes');
+const chat = require('./chat');
 const feed = require('./feed');
 
 const app = express();
@@ -45,7 +46,9 @@ app.get('/api/tts/:id', async (req, res) => {
 app.get('/api/stonkwars/pumpfeed', (_req, res) => res.json(require('./pumpfeed').status()));
 app.get('/api/stonkwars/treasury', async (_req, res) => res.json(await require('./treasury').status()));
 app.get('/api/stonkwars/votes', async (req, res) => res.json(await votes.status(String(req.query.wallet || ''))));
-app.get('/api/stonkwars/payouts', (_req, res) => res.json(votes.ledger())); // every wallet paid or owed, with amounts
+app.get('/api/stonkwars/payouts', (_req, res) => res.json(votes.ledger()));
+app.get('/api/stonkwars/chat', (req, res) => res.json({ messages: chat.since(req.query.since), seq: chat.status().seq }));
+app.post('/api/stonkwars/chat', express.json({ limit: '2kb' }), (req, res) => res.json(chat.post(req.body, ((req.headers['cf-connecting-ip'] || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || '').toString())))); // every wallet paid or owed, with amounts
 app.post('/api/stonkwars/vote', express.json({ limit: '4kb' }), async (req, res) => res.json(await votes.vote(req.body)));
 
 for (const action of ['start', 'pause', 'resume', 'reset']) {

@@ -25,6 +25,7 @@ module.exports = {
   STONK_FEE_VAULT: '',                 // optional: launchpad creator-fee vault (unclaimed fees count toward accrual)
   // --- COMMENTARY (the showcase view) ---
   STONK_BANTER_MS: 45_000,          // Claude-written banter cadence; 0 = scripted lines only
+  STONK_CHAT_REPLY_MS: 30_000,      // the desk reads the stream chat and answers this often (0 = never)
   STONK_INTERVIEW_MS: 4 * 60_000,   // a commentator interviews a random live animal this often
   STONK_BANTER_MODEL: 'claude-haiku-4-5-20251001', // cheap and fast; four hours costs cents
   STONK_LINE_GAP_MS: 3500,          // a commentator will not talk over itself faster than this
