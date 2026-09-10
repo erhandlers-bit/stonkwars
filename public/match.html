@@ -20,26 +20,26 @@
   .btn{background:#161c2e;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-weight:700;font-size:12px}
   .btn.on{border-color:var(--green);color:var(--green)}
   /* commentators */
-  .booth{display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px 20px 10px;background:radial-gradient(ellipse at top,#161033 0%,#07090f 70%)}
-  .desk{position:relative;width:min(100%,920px);aspect-ratio:1344/768;border-radius:16px;overflow:hidden;background:#0a0c16 url(/stonkwars/desk.png) center/cover no-repeat;border:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.55)}
+  .stage{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;padding:14px 20px;align-items:start;background:radial-gradient(ellipse at top,#161033 0%,#07090f 70%)}
+  .mid{display:flex;flex-direction:column;gap:10px;min-width:0}
+  .desk{position:relative;width:100%;aspect-ratio:1344/768;border-radius:16px;overflow:hidden;background:#0a0c16 url(/stonkwars/desk.png) center/cover no-repeat;border:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.55)}
   .desk .tag{position:absolute;top:67.5%;font-weight:900;font-size:clamp(9px,1.3vw,13px);letter-spacing:2px;text-transform:uppercase;color:var(--gold);background:rgba(7,9,15,.82);border:1px solid var(--border);padding:4px 10px;border-radius:8px;transition:box-shadow .2s,border-color .2s}
   .desk .tag.l{left:13%} .desk .tag.r{right:13%}
   .desk .tag.talking{border-color:var(--pink);box-shadow:0 0 0 2px var(--pink),0 0 24px rgba(255,63,164,.5)}
-  .bubbles{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:min(100%,920px)}
+  .bubbles{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
   .caster{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 12px;min-height:74px;transition:box-shadow .2s}
   .caster:before{content:"";position:absolute;top:-9px;left:50%;margin-left:-9px;border:9px solid transparent;border-top:0;border-bottom-color:var(--border)}
   .caster.talking{box-shadow:0 0 0 2px var(--pink),0 0 30px rgba(255,63,164,.35)}
   .caster .nm{font-weight:900;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
   .bubble{margin-top:4px;font-size:15px;line-height:1.35;min-height:44px}
   .caster.notstonks .bubble{color:#d9d3ff}
-  .interview{width:min(100%,920px);display:none;background:linear-gradient(90deg,#1a1606,#0e1220);border:1px solid var(--gold);border-radius:14px;padding:10px;gap:12px;align-items:center}
+  .interview{width:100%;display:none;background:linear-gradient(90deg,#1a1606,#0e1220);border:1px solid var(--gold);border-radius:14px;padding:10px;gap:12px;align-items:center}
   .interview.show{display:flex}
   .interview .av{width:120px;height:68px;border-radius:10px;overflow:hidden;flex:none}
   .interview .av img{width:100%;height:100%;object-fit:cover}
   .interview .tag{font-size:10px;letter-spacing:2px;color:var(--gold)}
   .interview .q{font-size:15px;line-height:1.35}
   /* the match */
-  .arena{display:grid;grid-template-columns:1fr 90px 1fr;gap:12px;padding:0 20px 14px;align-items:stretch}
   .fighter{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
   .fighter.lead{border-color:var(--green)}
   .fighter .hero{aspect-ratio:16/9;background:#161c2e;position:relative}
@@ -53,10 +53,12 @@
   .acts{font-size:12px;color:var(--dim);max-height:150px;overflow:auto}
   .acts div{padding:4px 0;border-bottom:1px solid #141a2c;line-height:1.35}
   .acts .buy{color:var(--blue)} .acts .sell{color:var(--text)}
-  .vs{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
-  .vs .v{font-size:34px;font-weight:900;color:var(--pink);letter-spacing:2px}
-  .vs .bar{width:14px;height:200px;background:#1a2236;border-radius:7px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
-  .vs .bar i{display:block;background:var(--green);width:100%}
+  .vs{display:flex;flex-direction:row;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:8px 14px}
+  .vs .v{font-size:22px;font-weight:900;color:var(--pink);letter-spacing:2px}
+  .vs .bar{flex:1;height:14px;background:#1a2236;border-radius:7px;overflow:hidden;display:flex;flex-direction:row;justify-content:flex-start}
+  .vs .bar i{display:block;background:var(--green);height:100%}
+  .fighter .sec{font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-top:4px}
+  .fighter .pos a{color:var(--blue);text-decoration:none;font-weight:700}
   /* tickers */
   .tickers{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 14px}
   .ticker{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden}
@@ -71,7 +73,7 @@
   body.embed header img,body.embed header h1,body.embed header .clock,body.embed header .links,body.embed .tape{display:none}
   body.embed header{padding:8px 20px}
   .chip{display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;background:#161c2e;color:var(--dim);margin-left:4px}
-  @media (max-width:1000px){.booth,.arena,.tickers{grid-template-columns:1fr}.vs{flex-direction:row}.vs .bar{width:200px;height:14px;flex-direction:row}.bubbles{grid-template-columns:1fr}}
+  @media (max-width:1000px){.stage,.tickers{grid-template-columns:1fr}.mid{order:-1}}
 </style>
 </head>
 <body>
@@ -83,21 +85,20 @@
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
 </header>
 
-<section class="booth">
-  <div class="desk" id="desk">
-    <div class="tag l" id="t-stonks"><span id="nm-stonks">Stonks Man</span></div>
-    <div class="tag r" id="t-notstonks"><span id="nm-notstonks">Not Stonks Man</span></div>
-  </div>
-  <div class="bubbles">
-    <div class="caster stonks" id="c-stonks"><div class="nm" id="nmb-stonks">Stonks Man</div><div class="bubble" id="b-stonks">…</div></div>
-    <div class="caster notstonks" id="c-notstonks"><div class="nm" id="nmb-notstonks">Not Stonks Man</div><div class="bubble" id="b-notstonks">…</div></div>
-  </div>
-  <div class="interview" id="iv"><div class="av" id="iv-av"></div><div><div class="tag">🎤 RINGSIDE INTERVIEW · <span id="iv-name"></span></div><div class="q" id="iv-text"></div></div></div>
-</section>
-
-<section class="arena">
+<section class="stage">
   <div class="fighter" id="fA"></div>
-  <div class="vs"><div class="v">VS</div><div class="bar"><i id="vsbar" style="height:50%"></i></div><div class="sub" id="vsline"></div></div>
+  <div class="mid">
+    <div class="desk" id="desk">  
+      <div class="tag l" id="t-stonks"><span id="nm-stonks">Stonks Man</span></div>  
+      <div class="tag r" id="t-notstonks"><span id="nm-notstonks">Not Stonks Man</span></div>  
+    </div>  
+    <div class="bubbles">  
+      <div class="caster stonks" id="c-stonks"><div class="nm" id="nmb-stonks">Stonks Man</div><div class="bubble" id="b-stonks">…</div></div>  
+      <div class="caster notstonks" id="c-notstonks"><div class="nm" id="nmb-notstonks">Not Stonks Man</div><div class="bubble" id="b-notstonks">…</div></div>  
+    </div>  
+    <div class="interview" id="iv"><div class="av" id="iv-av"></div><div><div class="tag">🎤 RINGSIDE INTERVIEW · <span id="iv-name"></span></div><div class="q" id="iv-text"></div></div></div>
+    <div class="vs"><div class="v">VS</div><div class="bar"><i id="vsbar" style="width:50%"></i></div><div class="sub" id="vsline"></div></div>
+  </div>
   <div class="fighter" id="fB"></div>
 </section>
 
@@ -162,6 +163,7 @@
   }
 
   // ---- the match ----
+  function chart(x){ return x.chainId&&x.address?'https://dexscreener.com/'+encodeURIComponent(x.chainId)+'/'+encodeURIComponent(x.address):'https://dexscreener.com/search?q='+encodeURIComponent(x.address||x.symbol||''); }
   function fighter(id, opp, m){
     var a=A[id]||{}, b=(S.books||{})[id]||{equity:S.config.startUsd,positions:[],closed:[]};
     var pnl=b.equity-S.config.startUsd;
@@ -170,8 +172,9 @@
     return '<div class="fighter'+(lead?' lead':'')+'"><div class="hero">'+(a.image?'<img src="'+a.image+'">':'')+'<div class="badge">#'+a.seed+' seed · '+neurons(a.neurons||0)+' neurons · '+esc((a.brain||{}).quirk||'')+'</div></div>'+
       '<div class="body"><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+'</div>'+
       '<div><span class="eq '+(pnl>=0?'up':'dn')+'">'+fmt(b.equity)+'</span> <span class="'+(pnl>=0?'up':'dn')+'" style="font-weight:700">'+(pnl>=0?'+':'')+fmt(pnl)+'</span> <span class="sub">· '+b.trades+' trades · '+b.wins+'W/'+b.losses+'L · cash '+fmt(b.cash||0)+'</span></div>'+
-      '<div>'+((b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+p.url+'" target="_blank" style="color:var(--blue);text-decoration:none">$'+esc(p.symbol)+'</a><span class="chip">'+esc(p.chainId||'')+'</span>'+(p.forgotten?' <span class="chip">🐟 forgotten</span>':'')+'</span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join('')||'<div class="sub">no open positions — watching the tape</div>')+'</div>'+
-      '<div class="acts">'+(acts.map(function(e){return '<div class="'+esc(e.kind)+'"><span class="sub">'+ago(e.at)+' ago</span> '+esc(e.text.replace(/^[^ ]+ [A-Za-z]+ /,''))+'</div>'}).join('')||'<div>no moves yet</div>')+'</div>'+
+      '<div class="sec">Holding</div><div>'+((b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+esc(p.url||chart(p))+'" target="_blank" rel="noopener">$'+esc(p.symbol)+' ↗</a><span class="chip">'+esc(p.chainId||'')+'</span>'+(p.forgotten?' <span class="chip">🐟 forgotten</span>':'')+'</span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join('')||'<div class="sub">nothing — all cash</div>')+'</div>'+
+      '<div class="sec">Sold</div><div>'+((b.closed||[]).slice(0,6).map(function(c){var pct=c.investedUsd?Math.round(c.pnlUsd/c.investedUsd*100):0;return '<div class="pos"><span><a href="'+esc(c.url||chart(c))+'" target="_blank" rel="noopener">$'+esc(c.symbol)+' ↗</a><span class="chip">'+esc(c.reason||'')+'</span></span><span class="'+(c.pnlUsd>=0?'up':'dn')+'">'+(c.pnlUsd>=0?'+':'')+fmt(c.pnlUsd)+' ('+(pct>=0?'+':'')+pct+'%)</span></div>'}).join('')||'<div class="sub">no sells yet</div>')+'</div>'+
+      '<div class="sec">Last moves</div><div class="acts">'+(acts.map(function(e){return '<div class="'+esc(e.kind)+'"><span class="sub">'+ago(e.at)+' ago</span> '+esc(e.text.replace(/^[^ ]+ [A-Za-z]+ /,''))+'</div>'}).join('')||'<div>no moves yet</div>')+'</div>'+
       '</div></div>';
   }
   function currentMatch(){
@@ -190,7 +193,7 @@
     document.getElementById('fA').outerHTML=fighter(m.a,m.b,m).replace('<div class="fighter','<div id="fA" class="fighter');
     document.getElementById('fB').outerHTML=fighter(m.b,m.a,m).replace('<div class="fighter','<div id="fB" class="fighter');
     var ea=((S.books||{})[m.a]||{}).equity||0, eb=((S.books||{})[m.b]||{}).equity||0;
-    document.getElementById('vsbar').style.height=Math.round(ea/((ea+eb)||1)*100)+'%';
+    document.getElementById('vsbar').style.width=Math.round(ea/((ea+eb)||1)*100)+'%';
     document.getElementById('vsline').textContent=fmt(ea)+' / '+fmt(eb);
     var rn=document.getElementById('roundName'), ck=document.getElementById('clock');
     if(S.status==='running'){var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now; if(toStart>0){rn.textContent='BELL IN';ck.textContent=mmss(toStart);} else {rn.textContent='TIME LEFT';ck.textContent=mmss(toEnd);} }

@@ -180,7 +180,7 @@ function sell(animal, book, pos, frac, reason, matchId) {
   const pnl = returned - cost;
   book.cashUsd += returned; book.realized += pnl; book.trades++;
   if (pnl >= 0) book.wins++; else book.losses++;
-  book.closed.unshift({ symbol: pos.symbol, address: pos.address, pnlUsd: +pnl.toFixed(2), investedUsd: +cost.toFixed(2), reason, closedAt: Date.now() });
+  book.closed.unshift({ symbol: pos.symbol, address: pos.address, chainId: pos.chainId, url: pos.url, pnlUsd: +pnl.toFixed(2), investedUsd: +cost.toFixed(2), reason, closedAt: Date.now() });
   if (book.closed.length > 60) book.closed.length = 60;
   if (frac >= 1) delete book.positions[pos.address]; else { pos.tokens -= tokens; pos.investedUsd -= cost; }
   if (animal.brain.quirk === 'grudge' && pnl < 0) book.grudges[pos.address] = true;
