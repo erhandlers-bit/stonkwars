@@ -150,8 +150,17 @@
     var done=function(){ v.classList.remove('on'); reactBusy=false; }; v.onended=done; v.onerror=done;
     v.play().then(function(){ v.classList.add('on'); }).catch(done); }
   function reactToFeed(){ if(!S||!S.feed) return; var fresh=S.feed.filter(function(e){return e.at>lastFeedAt}); if(!fresh.length) return; lastFeedAt=Math.max.apply(null,fresh.map(function(e){return e.at}));
-    var kinds=fresh.map(function(e){ if(e.kind==='sell'&&(e.reason==='rug'||e.reason==='stop')) return 'fail'; if(e.kind==='sell'&&(e.reason==='take'||e.reason==='trail')) return 'hype'; if(e.kind==='buy'&&e.usd>=150) return 'hype'; if(e.kind==='champion'||e.kind==='result') return 'hype'; return null; }).filter(Boolean);
+    var kinds=fresh.map(function(e){
+      if(e.kind==='sell'&&e.reason==='rug') return 'rug'; if(e.kind==='sell'&&e.reason==='stop') return 'stop';
+      if(e.kind==='sell'&&(e.reason==='take'||e.reason==='trail')) return 'take';
+      if(e.kind==='buy'&&e.usd>=150) return 'hype'; if(e.kind==='quirk') return 'fail';
+      if(e.kind==='round') return 'bell'; if(e.kind==='champion') return 'champion'; if(e.kind==='result') return 'champion'; return null; }).filter(Boolean);
     if(kinds.length) react(kinds[kinds.length-1]); }
+  // lead changes + the two of them bickering + dead air during intermissions
+  var lastLeader={}, lastArgueAt=0, lastBoredAt=0;
+  function reactToState(){ if(!S) return; var m=currentMatch&&currentMatch(); if(m&&S.books){ var ea=(S.books[m.a]||{}).equity||0, eb=(S.books[m.b]||{}).equity||0; var lead=ea>=eb?m.a:m.b; if(lastLeader[m.id]&&lastLeader[m.id]!==lead) react('lead'); lastLeader[m.id]=lead; }
+    var now=Date.now(); if(S.status==='running'&&S.roundStartAt&&S.now<S.roundStartAt&&now-lastBoredAt>45000&&!reactBusy){ lastBoredAt=now; react('bored'); } }
+  function reactToLines(ls){ var now=Date.now(); var a=ls.filter(function(l){return l.who==='stonks'}).length, b=ls.filter(function(l){return l.who==='notstonks'}).length; if(a&&b&&now-lastArgueAt>30000){ lastArgueAt=now; react('argue'); } }
   // ---- background music: competitive, low volume, starts on a click (browsers block autoplay with sound) ----
   var musicOn=false;
   window.musicToggle=function(){ var a=document.getElementById('bgm'); if(!a) return; musicOn=!musicOn; a.volume=0.12; if(musicOn){ a.play().catch(function(){ musicOn=false; }); } else a.pause(); document.getElementById('musicBtn').className='btn'+(musicOn?' on':''); document.getElementById('musicBtn').textContent=musicOn?'🎵 Music ON':'🎵 Music'; };
@@ -185,7 +194,7 @@
     fetch('/api/stonkwars/commentary?since='+lastSeq+(M?'&match='+encodeURIComponent(M):'')).then(function(r){return r.json()}).then(function(j){
       var cast=j.cast||{};
       ['stonks','notstonks'].forEach(function(k){var c=cast[k];if(!c)return;document.getElementById('nm-'+k).textContent=c.name;document.getElementById('nmb-'+k).textContent=c.name;});
-      (j.lines||[]).forEach(function(l){ if(l.id>lastSeq)lastSeq=l.id; showLine(l); queue.push(l); });
+      (j.lines||[]).forEach(function(l){ if(l.id>lastSeq)lastSeq=l.id; showLine(l); queue.push(l); }); try{ reactToLines(j.lines||[]); }catch(x){}
       if(queue.length>6) queue=queue.slice(-6); // never fall minutes behind live
       pump();
     }).catch(function(){});
@@ -233,7 +242,7 @@
     // director mode: rotate live matches every 90s
     if(AUTO&&S.status==='running'&&Date.now()-lastRotate>90000){ var r=S.rounds[S.roundIdx]; var live=r.matches.filter(function(x){return !x.winner}); if(live.length>1){ var i=live.findIndex(function(x){return x.id===M}); M=live[(i+1)%live.length].id; lastSeq=0; queue=[]; } lastRotate=Date.now(); }
   }
-  function refreshHook(){ try{ reactToFeed(); }catch(x){} }
+  function refreshHook(){ try{ reactToFeed(); reactToState(); }catch(x){} }
   function refresh(){ fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();refreshHook();}).catch(function(){}); }
   function pollPump(){ fetch('/api/stonkwars/pumpfeed').then(function(r){return r.json()}).then(function(j){document.getElementById('pfState').textContent=j.connected?'live':'reconnecting…';document.getElementById('pumpRows').innerHTML=(j.launches||[]).map(function(t){return '<div><span><a href="'+t.url+'" target="_blank">$'+esc(t.symbol||'?')+'</a> <span class="sub">'+esc((t.name||'').slice(0,28))+'</span></span><span class="sub">'+ago(t.at)+' ago'+(t.devBuySol?' · dev '+t.devBuySol.toFixed(2)+' SOL':'')+'</span></div>'}).join('')||'<div class="sub">waiting for launches…</div>';}).catch(function(){}); }
   // ---- stream chat: viewers talk, the desk talks back ----
