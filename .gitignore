@@ -12,3 +12,7 @@ node_modules/
 npm-debug.log*
 .DS_Store
 Thumbs.db
+
+# runtime junk: logs, generated audio
+data/*
+!data/README.md
