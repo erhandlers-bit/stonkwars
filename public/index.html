@@ -19,7 +19,7 @@
   .clock{margin-left:auto;text-align:right}
   .clock .t{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
   .clock .r{color:var(--gold);font-size:12px;letter-spacing:2px;text-transform:uppercase}
-  main{display:grid;grid-template-columns:1fr 340px;gap:0;min-height:calc(100vh - 66px)}
+  main{display:grid;grid-template-columns:1fr;gap:0;min-height:calc(100vh - 66px)}
   .bracket{display:grid;grid-template-columns:repeat(4,1fr) 200px;gap:14px;padding:18px 22px;align-items:center}
   .col{display:flex;flex-direction:column;justify-content:space-around;gap:12px;height:100%}
   .col h3{margin:0 0 4px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center}
@@ -111,11 +111,7 @@
       <div class="col"><div class="champ" id="champ"><div class="t">CHAMPION</div><div class="av">🏆</div><div class="n" id="champName">TBD</div><div class="sub" id="champSub"></div></div></div>
     </div>
   </div>
-  <aside>
-    <h3>Live tape</h3>
-    <div class="feed" id="feed"></div>
-    <div class="detail" id="detail"><span class="sub">Click an animal to see its brain and its positions.</span></div>
-  </aside>
+  <div class="detail" id="detail"><span class="sub">Click an animal to see its brain and its positions.</span></div>
 </main>
 <script>
 (function(){
@@ -179,7 +175,7 @@
       else{rn.textContent=S.roundName+' · time left';ck.textContent=mmss(toEnd);}
     } else {rn.textContent='—';ck.textContent='--:--';}
     // feed
-    document.getElementById('feed').innerHTML=(S.feed||[]).map(function(e){return '<div class="'+esc(e.kind)+'"><span class="k">'+new Date(e.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})+'</span>'+esc(e.text)+'</div>'}).join('');
+    var fd=document.getElementById('feed'); if(fd) fd.innerHTML=(S.feed||[]).map(function(e){return '<div class="'+esc(e.kind)+'"><span class="k">'+new Date(e.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})+'</span>'+esc(e.text)+'</div>'}).join('');
     if(sel) detail(sel);
   }
   function mmss(ms){ms=Math.max(0,ms);var s=Math.floor(ms/1000),m=Math.floor(s/60);s=s%60;return (m<10?'0':'')+m+':'+(s<10?'0':'')+s}
