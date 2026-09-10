@@ -8,7 +8,7 @@ Every competitor gets an artificial mind scaled to its real neuron count — an 
 
 It's a live experiment in what actually makes a trader: memory, patience, speed, or nerve.
 
-> Paper money only. Nothing here buys, sells, or holds a real token. Not financial advice.
+> Not financial advice.
 
 ## How it works
 
