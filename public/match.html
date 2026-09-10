@@ -155,7 +155,6 @@
       if(e.kind==='sell'&&(e.reason==='take'||e.reason==='trail')) return 'take';
       if(e.kind==='buy'&&e.usd>=150) return 'hype'; if(e.kind==='quirk') return 'fail';
       if(e.kind==='round') return 'bell'; if(e.kind==='champion') return 'champion'; if(e.kind==='result') return 'champion'; return null; }).filter(Boolean);
-    if(fresh.some(function(e){return e.kind==='buy'})) sfx('airhorn'); // any buy gets the horn (throttled)
     if(kinds.length) react(kinds[kinds.length-1]); }
   // lead changes + the two of them bickering + dead air during intermissions
   var lastLeader={}, lastArgueAt=0, lastBoredAt=0;
@@ -168,9 +167,9 @@
   // first click anywhere starts the music (browsers need a gesture); the 🎵 button still toggles it
   musicToggle(); ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ if(!musicOn) musicToggle(); }); });
   // ---- soundboard: short stings on events and on lines the desk tags ----
-  var SFX_FOR={hype:'airhorn',rug:'scratch',stop:'trombone',take:'chaching'}; // stings only on buys and sells (owner 2026-09-10)
+  var SFX_FOR={bell:'bell',champion:'airhorn'}; // owner 2026-09-10: sound only when a round starts (bell) and when it is over — the air horn for the winner
   var lastSfxAt=0;
-  function sfx(name){ if(!name) return; var now=Date.now(); if(now-lastSfxAt<20000) return; lastSfxAt=now; try{ var a=new Audio('/stonkwars/sfx/'+name+'.mp3?v=2'); a.volume=0.55; a.play().catch(function(){}); }catch(x){} }
+  function sfx(name){ if(!name) return; var now=Date.now(); if(now-lastSfxAt<5000) return; lastSfxAt=now; try{ var a=new Audio('/stonkwars/sfx/'+name+'.mp3?v=2'); a.volume=0.55; a.play().catch(function(){}); }catch(x){} }
   // ---- voice: sequential playback of commentator/animal lines ----
   // voice is always on (owner 2026-09-10): the first click/key/tap unlocks audio, then the queue plays itself
   var audioBlocked=false;
