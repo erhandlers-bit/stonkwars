@@ -53,8 +53,8 @@ app.post('/api/stonkwars/chat', express.json({ limit: '2kb' }), (req, res) => re
 app.post('/api/stonkwars/vote', express.json({ limit: '4kb' }), async (req, res) => res.json(await votes.vote(req.body)));
 
 for (const action of ['start', 'pause', 'resume', 'reset']) {
-  app.post('/api/stonkwars/' + action, (req, res) => {
-    if (!isAdmin(req)) return res.status(403).json({ ok: false, reason: 'admin only' });
+  app.post('/api/stonkwars/' + action, express.json({ limit: '2kb' }), (req, res) => {
+    if (!isAdmin(req) && !chat.devLogin(req.body || {}, ((req.headers['cf-connecting-ip'] || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || '').toString())).ok) return res.status(403).json({ ok: false, reason: 'admin only' });
     if (action === 'start') {
       if (stonkwars.status().status === 'running') return res.json({ ok: false, reason: 'already running' });
       stonkwars.startTournament();

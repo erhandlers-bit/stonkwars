@@ -95,6 +95,7 @@
   <button class="btn" id="voiceBtn" onclick="voiceOn()">🔊 Enable voice</button>
   <button class="btn" id="musicBtn" onclick="musicToggle()" title="background music">🎵 Music</button>
   <button class="btn" id="devBtn" onclick="devLogin()" title="log in as the dev">👑 DEV login</button>
+  <span id="devCtl" style="display:none;gap:6px"><button class="btn" onclick="devCtl('start')">▶ Start</button><button class="btn" onclick="devCtl('pause')">⏸ Pause</button><button class="btn" onclick="devCtl('resume')">⏵ Resume</button><button class="btn" onclick="if(confirm('Reset the whole tournament?'))devCtl('reset')">⟲ Reset</button><span id="devMsg" class="sub"></span></span>
   <audio id="bgm" src="/stonkwars/music.mp3" loop preload="none" onerror="document.getElementById('musicBtn').style.display='none'"></audio>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
 </header>
@@ -247,10 +248,12 @@
   function refresh(){ fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();refreshHook();}).catch(function(){}); }
   function pollPump(){ fetch('/api/stonkwars/pumpfeed').then(function(r){return r.json()}).then(function(j){document.getElementById('pfState').textContent=j.connected?'live':'reconnecting…';document.getElementById('pumpRows').innerHTML=(j.launches||[]).map(function(t){return '<div><span><a href="'+t.url+'" target="_blank">$'+esc(t.symbol||'?')+'</a> <span class="sub">'+esc((t.name||'').slice(0,28))+'</span></span><span class="sub">'+ago(t.at)+' ago'+(t.devBuySol?' · dev '+t.devBuySol.toFixed(2)+' SOL':'')+'</span></div>'}).join('')||'<div class="sub">waiting for launches…</div>';}).catch(function(){}); }
   // ---- DEV login: the key is checked by the server and kept in this browser; chat then posts as DEV ----
-  function devUi(){ var b=document.getElementById('devBtn'); var on=false; try{ on=!!localStorage.getItem('stonkChatKey'); }catch(x){} b.textContent=on?'👑 DEV (logout)':'👑 DEV login'; b.className='btn'+(on?' on':''); if(on){ var n=document.getElementById('chatName'); if(n) n.value='DEV'; } }
+  function devUi(){ var b=document.getElementById('devBtn'); var on=false; try{ on=!!localStorage.getItem('stonkChatKey'); }catch(x){} b.textContent=on?'👑 DEV (logout)':'👑 DEV login'; b.className='btn'+(on?' on':''); document.getElementById('devCtl').style.display=on?'inline-flex':'none'; if(on){ var n=document.getElementById('chatName'); if(n) n.value='DEV'; } }
   window.devLogin=function(){ var had=null; try{ had=localStorage.getItem('stonkChatKey'); }catch(x){} if(had){ try{ localStorage.removeItem('stonkChatKey'); }catch(x){} devUi(); return; }
     var k=prompt('DEV key (from memebot .env, STONK_CHAT_DEV_KEY):'); if(!k) return; k=k.trim();
     fetch('/api/stonkwars/devlogin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})}).then(function(r){return r.json()}).then(function(j){ if(j.ok){ try{ localStorage.setItem('stonkChatKey',k); }catch(x){} devUi(); alert('Logged in as DEV on this device.'); } else alert('Nope: '+(j.reason||'wrong key')); }).catch(function(){ alert('could not reach the server'); }); };
+  window.devCtl=function(a){ var k=null; try{ k=localStorage.getItem('stonkChatKey'); }catch(x){} var m=document.getElementById('devMsg'); m.textContent='…';
+    fetch('/api/stonkwars/'+a,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})}).then(function(r){return r.json()}).then(function(j){ m.textContent=j.ok?('✓ '+a):('✗ '+(j.reason||'failed')); refresh(); }).catch(function(){ m.textContent='✗ no server'; }); };
   devUi();
   // ---- stream chat: viewers talk, the desk talks back ----
   var chatSeq=0;
