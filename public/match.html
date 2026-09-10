@@ -101,6 +101,7 @@
   <h1>STONK <span>WARS</span></h1>
   <div><div class="sub" id="matchTitle">LIVE MATCH</div><div class="sub links"><a href="/" style="color:var(--blue)">bracket</a> · <a href="/match.html?auto=1" style="color:var(--blue)">director mode</a></div></div>
   <div class="pot" id="pot" title="creator fees waiting in the vault → 50% buys the coin → half of that to the correct pickers"><div class="r">THE POT</div><div class="v" id="potFees">— SOL</div><div class="s" id="potSplit">buyback — · payouts —</div></div>
+  <a id="buyBtn" href="#" target="_blank" rel="noopener" style="display:none;margin-left:12px;background:var(--gold);color:#000;border-radius:8px;padding:8px 14px;font-weight:900;letter-spacing:1px;font-size:12px;text-decoration:none">🚀 BUY NOW</a>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
   <div id="devWrap" style="display:flex;align-items:center;gap:6px;margin-left:12px"><button class="btn" id="devBtn" onclick="devLogin()" title="log in as the dev">👑 DEV login</button> <span id="devCtl" style="display:none;gap:6px"><button class="btn" onclick="devCtl('start')">▶ Start</button><button class="btn" onclick="devCtl('pause')">⏸ Pause</button><button class="btn" onclick="devCtl('resume')">⏵ Resume</button><button class="btn" onclick="if(confirm('Reset the whole tournament?'))devCtl('reset')">⟲ Reset</button><span id="devMsg" class="sub"></span></span></div>
 </header>
@@ -143,6 +144,8 @@
     window.addEventListener('message',function(e){ if(e.data&&e.data.stonkwarsWatch){ M=String(e.data.stonkwarsWatch); AUTO=false; lastRotate=Date.now(); refresh(); } });
   }
   var S=null, A={}, lastSeq=0, primed=false, voice=true, queue=[], playing=false, lastRotate=0;
+  function buyBtnRefresh(){ fetch('/api/stonkwars/votes').then(function(r){return r.json()}).then(function(v){ var b=document.getElementById('buyBtn'); if(!b) return; var mint=v.coin&&v.coin.mint; if(mint){ b.href='https://pump.fun/coin/'+encodeURIComponent(mint); b.textContent='🚀 BUY $'+((v.coin&&v.coin.symbol)||'STONK'); b.style.display='inline-block'; } else b.style.display='none'; }).catch(function(){}); }
+  buyBtnRefresh(); setInterval(buyBtnRefresh,60000);
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmt(n){return '$'+Number(n).toLocaleString(undefined,{maximumFractionDigits:0})}
   function neurons(n){return n>=1e9?(n/1e9).toFixed(n>=10e9?0:1)+'B':n>=1e6?(n/1e6).toFixed(0)+'M':(n/1e3).toFixed(0)+'K'}

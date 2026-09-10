@@ -116,6 +116,7 @@
     <button class="stop" onclick="if(confirm('Reset the whole tournament?'))ctl('reset')">⟲ Reset</button>
   </div>
   <div class="pot" id="pot" title="creator fees waiting in the vault → 50% buys the coin → half of that to the correct pickers"><div class="r">THE POT</div><div class="v" id="potFees">— SOL</div><div class="s" id="potSplit">buyback — · payouts —</div></div>
+  <a id="buyBtn" href="#" target="_blank" rel="noopener" style="display:none;margin-left:12px;background:var(--gold);color:#000;border-radius:8px;padding:8px 14px;font-weight:900;letter-spacing:1px;font-size:12px;text-decoration:none">🚀 BUY NOW</a>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
   <button id="devBtn" onclick="devLogin()" style="margin-left:12px;background:#161c2e;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:8px 12px;font-weight:900;cursor:pointer;letter-spacing:1px;font-size:12px">👑 DEV login</button>
 </header>
@@ -177,6 +178,8 @@
     var k=prompt('DEV key:'); if(!k) return; k=k.trim();
     fetch('/api/stonkwars/devlogin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})}).then(function(r){return r.json()}).then(function(j){ if(j.ok){ try{ localStorage.setItem('stonkChatKey',k); }catch(x){} devUi(); if(f) f.contentWindow.location.reload(); } else alert('Nope: '+(j.reason||'wrong key')); }).catch(function(){ alert('could not reach the server'); }); };
   devUi();
+  function buyBtnRefresh(){ fetch('/api/stonkwars/votes').then(function(r){return r.json()}).then(function(v){ var b=document.getElementById('buyBtn'); if(!b) return; var mint=v.coin&&v.coin.mint; if(mint){ b.href='https://pump.fun/coin/'+encodeURIComponent(mint); b.textContent='🚀 BUY $'+((v.coin&&v.coin.symbol)||'STONK'); b.style.display='inline-block'; } else b.style.display='none'; }).catch(function(){}); }
+  buyBtnRefresh(); setInterval(buyBtnRefresh,60000);
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmt(n){return '$'+Number(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})}
   function neurons(n){return n>=1e9?(n/1e9).toFixed(n>=10e9?0:1)+'B':n>=1e6?(n/1e6).toFixed(0)+'M':(n/1e3).toFixed(0)+'K'}
