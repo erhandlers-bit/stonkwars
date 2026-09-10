@@ -6,7 +6,7 @@ module.exports = {
   STONK_START_USD: 1000,               // every animal starts with this (paper money)
   // one hour per round; all matches in a round run at once. Env overrides
   // exist so a rehearsal can run with 3-minute rounds: STONK_MATCH_MS=180000
-  STONK_MATCH_MS: Number(process.env.STONK_MATCH_MS) || 30 * 60_000, // owner 2026-09-10: 30 minutes per match, one match at a time
+  STONK_MATCH_MS: Number(process.env.STONK_MATCH_MS) || 60 * 60_000, // owner 2026-09-10: one hour of trading per match, one match at a time
   STONK_INTERMISSION_MS: Number(process.env.STONK_INTERMISSION_MS) || 3 * 60_000, // break between rounds (and the pick window before round 1)
   STONK_MATCH_GAP_MS: process.env.STONK_MATCH_GAP_MS != null ? Number(process.env.STONK_MATCH_GAP_MS) : 60_000,       // breather between consecutive matches of a round (the desk previews the next one)
   STONK_BUST_USD: 30,                 // equity at/under this = busted, match lost immediately
