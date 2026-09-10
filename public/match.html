@@ -66,6 +66,7 @@
   .ticker.chat .rows b{color:var(--blue)}
   .ticker.chat .rows .bot{background:#1a1606}
   .ticker.chat .rows .bot b{color:var(--gold)}
+  .ticker.chat .rows .dev b{color:var(--red)} .ticker.chat .rows .dev b:before{content:"👑 "}
   .chatin{display:flex;gap:6px;padding:8px;border-top:1px solid var(--border)}
   .chatin input{background:#0b0f1c;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px}
   #chatName{width:88px;flex:none} #chatText{flex:1;min-width:0}
@@ -113,7 +114,7 @@
 <section class="tickers">
   <div class="ticker"><h3><span>🆕 New on pump.fun</span><span id="pfState" class="sub"></span></h3><div class="rows" id="pumpRows"></div></div>
   <div class="ticker"><h3><span>📈 Live market — what they trade from</span><span id="mkState" class="sub"></span></h3><div class="rows" id="mktRows"></div></div>
-  <div class="ticker chat"><h3><span>💬 Stream chat</span><span id="chatState" class="sub">the desk reads this</span></h3><div class="rows" id="chatRows"></div><form class="chatin" onsubmit="return chatSend(event)"><input id="chatName" maxlength="20" placeholder="name" autocomplete="off"><input id="chatText" maxlength="200" placeholder="say something to the desk…" autocomplete="off"><button class="btn" type="submit">Send</button></form></div>
+  <div class="ticker chat"><h3><span>💬 Stream chat</span><span id="chatState" class="sub">the desk answers on air</span></h3><div class="rows" id="chatRows"></div><form class="chatin" onsubmit="return chatSend(event)"><input id="chatName" maxlength="20" placeholder="name" autocomplete="off"><input id="chatText" maxlength="200" placeholder="say something to the desk…" autocomplete="off"><button class="btn" type="submit">Send</button></form></div>
 </section>
 
 <section class="tape"><div class="rows" id="tape"></div></section>
@@ -217,10 +218,12 @@
   function pollPump(){ fetch('/api/stonkwars/pumpfeed').then(function(r){return r.json()}).then(function(j){document.getElementById('pfState').textContent=j.connected?'live':'reconnecting…';document.getElementById('pumpRows').innerHTML=(j.launches||[]).map(function(t){return '<div><span><a href="'+t.url+'" target="_blank">$'+esc(t.symbol||'?')+'</a> <span class="sub">'+esc((t.name||'').slice(0,28))+'</span></span><span class="sub">'+ago(t.at)+' ago'+(t.devBuySol?' · dev '+t.devBuySol.toFixed(2)+' SOL':'')+'</span></div>'}).join('')||'<div class="sub">waiting for launches…</div>';}).catch(function(){}); }
   // ---- stream chat: viewers talk, the desk talks back ----
   var chatSeq=0;
-  function pollChat(){ fetch('/api/stonkwars/chat?since='+chatSeq).then(function(r){return r.json()}).then(function(j){ var rows=document.getElementById('chatRows'); var got=false; (j.messages||[]).forEach(function(m){ if(m.id<=chatSeq) return; chatSeq=m.id; got=true; var d=document.createElement('div'); d.className=m.bot?'bot':''; d.innerHTML='<b>'+esc(m.name)+'</b> '+esc(m.text); rows.appendChild(d); }); while(rows.children.length>80) rows.removeChild(rows.firstChild); if(got) rows.scrollTop=rows.scrollHeight; }).catch(function(){}); }
-  window.chatSend=function(e){ e.preventDefault(); var n=document.getElementById('chatName'), t=document.getElementById('chatText'), st=document.getElementById('chatState'); var name=n.value.trim(), text=t.value.trim(); if(!name){st.textContent='pick a name first'; n.focus(); return false;} if(!text) return false; try{localStorage.setItem('stonkChatName',name)}catch(x){}
-    fetch('/api/stonkwars/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,text:text})}).then(function(r){return r.json()}).then(function(j){ if(j.ok){t.value=''; st.textContent='the desk reads this'; pollChat();} else st.textContent=j.reason||'nope'; }).catch(function(){ st.textContent='could not send'; }); return false; };
-  try{ var sn=localStorage.getItem('stonkChatName'); if(sn) document.getElementById('chatName').value=sn; }catch(x){}
+  function pollChat(){ fetch('/api/stonkwars/chat?since='+chatSeq).then(function(r){return r.json()}).then(function(j){ var rows=document.getElementById('chatRows'); var got=false; (j.messages||[]).forEach(function(m){ if(m.id<=chatSeq) return; chatSeq=m.id; got=true; var d=document.createElement('div'); d.className=m.bot?'bot':(m.dev?'dev':''); d.innerHTML='<b>'+esc(m.name)+'</b> '+esc(m.text); rows.appendChild(d); }); while(rows.children.length>80) rows.removeChild(rows.firstChild); if(got) rows.scrollTop=rows.scrollHeight; }).catch(function(){}); }
+  window.chatSend=function(e){ e.preventDefault(); var n=document.getElementById('chatName'), t=document.getElementById('chatText'), st=document.getElementById('chatState'); var name=n.value.trim(), text=t.value.trim(); if(!text) return false; if(!name&&!/^\/devkey/.test(text)){st.textContent='pick a name first'; n.focus(); return false;} try{localStorage.setItem('stonkChatName',name)}catch(x){}
+    if(/^\/devkey\s+\S+/.test(text)){ try{localStorage.setItem('stonkChatKey',text.split(/\s+/)[1]);}catch(x){} t.value=''; n.value='DEV'; st.textContent='dev key saved on this device'; return false; }
+    var key=null; try{key=localStorage.getItem('stonkChatKey');}catch(x){}
+    fetch('/api/stonkwars/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(key?{name:name,text:text,key:key}:{name:name,text:text})}).then(function(r){return r.json()}).then(function(j){ if(j.ok){t.value=''; st.textContent='the desk answers on air'; pollChat();} else st.textContent=j.reason||'nope'; }).catch(function(){ st.textContent='could not send'; }); return false; };
+  try{ var sn=localStorage.getItem('stonkChatName'); if(sn) document.getElementById('chatName').value=sn; if(localStorage.getItem('stonkChatKey')) document.getElementById('chatName').value='DEV'; }catch(x){}
   pollChat(); setInterval(pollChat,2000);
   refresh(); setInterval(refresh,3000); pollCommentary(); setInterval(pollCommentary,2000); pollPump(); setInterval(pollPump,4000);
   setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var ck=document.getElementById('clock');var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd);} },1000);

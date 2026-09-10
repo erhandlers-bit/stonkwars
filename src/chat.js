@@ -15,22 +15,28 @@ const lastByIp = {};
 const lastByName = {};
 
 function clean(s, n) {
-  return String(s || '').replace(/<[^>]*>/g, '').replace(/https?:\/\/\S+/gi, '[link]').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  return String(s || '').replace(/<[^>]*>/g, '').replace(/https?:\/\/\S+/gi, '[link]').replace(/[\u0000-\u001f\u007f\ufffd]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
 }
 function push(m) { msgs.push(m); if (msgs.length > MAX) msgs.shift(); return m; }
 
-function post(body, ip) {
-  const name = clean(body && body.name, 20);
+// opts.trusted = the request came through the owner's own dashboard (local app / admin); a matching
+// STONK_CHAT_DEV_KEY in the body does the same from anywhere. Either way the owner posts as DEV.
+const DEV = 'DEV';
+function post(body, ip, opts) {
+  const key = process.env.STONK_CHAT_DEV_KEY;
+  const isDev = !!(opts && opts.trusted) || !!(key && body && typeof body.key === 'string' && body.key === key);
+  let name = isDev ? DEV : clean(body && body.name, 20);
+  if (!isDev && /^\s*dev\s*$/i.test(name)) return { ok: false, reason: 'DEV is the dev. Pick another name' };
   const text = clean(body && body.text, 200);
   if (name.length < 2) return { ok: false, reason: 'pick a name (2-20 characters)' };
   if (!text) return { ok: false, reason: 'say something' };
-  if (/stonks\s*man/i.test(name)) return { ok: false, reason: 'that seat is taken' };
+  if (!isDev && /stonks\s*man/i.test(name)) return { ok: false, reason: 'that seat is taken' };
   const now = Date.now();
-  const key = ip || 'anon';
-  if (now - (lastByIp[key] || 0) < 4000) return { ok: false, reason: 'slow down — one message every 4 seconds' };
+  const ipKey = ip || 'anon';
+  if (now - (lastByIp[ipKey] || 0) < 4000) return { ok: false, reason: 'slow down — one message every 4 seconds' };
   if (now - (lastByName[name.toLowerCase()] || 0) < 2000) return { ok: false, reason: 'slow down' };
-  lastByIp[key] = now; lastByName[name.toLowerCase()] = now;
-  const m = push({ id: ++seq, at: now, name, text, bot: false });
+  lastByIp[ipKey] = now; lastByName[name.toLowerCase()] = now;
+  const m = push({ id: ++seq, at: now, name, text, bot: false, dev: isDev });
   return { ok: true, id: m.id };
 }
 // a commentator's reply, mirrored into the chat
