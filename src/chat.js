@@ -47,6 +47,7 @@ function unanswered() { return msgs.filter((m) => !m.bot && m.id > lastAnswered)
 function markAnswered() { lastAnswered = seq; }
 function status() { return { count: msgs.length, seq }; }
 // DEV login: the site checks the key once and the browser keeps it; every chat post then carries it
-function devLogin(body) { const key = process.env.STONK_CHAT_DEV_KEY; if (!key) return { ok: false, reason: 'no dev key configured' }; const k = body && typeof body.key === 'string' ? body.key.trim() : ''; return k && k === key ? { ok: true } : { ok: false, reason: 'wrong key' }; }
+const loginTries = {}; // ip -> [timestamps]; five wrong guesses per 15 minutes, then the door is shut for that ip
+function devLogin(body, ip) { const key = process.env.STONK_CHAT_DEV_KEY; if (!key) return { ok: false, reason: 'no dev key configured' }; const now = Date.now(); const t = (loginTries[ip || 'anon'] = (loginTries[ip || 'anon'] || []).filter((x) => now - x < 15 * 60_000)); if (t.length >= 5) return { ok: false, reason: 'too many attempts — try again later' }; const k = body && typeof body.key === 'string' ? body.key.trim() : ''; if (k && k.length === key.length && require('crypto').timingSafeEqual(Buffer.from(k), Buffer.from(key))) { loginTries[ip || 'anon'] = []; return { ok: true }; } t.push(now); return { ok: false, reason: 'wrong key' }; }
 
 module.exports = { post, since, botSay, unanswered, markAnswered, status, devLogin };
