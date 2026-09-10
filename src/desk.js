@@ -128,7 +128,8 @@ async function turn(who) {
       introLine = 'INTRODUCE THIS CONTENDER NOW (the crowd is meeting the field before the bell): ' + a.name.toUpperCase() + ' — seed #' + seed + ', ' + a.neurons.toLocaleString() + ' neurons, memory ' + br.memory + ' coins, reacts in ' + (br.reactionMs / 1000) + 's, up to ' + br.maxPositions + ' positions, bets ' + Math.round(br.sizeFrac * 100) + '% per trade, impulsivity ' + Math.round(br.impulsivity * 100) + '%, pattern depth ' + Math.round(br.depth * 100) + '%, stop -' + Math.round(br.stopPct * 100) + '%, take +' + Math.round(br.takePct * 100) + '%, patience ' + br.maxHoldMin + ' min, quirk: ' + br.quirk + '. Press kit: ' + (BIOS[next] || '') + '. Scouting note: ' + (a.blurb || '') + '. Round-of-16 opponent: ' + opp.name + '. ' +
         'Do the full fake-serious broadcast introduction in ONE line, under 45 words, quoting at least three of those exact numbers and what they mean for how it trades. Do not say [silent].';
       intro.done.push(next); intro.lastAt = now;
-    } else if (!newChat.length && !otherSpoke) return; // between introductions: only chat or a reply to the other man
+    } else if (next && !newChat.length && !otherSpoke) return; // between introductions: only chat or a reply to the other man
+    // all sixteen introduced: free banter until the bell (the normal quiet-fill rules apply)
   }
 
   const transcript = commentary.status().latest.slice(0, 10).reverse()

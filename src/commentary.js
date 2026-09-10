@@ -154,7 +154,7 @@ function whyText(w) {
 // ---------------- event -> lines ----------------
 function reactTo(e, st, rng) {
   if (e.kind === 'result' && e.matchId) { try { const fid = require('./desk').featured(); if (fid && e.matchId !== fid) return; } catch { /* agents off */ } } // results of matches not on the stream stay quiet
-  if (config.STONK_AGENTS && process.env.ANTHROPIC_API_KEY && !['round', 'result', 'champion', 'picks'].includes(e.kind)) return; // the desk agents (desk.js) react on their own
+  if (config.STONK_AGENTS && process.env.ANTHROPIC_API_KEY && !['result', 'champion', 'picks'].includes(e.kind)) return; // the desk agents (desk.js) call bells and trades on their own (owner 2026-09-10: video -> intros -> banter, no scripted announcement)
   const a = e.animalId ? require('./stonkwars').BY_ID[e.animalId] : null;
   // spoken text: no emoji (the voice reads them out loud), no double spaces
   const clean = (s) => String(s || '').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim();
