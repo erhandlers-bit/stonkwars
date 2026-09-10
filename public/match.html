@@ -30,6 +30,7 @@
   .desk{position:relative;width:100%;aspect-ratio:1344/768;border-radius:16px;overflow:hidden;background:#0a0c16 url(/stonkwars/desk.png) center/cover no-repeat;border:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.55)}
   .desk video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
   .desk video.react{opacity:0;transition:opacity .25s} .desk video.react.on{opacity:1}
+  .desk video.intro{z-index:5;background:#000}
   .desk .tag{position:absolute;top:67.5%;font-weight:900;font-size:clamp(9px,1.3vw,13px);letter-spacing:2px;text-transform:uppercase;color:var(--gold);background:rgba(7,9,15,.82);border:1px solid var(--border);padding:4px 10px;border-radius:8px;transition:box-shadow .2s,border-color .2s}
   .desk .tag.l{left:13%} .desk .tag.r{right:13%}
   .desk .tag.talking{border-color:var(--pink);box-shadow:0 0 0 2px var(--pink),0 0 24px rgba(255,63,164,.5)}
@@ -177,7 +178,7 @@
   var audioBlocked=false;
   ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ if(audioBlocked){ audioBlocked=false; pump(); } }); });
   function pump(){
-    if(!voice||playing||!queue.length) return;
+    if(!voice||playing||introPlaying||!queue.length) return;
     var l=queue.shift(); playing=true;
     mark(l,true);
     var a=new Audio('/api/tts/'+l.id);
@@ -255,7 +256,11 @@
     // director mode: rotate live matches every 90s
     // director mode follows the server's featured match (see desk.js featured())
   }
-  function refreshHook(){ try{ reactToFeed(); reactToState(); }catch(x){} }
+  // INTRO (owner 2026-09-10): when a tournament starts, the promo plays on the desk before the desk starts talking
+  var introShownFor=null, introPlaying=false;
+  function maybeIntro(){ if(!S||S.status!=='running'||!S.startedAt||introShownFor===S.startedAt) return; introShownFor=S.startedAt; if(Date.now()-S.startedAt>120000) return; playIntro(); }
+  function playIntro(){ var d=document.getElementById('desk'); if(!d||document.getElementById('introVid')) return; var v=document.createElement('video'); v.id='introVid'; v.className='intro'; v.src='/stonkwars/promo.mp4'; v.playsInline=true; v.preload='auto'; introPlaying=true; var done=function(){ if(v.parentNode) v.remove(); introPlaying=false; pump(); }; v.onended=done; v.onerror=done; d.appendChild(v); v.play().catch(function(){ v.muted=true; v.play().catch(done); }); }
+  function refreshHook(){ try{ reactToFeed(); reactToState(); maybeIntro(); }catch(x){} }
   function refresh(){ fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();refreshHook();}).catch(function(){}); }
   function pollPump(){ fetch('/api/stonkwars/pumpfeed').then(function(r){return r.json()}).then(function(j){document.getElementById('pfState').textContent=j.connected?'live':'reconnecting…';document.getElementById('pumpRows').innerHTML=(j.launches||[]).map(function(t){return '<div><span><a href="'+t.url+'" target="_blank">$'+esc(t.symbol||'?')+'</a> <span class="sub">'+esc((t.name||'').slice(0,28))+'</span></span><span class="sub">'+ago(t.at)+' ago'+(t.devBuySol?' · dev '+t.devBuySol.toFixed(2)+' SOL':'')+'</span></div>'}).join('')||'<div class="sub">waiting for launches…</div>';}).catch(function(){}); }
   // ---- DEV login: the key is checked by the server and kept in this browser; chat then posts as DEV ----
