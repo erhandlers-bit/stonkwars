@@ -40,7 +40,7 @@ app.get('/api/tts/:id', async (req, res) => {
   const c = require('./commentary');
   const l = c.line(req.params.id);
   if (!l) return res.status(404).end();
-  try { const buf = await c.tts(l); res.set('Content-Type', 'audio/mpeg'); res.set('Cache-Control', 'public, max-age=86400'); res.send(buf); }
+  try { const buf = await c.tts(l); res.set('Cache-Control', 'no-store'); res.set('Content-Type', 'audio/mpeg'); res.set('Cache-Control', 'no-store'); res.send(buf); }
   catch (e) { res.status(503).json({ error: 'tts unavailable: ' + String(e.message).slice(0, 80) }); }
 });
 app.get('/api/stonkwars/pumpfeed', (_req, res) => res.json(require('./pumpfeed').status()));

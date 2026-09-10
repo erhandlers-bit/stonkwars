@@ -61,7 +61,7 @@ function speaker(who) {
 }
 
 const lines = [];          // newest first
-let seq = 0;
+let seq = Date.now(); // line ids are unique across restarts, so /api/tts/<id> can never serve a stale line from a cache
 const lastSpoke = { stonks: 0, notstonks: 0 };
 const recent = [];         // last events for the banter prompt
 
