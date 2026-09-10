@@ -1,7 +1,8 @@
 // COMMENTARY — two animal commentators calling every match live.
 //
-//   ROCKY THE HYENA   hype man. Cackles at losses, screams at big buys,
-//                     has never once used an indoor voice.
+//   STONKS MAN       host + hype man. The Meme Man in the suit. Speaks in meme:
+//                     "Stonks." "Not stonks." "Line go up." Calmly certain,
+//                     wrong half the time, has never once doubted himself.
 //   PROFESSOR SLOTH   deadpan analyst. Always reacting to the trade from five
 //                     minutes ago. Dry as a bond prospectus.
 //
@@ -22,7 +23,7 @@ const config = require('./config');
 
 const TTS_DIR = path.join(__dirname, '..', 'data', 'tts');
 const CAST = {
-  hyena: { name: 'Rocky the Hyena', emoji: '🐆', voice: 'en-US-GuyNeural', rate: '+22%', pitch: '+12Hz', image: '/stonkwars/hyena.png' },
+  stonks: { name: 'Stonks Man', emoji: '📈', voice: 'en-US-AndrewNeural', rate: '+6%', pitch: '-4Hz', image: '/stonkwars/stonks.png' },
   sloth: { name: 'Professor Sloth', emoji: '🦥', voice: 'en-US-ChristopherNeural', rate: '-28%', pitch: '-8Hz', image: '/stonkwars/sloth.png' },
 };
 
@@ -52,13 +53,13 @@ function speaker(who) {
   if (CAST[who]) return { ...CAST[who], id: who };
   const id = String(who).replace(/^animal:/, '');
   const a = require('./stonkwars').BY_ID[id];
-  if (!a) return { ...CAST.hyena, id: 'hyena' };
+  if (!a) return { ...CAST.stonks, id: 'stonks' };
   return { id: who, name: a.name, emoji: a.emoji, image: '/stonkwars/' + id + '.png', ...(ANIMAL_VOICE[id] || { voice: 'en-US-GuyNeural', rate: '0%', pitch: '0Hz' }) };
 }
 
 const lines = [];          // newest first
 let seq = 0;
-const lastSpoke = { hyena: 0, sloth: 0 };
+const lastSpoke = { stonks: 0, sloth: 0 };
 const recent = [];         // last events for the banter prompt
 
 function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
@@ -98,48 +99,48 @@ const ROAST = { // animal-specific stop-out lines
 
 const POOL = {
   buy: {
-    hyena: ['{animal} just SENT IT on ${sym} for ${usd}! AHAHAHA LET\'S GOOO!', '${sym}?? {animal} is IN for ${usd}! Somebody check the chart, this could be the one!', 'BUY ALERT! {animal} grabs ${sym}! {why}! I love it, I have no idea what it is, I LOVE IT!'],
+    stonks: ['{animal} buys ${sym} for ${usd}. Stonks.', 'New position. ${sym}. ${usd}. {animal}. {why}. Line go up. Probably.', '{animal} enters ${sym}. I have not read the chart. I have felt the chart. Stonks.'],
     sloth: ['{animal} has purchased ${sym}. Reasoning: {why}. I will have an opinion about this in approximately five minutes.', 'A buy from {animal}. ${sym}, ${usd}. The thesis, such as it is: {why}.', '{animal} bought ${sym}. I would like to note the signals it cannot see: {blind}. Bold.'],
   },
   bigbuy: {
-    hyena: ['WHOA WHOA WHOA — {animal} just dropped ${usd} on ${sym}! THAT IS A STATEMENT! THE CROWD IS ON ITS FEET!', 'BIG MONEY! {animal} goes HEAVY on ${sym} — ${usd}! This is either genius or the funniest thing I see all day!', 'OH MY — ${usd} into ${sym}! {animal} did not come here to make friends!'],
+    stonks: ['${usd} into ${sym}. {animal} has put on the suit. This is stonks of the highest order.', 'Big. {animal} drops ${usd} on ${sym}. Either the line go up, or we learn something. Both are stonks.', '{animal} goes heavy on ${sym}. ${usd}. I would have done the same. I would have done it worse.'],
     sloth: ['{animal} has committed ${usd} to ${sym}. That is a large fraction of its net worth. I admire the confidence. I do not share it.', 'A sizable position from {animal}: ${usd} in ${sym}. Statistically, this is where the highlight reel and the blooper reel diverge.'],
   },
   rebuy: {
-    hyena: ['AHAHAHA THE GOLDFISH BOUGHT ${sym} AGAIN! IT FORGOT! IT LITERALLY FORGOT! I CAN\'T BREATHE!', 'Goldfish re-enters ${sym}! Third time\'s the charm! Or the fourth! It genuinely does not know!'],
+    stonks: ['Goldfish buys ${sym} again. It does not know. Stonks squared.', 'The goldfish has rediscovered ${sym}. Fresh eyes. Same coin. Line go up this time, hopefully.'],
     sloth: ['The goldfish has purchased ${sym} a second time, having forgotten the first. This is called averaging in, if you are generous.', 'Goldfish rebuys ${sym}. Its memory is three seconds. Its conviction, apparently, is eternal.'],
   },
   forget: {
-    hyena: ['The goldfish just FORGOT it owns ${sym}! Nobody tell it! This is the best content on the internet!', 'AHAHA the goldfish is looking at its own position like a stranger! ${sym}? Never heard of her!'],
+    stonks: ['The goldfish has forgotten it owns ${sym}. Diamond hands by amnesia. Stonks.', 'Goldfish is looking at ${sym}, its own position, like a stranger on a bus. Not stonks. But not not stonks.'],
     sloth: ['The goldfish has forgotten ${sym}. The position is now unmanaged. No stop, no target, no memory. Pure diamond hands by accident.'],
   },
   stop: {
-    hyena: ['OOF! {animal} stopped out on ${sym}, minus {pct} percent! AHAHAHA get REKT! {roast}', 'DOWN GOES {animal}! ${sym} bit back! {roast}', 'STOPPED OUT! {animal} eats a loss on ${sym}! Somebody play the sad trombone! {roast}'],
+    stonks: ['{animal} stopped out of ${sym}. Minus {pct} percent. Not stonks. {roast}', '${sym} bit {animal}. Minus {pct}. The line went the other way. There is another way. {roast}', 'Stop loss. {animal}. ${sym}. {pct} percent gone. I am told this is called risk management. {roast}'],
     sloth: ['{animal} has exited ${sym} at a loss. {roast}', 'Stop loss triggered for {animal} on ${sym}. {roast} Moving on. Slowly.', '{roast} That was {animal}, on ${sym}, {pct} percent underwater. I am told this is normal.'],
   },
   take: {
-    hyena: ['CHA-CHING! {animal} BANKS profit on ${sym}! PLUS {pct} PERCENT! THAT\'S HOW YOU DO IT!', 'PAID! {animal} takes money off the table on ${sym}! Up {pct}! The animal kingdom is EATING today!', '{animal} SECURES THE BAG on ${sym}! Plus {pct} percent! I am losing my mind!'],
+    stonks: ['{animal} sells ${sym} for plus {pct} percent. Stonks. Certified.', 'Profit. {animal}. ${sym}. Plus {pct}. The line did the thing. Stonks.', '{animal} takes money out of ${sym}, plus {pct} percent. I am adjusting my tie in approval.'],
     sloth: ['{animal} took profit on ${sym}, up {pct} percent. A disciplined exit. I am mildly moved.', 'Profit banked by {animal} on ${sym}. Plus {pct}. Someone in this bracket read a book.'],
   },
   trail: {
-    hyena: ['{animal} trails out of ${sym} for a WIN! Rode it up, gave a little back, kept the rest! SMART!', 'Trailing stop pays for {animal} on ${sym}! Plus {pct}! Let the winners run — then get OUT!'],
+    stonks: ['{animal} trails out of ${sym}. Plus {pct}. Rode the line up, got off before it fell. Stonks.', 'Trailing stop. ${sym}. {animal}. Plus {pct} percent. Let it run, then leave. This is the way of the suit.'],
     sloth: ['{animal} exited ${sym} on a trailing stop, up {pct}. The trend ended. It noticed. That is the whole game.'],
   },
   rug: {
-    hyena: ['RUG! RUG! RUG! The pool on ${sym} is DRAINING and {animal} is running for the exit! AHAHAHA THE DEV LEFT!', 'THE LIQUIDITY IS GONE! ${sym} just got PULLED! {animal} saw it — did it get out in time?! NOBODY GETS OUT IN TIME!'],
+    stonks: ['Rug. The liquidity in ${sym} is leaving. {animal} is also leaving. Not stonks. Very not stonks.', 'The dev of ${sym} has pulled the pool. {animal} saw it. Nobody outruns a rug. Not stonks.'],
     sloth: ['The developer of ${sym} has, and I quote the blockchain, "left". {animal} is exiting through the gift shop.', 'Liquidity on ${sym} has departed for a better life. {animal} follows. This is why we do not name our coins after laptops.'],
   },
-  flow: { hyena: ['{animal} bails on ${sym} — the volume died! Reading the room! Or the pool!'], sloth: ['{animal} left ${sym} because the flow went quiet. Echolocation confirms: nobody is home.'] },
-  time: { hyena: ['{animal} got BORED of ${sym} and left! Attention span of a — well. Of an animal.'], sloth: ['{animal} exited ${sym} after {min} minutes, citing boredom. Relatable.'] },
-  pass: { hyena: ['{animal} looked at ${sym}, thought about it, and… nope! Hesitation! The market punishes hesitation! Or rewards it! I forget!'], sloth: ['{animal} considered ${sym} and declined. Restraint. In this bracket. Astonishing.'] },
+  flow: { stonks: ['{animal} leaves ${sym}. The volume died. When the line stops moving, you stop holding. Stonks.'], sloth: ['{animal} left ${sym} because the flow went quiet. Echolocation confirms: nobody is home.'] },
+  time: { stonks: ['{animal} got bored of ${sym} after {min} minutes. Attention is also a position. Not stonks. Not unstonks.'], sloth: ['{animal} exited ${sym} after {min} minutes, citing boredom. Relatable.'] },
+  pass: { stonks: ['{animal} looked at ${sym} and did not buy. Sometimes the best trade is no trade. Sometimes it is not. I forget which.'], sloth: ['{animal} considered ${sym} and declined. Restraint. In this bracket. Astonishing.'] },
   lead: {
-    hyena: ['LEAD CHANGE! {animal} takes over the match! {eq} versus {oppEq}! THIS IS ANYONE\'S GAME!', 'AND {animal} PULLS AHEAD! The scoreboard flips! Somebody hold the {opp} — it looks upset!'],
+    stonks: ['Lead change. {animal} takes the match. {eq} versus {oppEq}. The {opp} is not stonks right now.', '{animal} pulls ahead. {eq} to {oppEq}. Line go up for one of them. Line go down for the other. That is how lines work.'],
     sloth: ['{animal} now leads the match, {eq} to {oppEq}. For those keeping score at home: it is me. I am keeping score.'],
   },
-  round: { hyena: ['HERE WE GO! THE BELL! {text} SIXTEEN BRAINS, ONE HOUR, NO MERCY!', 'IT\'S TIME! {text} Strap in!'], sloth: ['{text} I have prepared no notes. Let us begin.'] },
-  result: { hyena: ['IT\'S OVER! {text} WHAT A MATCH!', '{text} And the loser walks home with nothing but a lesson!'], sloth: ['{text} A result. Someone will explain it to the loser later.'] },
-  champion: { hyena: ['{text} AHAHAHAHA WE HAVE A CHAMPION! CONFETTI! SOMEBODY GET THIS ANIMAL A TROPHY AND A LAWYER!'], sloth: ['{text} Congratulations. I would like to review the tape, slowly, over the next several hours.'] },
-  picks: { hyena: ['PICK \'EM RESULTS! {text} If you called it, check your wallet! If you didn\'t — there\'s always the next round!'], sloth: ['{text} The crowd, as always, was mostly wrong. That is what makes them the crowd.'] },
+  round: { stonks: ['The bell. {text} Sixteen brains. One hour. Stonks.', '{text} Everybody buy something. Or do not. Both are strategies.'], sloth: ['{text} I have prepared no notes. Let us begin.'] },
+  result: { stonks: ['It is over. {text} Stonks for one. Not stonks for the other.', '{text} The loser keeps the lesson. The winner keeps the money. Stonks.'], sloth: ['{text} A result. Someone will explain it to the loser later.'] },
+  champion: { stonks: ['{text} We have a champion. The line went up the most. Give this animal a trophy and a tax advisor. Stonks.'], sloth: ['{text} Congratulations. I would like to review the tape, slowly, over the next several hours.'] },
+  picks: { stonks: ['Pick em results. {text} If you called it, check your wallet. If you did not, the line will go up next time. It usually does not.'], sloth: ['{text} The crowd, as always, was mostly wrong. That is what makes them the crowd.'] },
 };
 
 function whyText(w) {
@@ -159,22 +160,22 @@ function reactTo(e, st, rng) {
     const big = book && e.usd >= 0.2 * (book.cashUsd + e.usd);
     const again = /again/.test(e.text || '');
     const kind = again ? 'rebuy' : big ? 'bigbuy' : 'buy';
-    say('hyena', fill(pick(rng, POOL[kind].hyena), v), e.matchId, kind);
+    say('stonks', fill(pick(rng, POOL[kind].stonks), v), e.matchId, kind);
     if (kind !== 'buy' || rng() < 0.5) say('sloth', fill(pick(rng, POOL[kind].sloth), v), e.matchId, kind);
   } else if (e.kind === 'sell') {
     const r = e.reason || '';
     let kind = 'stop';
     if (/took profit/.test(r)) kind = 'take'; else if (/trail/.test(r)) kind = 'trail'; else if (/drain/.test(r)) kind = 'rug'; else if (/quiet/.test(r)) kind = 'flow'; else if (/interest/.test(r)) kind = 'time';
     v.roast = kind === 'stop' ? pick(rng, ROAST[e.animalId] || ['A loss is a loss.']) : '';
-    say('hyena', fill(pick(rng, POOL[kind].hyena), v), e.matchId, kind);
+    say('stonks', fill(pick(rng, POOL[kind].stonks), v), e.matchId, kind);
     if (kind !== 'time' || rng() < 0.5) say('sloth', fill(pick(rng, POOL[kind].sloth), v), e.matchId, kind);
   } else if (e.kind === 'quirk') {
-    say('hyena', fill(pick(rng, POOL.forget.hyena), { sym: (e.text || '').replace(/.*\$/, '') }), e.matchId, 'forget');
+    say('stonks', fill(pick(rng, POOL.forget.stonks), { sym: (e.text || '').replace(/.*\$/, '') }), e.matchId, 'forget');
     if (rng() < 0.6) say('sloth', fill(pick(rng, POOL.forget.sloth), { sym: (e.text || '').replace(/.*\$/, '') }), e.matchId, 'forget');
   } else if (e.kind === 'pass') {
-    if (rng() < 0.5) say(rng() < 0.5 ? 'hyena' : 'sloth', fill(pick(rng, POOL.pass[rng() < 0.5 ? 'hyena' : 'sloth']), v), e.matchId, 'pass');
+    if (rng() < 0.5) say(rng() < 0.5 ? 'stonks' : 'sloth', fill(pick(rng, POOL.pass[rng() < 0.5 ? 'stonks' : 'sloth']), v), e.matchId, 'pass');
   } else if (e.kind === 'round' || e.kind === 'result' || e.kind === 'champion' || e.kind === 'picks') {
-    say('hyena', fill(pick(rng, POOL[e.kind].hyena), v), e.matchId, e.kind);
+    say('stonks', fill(pick(rng, POOL[e.kind].stonks), v), e.matchId, e.kind);
     say('sloth', fill(pick(rng, POOL[e.kind].sloth), v), e.matchId, e.kind);
   }
 }
@@ -193,7 +194,7 @@ function watchLeads(st, rng) {
     if (lastLeader[m.id] && lastLeader[m.id] !== leader) {
       const a = sw.BY_ID[leader], o = sw.BY_ID[leader === m.a ? m.b : m.a];
       const v = { animal: a.name, opp: o.name.toLowerCase(), eq: '$' + Math.round(Math.max(ea, eb)), oppEq: '$' + Math.round(Math.min(ea, eb)) };
-      say('hyena', fill(pick(rng, POOL.lead.hyena), v), m.id, 'lead');
+      say('stonks', fill(pick(rng, POOL.lead.stonks), v), m.id, 'lead');
       if (rng() < 0.5) say('sloth', fill(pick(rng, POOL.lead.sloth), v), m.id, 'lead');
     }
     lastLeader[m.id] = leader;
@@ -214,11 +215,11 @@ async function banter() {
   }).join('\n');
   const last = recent.slice(-12).map((e) => '- ' + e.text).join('\n');
   const prompt = 'You write two animal sports commentators for STONK WARS, a live bracket where 16 animals with brains scaled to their real neuron counts trade memecoins for an hour per round.\n' +
-    'ROCKY THE HYENA: unhinged hype man, ALL CAPS energy, cackles, roasts losers mercilessly, worships big buys.\n' +
+    'STONKS MAN: the host — the Meme Man in the suit. Calm, certain, meme cadence: short declaratives, "Stonks." "Not stonks." "Line go up." Roasts losers with total composure, treats every big buy as destiny, never uses exclamation marks.\n' +
     'PROFESSOR SLOTH: deadpan, slow, academic, dry one-liners, often reacting to something from several minutes ago.\n' +
     'Be genuinely funny — specific to what actually happened, never generic. Roast mistakes, hype big plays, mock rugs. Keep each line under 30 words. No hashtags, no emojis.\n\n' +
     'ROUND: ' + st.roundName + '\nSTANDINGS:\n' + standings + '\n\nLAST EVENTS:\n' + (last || '- quiet so far') +
-    '\n\nReturn exactly two lines, in this format:\nHYENA: ...\nSLOTH: ...';
+    '\n\nReturn exactly two lines, in this format:\nSTONKS: ...\nSLOTH: ...';
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
@@ -227,8 +228,8 @@ async function banter() {
     });
     const j = await r.json();
     const text = (j.content || []).map((b) => b.text || '').join('');
-    const h = /HYENA:\s*(.+)/i.exec(text), s = /SLOTH:\s*(.+)/i.exec(text);
-    if (h) say('hyena', h[1].trim(), null, 'banter');
+    const h = /STONKS(?: MAN)?:\s*(.+)/i.exec(text), s = /SLOTH:\s*(.+)/i.exec(text);
+    if (h) say('stonks', h[1].trim(), null, 'banter');
     if (s) say('sloth', s[1].trim(), null, 'banter');
   } catch { /* banter is optional */ }
 }
@@ -266,7 +267,7 @@ async function interview() {
   const [id, matchId] = live[Math.floor(Math.random() * live.length)];
   const a = sw.BY_ID[id];
   const b = st.books[id];
-  const asker = Math.random() < 0.7 ? 'hyena' : 'sloth';
+  const asker = Math.random() < 0.7 ? 'stonks' : 'sloth';
   const questions = [
     'What is the plan here?', 'Talk me through that last trade.', 'You are ' + (b.equity >= 1000 ? 'up' : 'down') + ' $' + Math.abs(Math.round(b.equity - 1000)) + ' — how are you feeling?',
     'Your opponent is watching. Anything to say to them?', 'Why THAT coin?', 'Do you know what you are holding right now?',
@@ -292,13 +293,13 @@ async function interview() {
     } catch { answer = null; }
   }
   if (!answer) answer = SCRIPTED_ANSWERS[id] || 'No comment. I am an animal.';
-  const lead = asker === 'hyena'
-    ? 'WE\'RE GOING RINGSIDE! ' + a.name + ', ' + q
+  const lead = asker === 'stonks'
+    ? 'Going ringside. ' + a.name + '. ' + q
     : 'I have a question for ' + a.name + ', if it can hear me. ' + q;
   say(asker, lead, matchId, 'interview');
   say('animal:' + id, answer, matchId, 'interview');
-  const tag = asker === 'hyena'
-    ? ['AHAHAHA! Back to you, Professor!', 'You heard it here first! Or second! I wasn\'t listening!', 'THAT is a competitor! Or a cry for help!'][Math.floor(Math.random() * 3)]
+  const tag = asker === 'stonks'
+    ? ['Stonks. Back to you, Professor.', 'I understood some of that. Line go up.', 'That is a trader. Or a cry for help. Both are stonks.'][Math.floor(Math.random() * 3)]
     : ['Illuminating. Back to the desk.', 'I will be thinking about that answer for the rest of the round.', 'Noted. Slowly.'][Math.floor(Math.random() * 3)];
   say(asker, tag, matchId, 'interview');
 }
@@ -341,7 +342,7 @@ function start() {
   if (bm > 0) setInterval(() => banter().catch(() => {}), bm).unref();
   const im = config.STONK_INTERVIEW_MS == null ? 240000 : Number(config.STONK_INTERVIEW_MS);
   if (im > 0) setInterval(() => interview().catch(() => {}), im).unref();
-  console.log('[commentary] Rocky the Hyena + Professor Sloth on the call' + (process.env.ANTHROPIC_API_KEY && bm > 0 ? ' (+ Claude banter every ' + Math.round(bm / 1000) + 's)' : ' (scripted only)'));
+  console.log('[commentary] Stonks Man (host) + Professor Sloth on the call' + (process.env.ANTHROPIC_API_KEY && bm > 0 ? ' (+ Claude banter every ' + Math.round(bm / 1000) + 's)' : ' (scripted only)'));
 }
 
 module.exports = { start, since, status, line, tts, interview, CAST };

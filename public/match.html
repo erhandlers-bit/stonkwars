@@ -79,7 +79,7 @@
 </header>
 
 <section class="booth">
-  <div class="caster hyena" id="c-hyena"><div class="av" id="av-hyena">🐆</div><div style="flex:1"><div class="nm" id="nm-hyena">Rocky the Hyena</div><div class="bubble hy" id="b-hyena">…</div></div></div>
+  <div class="caster stonks" id="c-stonks"><div class="av" id="av-stonks">📈</div><div style="flex:1"><div class="nm" id="nm-stonks">Stonks Man</div><div class="bubble hy" id="b-stonks">…</div></div></div>
   <div class="caster sloth" id="c-sloth"><div class="av" id="av-sloth">🦥</div><div style="flex:1"><div class="nm" id="nm-sloth">Professor Sloth</div><div class="bubble" id="b-sloth">…</div></div></div>
   <div class="interview" id="iv"><div class="av" id="iv-av"></div><div><div class="tag">🎤 RINGSIDE INTERVIEW · <span id="iv-name"></span></div><div class="q" id="iv-text"></div></div></div>
 </section>
@@ -118,10 +118,10 @@
     a.onended=a.onerror=function(){playing=false;if(el)el.classList.remove('talking');setTimeout(pump,250);};
     a.play().catch(function(){playing=false;if(el)el.classList.remove('talking');setTimeout(pump,250);});
   }
-  function talkingEl(l){ if(l.who==='hyena')return document.getElementById('c-hyena'); if(l.who==='sloth')return document.getElementById('c-sloth'); return document.getElementById('iv'); }
+  function talkingEl(l){ if(l.who==='stonks')return document.getElementById('c-stonks'); if(l.who==='sloth')return document.getElementById('c-sloth'); return document.getElementById('iv'); }
 
   function showLine(l){
-    if(l.who==='hyena'||l.who==='sloth'){
+    if(l.who==='stonks'||l.who==='sloth'){
       document.getElementById('b-'+l.who).textContent=l.text;
       if(l.kind==='interview'&&l.who){ /* keep interview card if an animal answered recently */ }
     } else if(String(l.who).indexOf('animal:')===0){
@@ -137,7 +137,7 @@
   function pollCommentary(){
     fetch('/api/stonkwars/commentary?since='+lastSeq+(M?'&match='+encodeURIComponent(M):'')).then(function(r){return r.json()}).then(function(j){
       var cast=j.cast||{};
-      ['hyena','sloth'].forEach(function(k){var c=cast[k];if(!c)return;document.getElementById('nm-'+k).textContent=c.name;var av=document.getElementById('av-'+k);if(c.image&&!av.querySelector('img'))av.innerHTML='<img src="'+c.image+'" onerror="this.remove()">';});
+      ['stonks','sloth'].forEach(function(k){var c=cast[k];if(!c)return;document.getElementById('nm-'+k).textContent=c.name;var av=document.getElementById('av-'+k);if(c.image&&!av.querySelector('img'))av.innerHTML='<img src="'+c.image+'" onerror="this.remove()">';});
       (j.lines||[]).forEach(function(l){ if(l.id>lastSeq)lastSeq=l.id; showLine(l); queue.push(l); });
       if(queue.length>6) queue=queue.slice(-6); // never fall minutes behind live
       pump();

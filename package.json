@@ -13,7 +13,8 @@
   "dependencies": {
     "@solana/web3.js": "^1.98.4",
     "express": "^4.19.2",
-    "msedge-tts": "^2.0.7"
+    "msedge-tts": "^2.0.7",
+    "sharp": "^0.35.4"
   },
   "license": "MIT",
   "private": false
