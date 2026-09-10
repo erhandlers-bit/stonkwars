@@ -115,11 +115,18 @@ async function holding(wallet, fresh) {
 // ---- rounds: which one is open for picks right now ----
 // Idle tournament: the seeded round-of-16 preview is open (picks carry into
 // the real round 0). Running: the current round, until its bell.
+// a match's picks lock STONK_PICK_WINDOW_MS after ITS bell (matches run one at a time)
+function pickWindow() { return Number(config.STONK_PICK_WINDOW_MS == null ? 20 * 60_000 : config.STONK_PICK_WINDOW_MS); }
+function matchOpen(m, now) { return !m.winner && (m.startAt == null || m.startAt === 0 || now < m.startAt + pickWindow()); }
 function openRound(st) {
   if (st.status === 'idle' && st.preview) return { idx: 0, round: st.preview, open: true, preview: true, locksAt: null };
-  const round = st.rounds && st.rounds[st.roundIdx];
-  if (st.status === 'running' && round) return { idx: st.roundIdx, round, open: Date.now() < round.startAt, preview: false, locksAt: round.startAt };
-  return { idx: st.roundIdx, round: round || null, open: false, preview: false, locksAt: round ? round.startAt : null };
+  const round = st.rounds && st.rounds[st.roundIdx]; const now = Date.now();
+  if (st.status === 'running' && round) {
+    const openM = round.matches.filter((m) => matchOpen(m, now));
+    const locksAt = openM.length ? Math.min(...openM.map((m) => m.startAt + pickWindow())) : null;
+    return { idx: st.roundIdx, round, open: openM.length > 0, preview: false, locksAt };
+  }
+  return { idx: st.roundIdx, round: round || null, open: false, preview: false, locksAt: null };
 }
 // picks stored as { matchId: animalId }; a pre-2026-09-10 single-animal vote maps onto the match it belongs to
 function picksOf(v, round) {
@@ -141,10 +148,12 @@ async function vote(body) {
   const picks = body && body.picks && typeof body.picks === 'object' ? body.picks : null;
   if (!picks || !Object.keys(picks).length) return { ok: false, reason: 'pick at least one winner' };
   const byId = {}; for (const m of o.round.matches) byId[m.id] = m;
+  const nowMs = Date.now();
   for (const [mid, animal] of Object.entries(picks)) {
     const m = byId[mid];
     if (!m) return { ok: false, reason: 'unknown match ' + mid };
     if (animal !== m.a && animal !== m.b) return { ok: false, reason: 'that animal is not in match ' + mid };
+    if (!o.preview && !matchOpen(m, nowMs)) return { ok: false, reason: 'picks for that match are locked (20 minutes in)' };
   }
   if (typeof wallet !== 'string' || wallet.length < 32) return { ok: false, reason: 'bad wallet' };
   const t = Number(ts);
@@ -154,9 +163,10 @@ async function vote(body) {
   if (!el.ok) return el;
   const r = (state.rounds[roundIdx] = state.rounds[roundIdx] || { votes: {} });
   const prev = r.votes[wallet];
-  r.votes[wallet] = { picks, at: Date.now(), sig: signature };
+  const merged = Object.assign({}, prev ? picksOf(prev, o.round) : {}, picks); // locked matches keep their earlier pick
+  r.votes[wallet] = { picks: merged, at: Date.now(), sig: signature };
   save();
-  return { ok: true, picks, count: Object.keys(picks).length, changed: !!prev };
+  return { ok: true, picks: merged, count: Object.keys(merged).length, changed: !!prev };
 }
 
 // ---- pool + settlement ----
@@ -328,7 +338,8 @@ async function status(wallet) {
   return {
     open: o.open, preview: o.preview,
     locksAt: o.locksAt, roundIdx: idx, roundName: o.round ? (o.round.name || st.roundName) : st.roundName,
-    matches: o.round ? o.round.matches.map((m) => ({ id: m.id, a: m.a, b: m.b, winner: m.winner || null })) : [],
+    matches: o.round ? o.round.matches.map((m) => ({ id: m.id, a: m.a, b: m.b, winner: m.winner || null, open: o.preview ? true : matchOpen(m, Date.now()), lockAt: o.preview || !m.startAt ? null : m.startAt + pickWindow() })) : [],
+    pickWindowMs: pickWindow(),
     totalVotes: Object.keys(r.votes).length, tally,
     mine,
     pool: { sol: +pool.sol.toFixed(4), pct: pool.pct, walletSol: +pool.walletSol.toFixed(4), address: pool.address, paying: !!config.STONK_PAYOUT_ENABLED && !!payoutKeypair() },

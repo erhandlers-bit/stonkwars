@@ -201,16 +201,17 @@
     document.getElementById('idle').style.display=idle?'':'none';
     for(var i=0;i<4;i++){
       var col=document.getElementById('c'+i); var r=(S.rounds||[])[i]||(i===0&&S.preview?S.preview:null);
-      var pickable=!!(PK.votes&&PK.votes.open&&PK.votes.roundIdx===i);
+      var pickable=!!(PK.votes&&PK.votes.open&&PK.votes.roundIdx===i); var openById={}; (PK.votes&&PK.votes.matches||[]).forEach(function(x){openById[x.id]=x.open;});
       var html='<h3>'+['Round of 16','Quarterfinals','Semifinals','Final'][i]+'</h3>';
       var n=[8,4,2,1][i];
       for(var k=0;k<n;k++){
         var m=r?r.matches[k]:null;
         if(!m){html+='<div class="match">'+side(null,{})+side(null,{})+'</div>';continue;}
+        var mpick=pickable&&openById[m.id]!==false; // this match still takes picks (20 min into it)
         var live=r&&S.roundIdx===i&&S.status==='running'&&S.now>=m.startAt&&S.now<m.endAt;
         var soon=r&&S.roundIdx===i&&S.status==='running'&&!m.winner&&S.now<m.startAt?Math.max(1,Math.ceil((m.startAt-S.now)/60000)):0;
         var ea=(S.books[m.a]||{}).equity||0, eb=(S.books[m.b]||{}).equity||0; var tot=ea+eb||1;
-        html+='<div class="match'+(live?' live':'')+(m.winner?' done':'')+(pickable?' pickable':'')+'">'+side(m.a,m,live,pickable)+'<div class="bar"><i style="width:'+Math.round(ea/tot*100)+'%"></i></div>'+side(m.b,m,live,pickable)+
+        html+='<div class="match'+(live?' live':'')+(m.winner?' done':'')+(mpick?' pickable':'')+'">'+side(m.a,m,live,mpick)+'<div class="bar"><i style="width:'+Math.round(ea/tot*100)+'%"></i></div>'+side(m.b,m,live,mpick)+
           (soon?'<span class="sub" style="position:absolute;left:8px;top:8px;font-size:10px;letter-spacing:1px">⏱ IN '+soon+' MIN</span>':'')+(live?'<span style="position:absolute;right:8px;top:8px;font-size:10px;letter-spacing:1px;padding:3px 7px;border-radius:5px;background:#123d1e;color:var(--green);border:1px solid var(--green)">● LIVE NOW</span>':'')+'</div>';
       }
       col.innerHTML=html;
@@ -268,11 +269,11 @@
     sol.connect().then(function(r){PK.wallet=(r&&r.publicKey?r.publicKey:sol.publicKey).toString();document.getElementById('pkConnect').textContent=PK.wallet.slice(0,4)+'…'+PK.wallet.slice(-4);pkRefresh();}).catch(function(e){document.getElementById('pkMsg').textContent='wallet: '+(e.message||e)});
   };
   window.pkSel=function(mid,id){ PK.sel[mid]=id; PK.touched=true; render(); pkCount(); };
-  function openMatches(){ return (PK.votes&&PK.votes.matches)||[]; }
+  function openMatches(){ return ((PK.votes&&PK.votes.matches)||[]).filter(function(m){ return m.open!==false; }); }
   function pkCount(){ var ms=openMatches(); var n=ms.filter(function(m){return PK.sel[m.id]}).length; var c=document.getElementById('lkCount'); var b=document.getElementById('lkBtn');
     if(!PK.votes||!PK.votes.open){ c.textContent=(S&&S.status==='running')?'picks are locked for '+(PK.votes&&PK.votes.roundName||'this round')+' — they reopen at the next intermission':(S&&S.status==='done'?'tournament over':'picks open soon'); b.disabled=true; return; }
     var mine=PK.votes.mine?Object.keys(PK.votes.mine).length:0; b.disabled=n===0;
-    c.innerHTML='<b>'+n+' of '+ms.length+'</b> winners picked'+(mine?' · <span class="up">'+mine+' locked on-chain</span>':'')+(PK.votes.preview?' · picks lock at the opening bell':(PK.votes.locksAt?' · lock in '+mmss(PK.votes.locksAt-Date.now()):'')); }
+    c.innerHTML='<b>'+n+' of '+ms.length+'</b> winners picked'+(mine?' · <span class="up">'+mine+' locked on-chain</span>':'')+(PK.votes.preview?' · each match takes picks until 20 minutes in':(PK.votes.locksAt?' · next lock in '+mmss(PK.votes.locksAt-Date.now()):'')); }
   function tallyPct(mid,id){ var t=PK.votes&&PK.votes.tally&&PK.votes.tally[mid]; if(!t) return null; var tot=0; for(var k in t) tot+=t[k]; return tot?Math.round((t[id]||0)/tot*100):null; }
   window.pkLock=function(){
     if(!PK.wallet){pkConnect();return;}
@@ -297,7 +298,7 @@
       document.getElementById('pkPool').innerHTML='prize this round <b style="color:var(--gold)">paid in $'+SYM+'</b> <span class="sub">— every round the creator fees are claimed, half buys back $'+SYM+', and half of that $'+SYM+' is split among everyone who picked winners (one share per correct pick)'+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+'</span>';
       var lock=document.getElementById('pkLock');
       if(v.open&&v.preview){lock.innerHTML='<b style="color:var(--green)">picks are OPEN</b> — lock at the opening bell';}
-      else if(v.open){lock.innerHTML='picks lock in <b>'+mmss(v.locksAt-Date.now())+'</b>';}
+      else if(v.open){lock.innerHTML='picks open — each match locks <b>20 min</b> after its bell'+(v.locksAt?' · next lock in <b>'+mmss(v.locksAt-Date.now())+'</b>':'');}
       else if(S&&S.status==='running'){lock.textContent='picks locked for '+(v.roundName||'this round')+' — reopen at the next intermission';}
       else if(S&&S.status==='done'){lock.textContent='tournament over';}
       else {lock.textContent='picks open when the bracket is set';}

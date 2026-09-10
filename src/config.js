@@ -10,6 +10,7 @@ module.exports = {
   STONK_INTERMISSION_MS: Number(process.env.STONK_INTERMISSION_MS) || 5 * 60_000, // owner 2026-09-10: 5-minute bell between rounds
   STONK_MATCH_GAP_MS: process.env.STONK_MATCH_GAP_MS != null ? Number(process.env.STONK_MATCH_GAP_MS) : 60_000,       // breather between consecutive matches of a round (the desk previews the next one)
   STONK_BUST_USD: 30,                 // equity at/under this = busted, match lost immediately
+  STONK_PICK_WINDOW_MS: 20 * 60_000,  // owner 2026-09-10: picks for a match stay open until 20 minutes into it
   STONK_CHAINS: ['solana', 'base', 'bsc'], // chains the shared coin feed watches
 
   // Paper fill model: round-trip cost by chain (fee + typical impact floor).
