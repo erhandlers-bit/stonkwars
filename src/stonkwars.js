@@ -431,4 +431,17 @@ function start() {
   console.log('[stonkwars] PAPER · 16-animal bracket · ' + state.status + (state.status === 'running' ? ' (' + (ROUND_NAMES[state.roundIdx] || '?') + ')' : ''));
 }
 
-module.exports = { start, status, startTournament, reset, pause, resume, ANIMALS, onEvent, equityOf, BY_ID, _state: state };
+// DEV skip (owner 2026-09-10): end the current wait — pregame, intermission or the breather before the next match — now
+function skip() {
+  if (state.status !== 'running') return { ok: false, reason: 'not running' };
+  const round = state.rounds[state.roundIdx]; const now = Date.now();
+  const dur = config.STONK_MATCH_MS || 3600000, gap = config.STONK_MATCH_GAP_MS == null ? 60000 : Number(config.STONK_MATCH_GAP_MS);
+  const pending = round.matches.filter((m) => !m.winner && now < m.startAt);
+  if (!pending.length) return { ok: false, reason: 'nothing to skip — a match is live' };
+  let t = now; for (const m of pending) { m.startAt = t; m.endAt = t + dur; t += dur + gap; }
+  if (now < round.startAt) round.startAt = now;
+  round.endAt = round.matches[round.matches.length - 1].endAt;
+  event('round', '⏭️ The wait is over — ' + ROUND_NAMES[state.roundIdx] + ' resumes now.');
+  save(); return { ok: true };
+}
+module.exports = { start, status, startTournament, reset, pause, resume, skip, ANIMALS, onEvent, equityOf, BY_ID, _state: state };

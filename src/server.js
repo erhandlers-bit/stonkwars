@@ -52,7 +52,7 @@ app.get('/api/stonkwars/chat', (req, res) => res.json({ messages: chat.since(req
 app.post('/api/stonkwars/chat', express.json({ limit: '2kb' }), (req, res) => res.json(chat.post(req.body, ((req.headers['cf-connecting-ip'] || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || '').toString()), { trusted: isAdmin(req) }))); // admin/localhost posts are the owner: DEV
 app.post('/api/stonkwars/vote', express.json({ limit: '4kb' }), async (req, res) => res.json(await votes.vote(req.body)));
 
-for (const action of ['start', 'pause', 'resume', 'reset']) {
+for (const action of ['start', 'pause', 'resume', 'reset', 'skip']) {
   app.post('/api/stonkwars/' + action, express.json({ limit: '2kb' }), (req, res) => {
     if (!isAdmin(req) && !chat.devLogin(req.body || {}, ((req.headers['cf-connecting-ip'] || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || '').toString())).ok) return res.status(403).json({ ok: false, reason: 'admin only' });
     if (action === 'start') {
