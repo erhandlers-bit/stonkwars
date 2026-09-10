@@ -93,10 +93,9 @@
   <h1>STONK <span>WARS</span></h1>
   <div><div class="sub" id="matchTitle">LIVE MATCH</div><div class="sub links"><a href="/" style="color:var(--blue)">bracket</a> · <a href="/match.html?auto=1" style="color:var(--blue)">director mode</a></div></div>
   <button class="btn" id="voiceBtn" onclick="voiceOn()">🔊 Enable voice</button>
-  <button class="btn" id="musicBtn" onclick="musicToggle()" title="background music">🎵 Music</button>
   <button class="btn" id="devBtn" onclick="devLogin()" title="log in as the dev">👑 DEV login</button>
   <span id="devCtl" style="display:none;gap:6px"><button class="btn" onclick="devCtl('start')">▶ Start</button><button class="btn" onclick="devCtl('pause')">⏸ Pause</button><button class="btn" onclick="devCtl('resume')">⏵ Resume</button><button class="btn" onclick="if(confirm('Reset the whole tournament?'))devCtl('reset')">⟲ Reset</button><span id="devMsg" class="sub"></span></span>
-  <audio id="bgm" src="/stonkwars/music.mp3" loop preload="none" onerror="document.getElementById('musicBtn').style.display='none'"></audio>
+  <audio id="bgm" src="/stonkwars/music.mp3" loop preload="none" ></audio>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
 </header>
 
@@ -165,9 +164,9 @@
   function reactToLines(ls){ var now=Date.now(); var a=ls.filter(function(l){return l.who==='stonks'}).length, b=ls.filter(function(l){return l.who==='notstonks'}).length; if(a&&b&&now-lastArgueAt>30000){ lastArgueAt=now; react('argue'); } }
   // ---- background music: competitive, low volume, starts on a click (browsers block autoplay with sound) ----
   var musicOn=false;
-  window.musicToggle=function(){ var a=document.getElementById('bgm'); if(!a) return; musicOn=!musicOn; a.volume=0.3; if(musicOn){ a.play().catch(function(){ musicOn=false; }); } else a.pause(); document.getElementById('musicBtn').className='btn'+(musicOn?' on':''); document.getElementById('musicBtn').textContent=musicOn?'🎵 Music ON':'🎵 Music'; };
+  window.musicToggle=function(){ var a=document.getElementById('bgm'); if(!a) return; a.volume=0.3; a.play().then(function(){ musicOn=true; }).catch(function(){ musicOn=false; }); };
   // first click anywhere starts the music (browsers need a gesture); the 🎵 button still toggles it
-  document.addEventListener('click', function(){ if(!musicOn) musicToggle(); }, { once: true });
+  musicToggle(); ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ if(!musicOn) musicToggle(); }); });
   // ---- voice: sequential playback of commentator/animal lines ----
   window.voiceOn=function(){voice=!voice;if(voice&&!musicOn)musicToggle();document.getElementById('voiceBtn').textContent=voice?'🔊 Voice ON':'🔊 Enable voice';document.getElementById('voiceBtn').className='btn'+(voice?' on':'');if(voice)pump();};
   function pump(){
