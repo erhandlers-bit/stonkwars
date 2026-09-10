@@ -93,7 +93,7 @@ function standings(sw, st) {
   const A = sw.BY_ID[m.a], B = sw.BY_ID[m.b];
   const ea = Math.round(st.books[m.a].equity), eb = Math.round(st.books[m.b].equity);
   const held = (id) => Object.values(st.books[id].positions || {}).map((p) => '$' + p.symbol).join(', ') || 'all cash';
-  return st.roundName + ' (' + phase + '). ON THE STREAM RIGHT NOW: ' + A.name + ' 
+  return st.roundName + ' (' + phase + '). ON THE STREAM RIGHT NOW: ' + A.name + ' $' + ea + ' (holding ' + held(m.a) + ') vs ' + B.name + ' $' + eb + ' (holding ' + held(m.b) + ')' + (m.winner ? ' — won by ' + sw.BY_ID[m.winner].name : '') + '. These two are the ONLY traders you may talk about. Press kit — ' + (BIOS[m.a] || A.name) + '; ' + (BIOS[m.b] || B.name) + '.';
 }
 
 async function turn(who) {
