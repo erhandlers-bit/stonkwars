@@ -254,8 +254,8 @@
   function pkRefresh(){
     fetch('/api/stonkwars/votes'+(PK.wallet?'?wallet='+encodeURIComponent(PK.wallet):'')).then(function(r){return r.json()}).then(function(v){
       PK.votes=v; var pool=v.pool||{}; var hg=v.holdGate||{};
-      var coin=hg.symbol?'$'+hg.symbol:'the coin';
-      document.getElementById('pkPool').innerHTML='prize this round <b style="color:var(--gold)">paid in $PRO</b> <span class="sub">— every round the creator fees are claimed, half buys $PRO, and half of that $PRO is split among everyone who picked winners (one share per correct pick)'+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+'</span>';
+      var SYM=(v.coin&&v.coin.symbol)||'COIN'; var coin='$'+SYM;
+      document.getElementById('pkPool').innerHTML='prize this round <b style="color:var(--gold)">paid in $'+SYM+'</b> <span class="sub">— every round the creator fees are claimed, half buys back $'+SYM+', and half of that $'+SYM+' is split among everyone who picked winners (one share per correct pick)'+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+'</span>';
       var lock=document.getElementById('pkLock');
       if(v.open&&v.preview){lock.innerHTML='<b style="color:var(--green)">picks are OPEN</b> — lock at the opening bell';}
       else if(v.open){lock.innerHTML='picks lock in <b>'+mmss(v.locksAt-Date.now())+'</b>';}
@@ -271,17 +271,17 @@
       var tot=v.totalVotes||0; var t=document.getElementById('pkTally');
       t.innerHTML=tot?(tot+' wallet'+(tot===1?'':'s')+' locked picks'):'';
       var last=(v.settlements||[])[0];
-      if(last) t.innerHTML+=(t.innerHTML?' · ':'')+'last round: '+last.correct+' of '+last.votes+' wallets called winners ('+(last.shares||last.correct)+' shares) · '+(last.currency==='PRO'?(last.mode==='paid'?'airdropped ':'owed ')+Math.round(last.treasury&&last.treasury.toWinnersPro||0).toLocaleString()+' $PRO':((last.mode==='paid'?'airdropped ':'pool ')+Number(last.poolSol||0).toFixed(3)+' SOL'));
-      var fl=document.getElementById('flyLive'); if(fl){ var tr=last&&last.treasury; fl.innerHTML=(tr?('last round: claimed <b>'+Number(tr.claimedSol||0).toFixed(3)+' SOL</b> · bought <b>'+Math.round(tr.boughtPro||0).toLocaleString()+' $PRO</b> with '+Number(tr.buybackSol||0).toFixed(3)+' SOL · <b>'+Math.round(tr.toWinnersPro||0).toLocaleString()+' $PRO</b> to '+last.correct+' wallet'+(last.correct===1?'':'s')+(tr.mode==='dry'?' (dry run)':'')):'no round settled yet')+(pool.address?' · dev wallet <a href="https://solscan.io/account/'+pool.address+'" target="_blank" rel="noopener">'+short(pool.address)+'</a>':''); }
+      if(last) t.innerHTML+=(t.innerHTML?' · ':'')+'last round: '+last.correct+' of '+last.votes+' wallets called winners ('+(last.shares||last.correct)+' shares) · '+(last.currency==='COIN'?(last.mode==='paid'?'airdropped ':'owed ')+Math.round(last.treasury&&last.treasury.toWinnersPro||0).toLocaleString()+' $'+SYM:((last.mode==='paid'?'airdropped ':'pool ')+Number(last.poolSol||0).toFixed(3)+' SOL'));
+      var fl=document.getElementById('flyLive'); if(fl){ var tr=last&&last.treasury; fl.innerHTML=(tr?('last round: claimed <b>'+Number(tr.claimedSol||0).toFixed(3)+' SOL</b> · bought <b>'+Math.round(tr.boughtPro||0).toLocaleString()+' $'+SYM+'</b> with '+Number(tr.buybackSol||0).toFixed(3)+' SOL · <b>'+Math.round(tr.toWinnersPro||0).toLocaleString()+' $'+SYM+'</b> to '+last.correct+' wallet'+(last.correct===1?'':'s')+(tr.mode==='dry'?' (dry run)':'')):'no round settled yet')+(pool.address?' · dev wallet <a href="https://solscan.io/account/'+pool.address+'" target="_blank" rel="noopener">'+short(pool.address)+'</a>':''); }
       render(); pkCount();
     }).catch(function(){});
   }
   function ledgerRefresh(){
     fetch('/api/stonkwars/payouts').then(function(r){return r.json()}).then(function(l){
-      var el=document.getElementById('ledger'); if(!el) return; var rows=l.rows||[];
+      var el=document.getElementById('ledger'); if(!el) return; var rows=l.rows||[]; var LSYM=(l.coin&&l.coin.symbol)||'COIN';
       if(!rows.length){ el.innerHTML='<span class="sub">no payouts yet — the first settlement lands at the end of round 1</span>'; return; }
       el.innerHTML='<table class="led"><tr><th>round</th><th>wallet</th><th>shares</th><th>amount</th><th>status</th><th>tx</th></tr>'+rows.map(function(r){
-        return '<tr><td>'+(['R16','QF','SF','Final'][r.round]||r.round)+'</td><td><a href="https://solscan.io/account/'+esc(r.wallet)+'" target="_blank" rel="noopener">'+short(r.wallet)+'</a></td><td>'+r.shares+'</td><td><b>'+(r.currency==='PRO'?Math.round(r.amount).toLocaleString()+' $PRO':Number(r.amount).toFixed(4)+' SOL')+'</b></td><td class="'+(r.status==='paid'?'up':(r.status==='failed'?'dn':'sub'))+'">'+r.status+'</td><td>'+(r.txid?'<a href="https://solscan.io/tx/'+esc(r.txid)+'" target="_blank" rel="noopener">'+r.txid.slice(0,6)+'…</a>':'—')+'</td></tr>'}).join('')+'</table>';
+        return '<tr><td>'+(['R16','QF','SF','Final'][r.round]||r.round)+'</td><td><a href="https://solscan.io/account/'+esc(r.wallet)+'" target="_blank" rel="noopener">'+short(r.wallet)+'</a></td><td>'+r.shares+'</td><td><b>'+(r.currency==='COIN'?Math.round(r.amount).toLocaleString()+' $'+LSYM:Number(r.amount).toFixed(4)+' SOL')+'</b></td><td class="'+(r.status==='paid'?'up':(r.status==='failed'?'dn':'sub'))+'">'+r.status+'</td><td>'+(r.txid?'<a href="https://solscan.io/tx/'+esc(r.txid)+'" target="_blank" rel="noopener">'+r.txid.slice(0,6)+'…</a>':'—')+'</td></tr>'}).join('')+'</table>';
     }).catch(function(){});
   }
   pkRefresh(); setInterval(pkRefresh,5000); ledgerRefresh(); setInterval(ledgerRefresh,30000);

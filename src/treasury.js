@@ -5,10 +5,10 @@
 //
 // Per round:
 //   1. CLAIM   all unclaimed pump.fun creator fees into the dev wallet
-//   2. BUYBACK swap STONK_BUYBACK_PCT (50%) of what was claimed into $PRO
-//   3. AIRDROP send STONK_WINNER_SHARE (50%) of the $PRO bought, split evenly,
+//   2. BUYBACK swap STONK_BUYBACK_PCT (50%) of what was claimed into the coin
+//   3. AIRDROP send STONK_WINNER_SHARE (50%) of the the coin bought, split evenly,
 //              to every wallet that picked a winner this round
-//   4. the rest of the $PRO and the rest of the SOL stay in the dev wallet
+//   4. the rest of the the coin and the rest of the SOL stay in the dev wallet
 //
 // LIVE only when STONK_TREASURY_ENABLED is true AND STONK_PAYOUT_KEY holds the
 // dev wallet's key — the claim has to be signed by the token creator, so this
@@ -95,7 +95,7 @@ async function buyback(conn, kp, lamports) {
   return { sig, received: after - before, quotedOut: BigInt(q.outAmount) };
 }
 
-// ---- 3. AIRDROP $PRO ----
+// ---- 3. AIRDROP the coin ----
 function u64le(n) { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; }
 async function airdrop(conn, kp, winners, perShare) {
   const { PublicKey, Transaction, TransactionInstruction, SystemProgram, sendAndConfirmTransaction } = w3();
@@ -161,7 +161,7 @@ async function settleRound(roundIdx, winners) {
         const per = toWinners / totalShares; // one share per correct pick
         rec.perSharePro = Number(per) / 1e6; rec.perWinnerPro = rec.perSharePro;
         rec.transfers = await airdrop(conn, kp, winners, per);
-      } else rec.notes.push(winners.length ? 'nothing to send' : 'no correct pickers this round — the $PRO stays in the dev wallet');
+      } else rec.notes.push(winners.length ? 'nothing to send' : 'no correct pickers this round — the the coin stays in the dev wallet');
     } else {
       const q = await quote(buybackLamports);
       rec.boughtPro = Number(q.outAmount) / 1e6;

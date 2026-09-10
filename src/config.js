@@ -37,7 +37,10 @@ module.exports = {
   // STONK_PAYOUT_KEY = the DEV (creator) wallet key — the claim must be signed
   // by the creator. Otherwise it dry-runs and records what it would have done.
   STONK_TREASURY_ENABLED: false,
-  STONK_BUYBACK_MINT: '7k4JoPp1CEnm3ypLwnpqoEc9ysw95oeTdxdrTFBQpump', // $PRO (ProScrim), 6 decimals
+  // owner 2026-09-10: "buy back its OWN token and pay out in it, not $PRO" — paste the
+  // STONK WARS coin mint here at launch. Empty = no buyback; settlements are recorded as owed.
+  STONK_BUYBACK_MINT: '',
+  STONK_COIN_SYMBOL: 'STONK',       // ticker shown on the site until the mint is set (then Dexscreener's symbol wins)
   STONK_BUYBACK_PCT: 0.5,           // half of claimed fees buy the coin
   STONK_WINNER_SHARE: 0.5,          // half of the coin bought goes to the correct pickers
   STONK_SWAP_SLIPPAGE_BPS: 300,     // 3% on the Jupiter swap

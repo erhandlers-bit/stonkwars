@@ -80,6 +80,8 @@ async function tokensHeld(conn, pk, mint) {
 
 // ---- eligibility to be PAID: hold >= STONK_HOLD_MIN_USD of the coin ----
 function holdMint() { return config.STONK_HOLD_MINT || config.STONK_BUYBACK_MINT || ''; }
+// what the site calls the coin: Dexscreener's ticker once the mint is set, else the configured placeholder
+function coinInfo() { const mint = config.STONK_BUYBACK_MINT || holdMint() || null; const live = mint && priceCache.mint === mint ? priceCache.symbol : ''; return { mint, symbol: live || config.STONK_COIN_SYMBOL || 'COIN' }; }
 function holdMinUsd() { return Number(config.STONK_HOLD_MIN_USD || 0); }
 const priceCache = { at: 0, mint: null, usd: 0, symbol: '' };
 async function coinPrice() {
@@ -257,7 +259,7 @@ async function settle(roundIdx, round) {
       const t = await require('./treasury').settleRound(roundIdx, winners);
       rec.mode = t.mode === 'live' ? 'paid' : 'owed';
       rec.treasury = t;
-      rec.poolSol = t.buybackSol; rec.perWalletSol = 0; rec.perSharePro = t.perSharePro; rec.perWalletPro = t.perWinnerPro; rec.currency = 'PRO';
+      rec.poolSol = t.buybackSol; rec.perWalletSol = 0; rec.perSharePro = t.perSharePro; rec.perWalletPro = t.perWinnerPro; rec.currency = 'COIN';
       rec.txs = (t.transfers || []).map((x) => ({ wallet: x.wallet, shares: x.shares, pro: x.pro, txid: x.txid, error: x.error, owed: !x.txid }));
       if (t.notes && t.notes.length) rec.note = t.notes.join('; ');
     } catch (e) { rec.note = 'treasury failed: ' + String(e.message).slice(0, 120); }
@@ -300,13 +302,13 @@ function ledger() {
   for (const s of state.settlements) {
     for (const t of s.txs || []) {
       rows.push({ round: s.roundIdx, at: s.at, wallet: t.wallet, shares: t.shares || 1,
-        amount: t.pro != null ? t.pro : (t.sol || 0), currency: t.pro != null ? 'PRO' : 'SOL',
+        amount: t.pro != null ? t.pro : (t.sol || 0), currency: t.pro != null ? 'COIN' : 'SOL',
         txid: t.txid || null, status: t.txid ? 'paid' : (t.error ? 'failed' : 'owed'), error: t.error || null });
     }
   }
   const totals = {};
   for (const r of rows) { const k = r.wallet + '|' + r.currency; totals[k] = totals[k] || { wallet: r.wallet, currency: r.currency, paid: 0, owed: 0, rounds: 0 }; totals[k].rounds++; if (r.status === 'paid') totals[k].paid += r.amount; else if (r.status === 'owed') totals[k].owed += r.amount; }
-  return { rows, wallets: Object.values(totals).sort((a, b) => (b.paid + b.owed) - (a.paid + a.owed)), settlements: state.settlements.map((s) => ({ roundIdx: s.roundIdx, at: s.at, votes: s.votes, correct: s.correct, shares: s.shares, mode: s.mode, poolSol: s.poolSol, currency: s.currency || 'SOL', toWinnersPro: s.treasury ? s.treasury.toWinnersPro : undefined, ineligible: (s.ineligible || []).length, note: s.note })) };
+  return { coin: coinInfo(), rows, wallets: Object.values(totals).sort((a, b) => (b.paid + b.owed) - (a.paid + a.owed)), settlements: state.settlements.map((s) => ({ roundIdx: s.roundIdx, at: s.at, votes: s.votes, correct: s.correct, shares: s.shares, mode: s.mode, poolSol: s.poolSol, currency: s.currency || 'SOL', toWinnersPro: s.treasury ? s.treasury.toWinnersPro : undefined, ineligible: (s.ineligible || []).length, note: s.note })) };
 }
 
 async function status(wallet) {
@@ -330,11 +332,12 @@ async function status(wallet) {
     mine,
     pool: { sol: +pool.sol.toFixed(4), pct: pool.pct, walletSol: +pool.walletSol.toFixed(4), address: pool.address, paying: !!config.STONK_PAYOUT_ENABLED && !!payoutKeypair() },
     gate: { minSol: Number(config.STONK_VOTE_MIN_SOL || 0), tokenMint: config.STONK_VOTE_TOKEN_MINT || null, minTokens: Number(config.STONK_VOTE_MIN_TOKENS || 0) },
-    holdGate: { mint: holdMint() || null, minUsd: holdMinUsd(), symbol: price.symbol || '', priceUsd: price.usd || 0 },
+    coin: coinInfo(),
+    holdGate: { mint: holdMint() || null, minUsd: holdMinUsd(), symbol: price.symbol || coinInfo().symbol, priceUsd: price.usd || 0 },
     myHold,
     settlements: state.settlements.slice(0, 10),
   };
 }
 
 function start() { load(); }
-module.exports = { start, vote, settle, status, ledger, messageFor, onTournamentStart, payoutKeypair, holding };
+module.exports = { start, vote, settle, status, ledger, messageFor, onTournamentStart, payoutKeypair, holding, coinInfo };
