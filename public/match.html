@@ -178,7 +178,7 @@
   var audioBlocked=false;
   ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ if(audioBlocked){ audioBlocked=false; pump(); } }); });
   function pump(){
-    if(introPlaying){ queue=[]; return; } // nobody talks over the promo
+    if(introPlaying){ if(isPregame()) queue=[]; return; } // nobody talks over the promo (pregame drops the lines; intermissions hold them)
     if(!voice||playing||!queue.length) return;
     var l=queue.shift(); playing=true;
     mark(l,true);
@@ -261,8 +261,11 @@
   // PREGAME (owner 2026-09-10): the promo loops on the desk until the opening bell; the desk stays silent
   var introPlaying=false;
   function isPregame(){ return !!(S&&S.status==='running'&&S.roundIdx===0&&S.roundStartAt&&S.now<S.roundStartAt); }
-  function maybeIntro(){ if(isPregame()) ensureIntro(); else stopIntro(); }
-  function ensureIntro(){ var d=document.getElementById('desk'); if(!d||document.getElementById('introVid')) return; var v=document.createElement('video'); v.id='introVid'; v.className='intro'; v.src='/stonkwars/intro.mp4?v=1'; v.playsInline=true; v.loop=true; v.preload='auto'; introPlaying=true; queue=[]; d.appendChild(v); v.play().catch(function(){ v.muted=true; v.play().catch(function(){}); }); }
+  // intermissions (owner 2026-09-10): the promo plays once a minute while the next round counts down; the desk talks in between
+  var lastInterPlay=0;
+  function isIntermission(){ return !!(S&&S.status==='running'&&S.roundIdx>0&&S.roundStartAt&&S.now<S.roundStartAt); }
+  function maybeIntro(){ if(isPregame()){ ensureIntro(true); return; } if(isIntermission()){ if(!document.getElementById('introVid')&&Date.now()-lastInterPlay>=60000){ lastInterPlay=Date.now(); ensureIntro(false); } return; } stopIntro(); }
+  function ensureIntro(loop){ var d=document.getElementById('desk'); if(!d||document.getElementById('introVid')) return; var v=document.createElement('video'); v.id='introVid'; v.className='intro'; v.src='/stonkwars/intro.mp4?v=1'; v.playsInline=true; v.loop=!!loop; v.preload='auto'; introPlaying=true; if(loop) queue=[]; if(!loop){ v.onended=stopIntro; v.onerror=stopIntro; } d.appendChild(v); v.play().catch(function(){ v.muted=true; v.play().catch(function(){ stopIntro(); }); }); }
   function stopIntro(){ var v=document.getElementById('introVid'); if(v){ v.pause(); v.remove(); } if(introPlaying){ introPlaying=false; pump(); } }
   ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ var v=document.getElementById('introVid'); if(v&&v.muted){ v.muted=false; v.play().catch(function(){ v.muted=true; }); } }); });
   window.playIntro=ensureIntro;
