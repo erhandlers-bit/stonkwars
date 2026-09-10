@@ -72,6 +72,7 @@ async function turn(who) {
   const quiet = now - me.lastLineAt > 60_000;
   me.lastTurnAt = now;
   if (!newEvents.length && !newChat.length && !otherSpoke && !quiet) return; // nothing new: no call, no cost
+  if (st.status !== 'running' && !newChat.length) return; // between tournaments the desk only answers the chat
   me.seenEvent = evSeq; me.seenChat = chat.status().seq;
 
   const transcript = commentary.status().latest.slice(0, 10).reverse()
