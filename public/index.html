@@ -45,6 +45,17 @@
   .bar{height:3px;background:#1a2236;border-radius:2px;margin:2px 6px 0;overflow:hidden}
   .bar i{display:block;height:100%;background:var(--green)}
   .side.sel{outline:2px solid var(--gold);background:#1a1606}
+  .side .vote{margin-left:6px;flex:none;background:#161c2e;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:900;letter-spacing:1px;cursor:pointer}
+  .side .vote.on{background:var(--gold);color:#000}
+  .card-bg{position:fixed;inset:0;background:rgba(3,5,12,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .card-bg.show{display:flex}
+  .card{background:var(--panel);border:1px solid var(--gold);border-radius:18px;max-width:900px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.7)}
+  .card img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:18px 18px 0 0}
+  .card .in{padding:16px 20px 20px}
+  .card h2{margin:0 0 4px;font-size:26px;letter-spacing:1px}
+  .card .bio{font-size:15px;line-height:1.5;margin:10px 0}
+  .card .x{position:absolute;top:14px;right:18px;font-size:28px;color:#fff;cursor:pointer;background:rgba(0,0,0,.5);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center}
+  .card .vote{background:var(--gold);color:#000;border:0;border-radius:10px;padding:10px 16px;font-weight:900;cursor:pointer;letter-spacing:1px;margin-top:8px}
   .side .tl{font-size:10px;color:var(--dim);margin-left:4px;font-weight:400;white-space:nowrap}
   .match.pickable{border-color:#3a2f12}
   .lockbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 22px;border-top:1px solid var(--border);background:#0b0f1c;font-size:13px}
@@ -133,6 +144,7 @@
   </div>
   <div class="detail" id="detail"><span class="sub">Click an animal to see its brain and its positions.</span></div>
 </main>
+<div class="card-bg" id="cardBg" onclick="if(event.target===this)closeCard()"><div class="x" onclick="closeCard()">×</div><div class="card" id="card"></div></div>
 <footer>
   <div id="flywheel"><h3>The flywheel</h3><div class="fly">
     <div><b>1</b>16 traders trade meme coins for an hour per round. You pick the winner of every match and lock the set with your wallet. Free.</div>
@@ -162,8 +174,8 @@
     var cls='side'; if(m.winner){cls+=m.winner===id?' win':' lose';}
     var final=m.finalEq&&m.finalEq[id]!=null?m.finalEq[id]:null; if(final!=null){eq=final;pnl=final-S.config.startUsd;}
     var tl=pickable?tallyPct(m.id,id):null; if(pickable&&PK.sel[m.id]===id) cls+=' sel';
-    return '<div class="'+cls+'" onclick="'+(pickable?'pkSel(\''+m.id+'\',\''+id+'\')':'pick(\''+id+'\')')+'">'+av(a)+'<div><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+(pickable?' <span class="tl" title="brain &amp; positions" onclick="event.stopPropagation();pick(\''+id+'\')">ℹ</span>':'')+(tl!=null?' <span class="tl">'+tl+'% picked</span>':'')+'</div><div class="sd">#'+a.seed+' · '+neurons(a.neurons)+' neurons</div></div>'+
-      '<div class="eq"><div class="v">'+fmt(eq)+'</div><div class="p '+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</div></div></div>';
+    return '<div class="'+cls+'" onclick="openCard(\''+id+'\',\''+m.id+'\','+(pickable?'true':'false')+')">'+av(a)+'<div><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+(tl!=null?' <span class="tl">'+tl+'% picked</span>':'')+'</div><div class="sd">#'+a.seed+' · '+neurons(a.neurons)+' neurons</div></div>'+
+      '<div class="eq"><div class="v">'+fmt(eq)+'</div><div class="p '+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</div></div>'+(pickable?'<button class="vote'+(PK.sel[m.id]===id?' on':'')+'" onclick="event.stopPropagation();pkSel(\''+m.id+'\',\''+id+'\')">'+(PK.sel[m.id]===id?'✓ PICKED':'VOTE')+'</button>':'')+'</div>';
   }
   function render(){
     if(!S) return;
@@ -204,6 +216,15 @@
   }
   function mmss(ms){ms=Math.max(0,ms);var s=Math.floor(ms/1000),m=Math.floor(s/60);s=s%60;return (m<10?'0':'')+m+':'+(s<10?'0':'')+s}
   window.pick=function(id){sel=id;detail(id)};
+  window.closeCard=function(){ document.getElementById('cardBg').classList.remove('show'); };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeCard(); });
+  window.openCard=function(id,mid,pickable){ var a=A[id]; if(!a) return; var b=(S.books||{})[id]; var br=a.brain||{};
+    var traits=[['memory',br.memory+' coins'],['reaction',(br.reactionMs/1000)+'s'],['positions',br.maxPositions],['bet size',Math.round(br.sizeFrac*100)+'%'],['impulsivity',Math.round(br.impulsivity*100)+'%'],['pattern depth',Math.round(br.depth*100)+'%'],['stop','-'+Math.round(br.stopPct*100)+'%'],['take','+'+Math.round(br.takePct*100)+'%'],['patience',br.maxHoldMin+' min'],['quirk',br.quirk]];
+    var html=(a.image?'<img src="'+a.image+'" alt="">':'')+'<div class="in"><h2>'+esc(a.name)+' <span class="sub">#'+a.seed+' seed · '+neurons(a.neurons)+' neurons</span></h2>'+
+      '<div class="bio">'+esc(a.blurb||'')+'</div><div>'+traits.map(function(t){return '<span class="trait">'+t[0]+' <b>'+esc(t[1])+'</b></span>'}).join('')+'</div>';
+    if(b){ var pnl=b.equity-S.config.startUsd; html+='<div style="margin:12px 0 4px;font-weight:700;font-size:16px">'+fmt(b.equity)+' <span class="'+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</span> <span class="sub">· '+b.trades+' trades · '+b.wins+'W/'+b.losses+'L</span></div>'+(b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+p.url+'" target="_blank" style="color:var(--blue)">$'+esc(p.symbol)+'</a></span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join(''); }
+    if(pickable) html+='<button class="vote" onclick="pkSel(\''+mid+'\',\''+id+'\');closeCard();">🗳️ VOTE '+esc(a.name.toUpperCase())+' TO WIN</button>';
+    html+='</div>'; document.getElementById('card').innerHTML=html; document.getElementById('cardBg').classList.add('show'); };
   function detail(id){
     var a=A[id]; if(!a) return; var b=(S.books||{})[id]; var br=a.brain;
     var traits=[['memory',br.memory+' coins'],['reaction',(br.reactionMs/1000)+'s'],['positions',br.maxPositions],['bet size',Math.round(br.sizeFrac*100)+'%'],['impulsivity',Math.round(br.impulsivity*100)+'%'],['pattern depth',Math.round(br.depth*100)+'%'],['stop','-'+Math.round(br.stopPct*100)+'%'],['take','+'+Math.round(br.takePct*100)+'%'],['patience',br.maxHoldMin+'m'],['quirk',br.quirk]];
