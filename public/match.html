@@ -170,7 +170,7 @@
   // ---- soundboard: short stings on events and on lines the desk tags ----
   var SFX_FOR={hype:'airhorn',rug:'scratch',stop:'trombone',take:'chaching',bell:'bell',champion:'applause',lead:'drumroll',fail:'buzzer',bored:'crickets',argue:'rimshot'};
   var lastSfxAt=0;
-  function sfx(name){ if(!name) return; var now=Date.now(); if(now-lastSfxAt<1500) return; lastSfxAt=now; try{ var a=new Audio('/stonkwars/sfx/'+name+'.mp3'); a.volume=0.55; a.play().catch(function(){}); }catch(x){} }
+  function sfx(name){ if(!name) return; var now=Date.now(); if(now-lastSfxAt<1500) return; lastSfxAt=now; try{ var a=new Audio('/stonkwars/sfx/'+name+'.mp3?v=2'); a.volume=0.55; a.play().catch(function(){}); }catch(x){} }
   // ---- voice: sequential playback of commentator/animal lines ----
   window.voiceOn=function(){voice=!voice;if(voice&&!musicOn)musicToggle();document.getElementById('voiceBtn').textContent=voice?'🔊 Voice ON':'🔊 Enable voice';document.getElementById('voiceBtn').className='btn'+(voice?' on':'');if(voice)pump();};
   function pump(){
