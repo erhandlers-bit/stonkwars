@@ -23,6 +23,8 @@
   .stage{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;padding:14px 20px;align-items:start;background:radial-gradient(ellipse at top,#161033 0%,#07090f 70%)}
   .mid{display:flex;flex-direction:column;gap:10px;min-width:0}
   .desk{position:relative;width:100%;aspect-ratio:1344/768;border-radius:16px;overflow:hidden;background:#0a0c16 url(/stonkwars/desk.png) center/cover no-repeat;border:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.55)}
+  .desk video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  .desk video.react{opacity:0;transition:opacity .25s} .desk video.react.on{opacity:1}
   .desk .tag{position:absolute;top:67.5%;font-weight:900;font-size:clamp(9px,1.3vw,13px);letter-spacing:2px;text-transform:uppercase;color:var(--gold);background:rgba(7,9,15,.82);border:1px solid var(--border);padding:4px 10px;border-radius:8px;transition:box-shadow .2s,border-color .2s}
   .desk .tag.l{left:13%} .desk .tag.r{right:13%}
   .desk .tag.talking{border-color:var(--pink);box-shadow:0 0 0 2px var(--pink),0 0 24px rgba(255,63,164,.5)}
@@ -91,13 +93,17 @@
   <h1>STONK <span>WARS</span></h1>
   <div><div class="sub" id="matchTitle">LIVE MATCH</div><div class="sub links"><a href="/" style="color:var(--blue)">bracket</a> · <a href="/match.html?auto=1" style="color:var(--blue)">director mode</a></div></div>
   <button class="btn" id="voiceBtn" onclick="voiceOn()">🔊 Enable voice</button>
+  <button class="btn" id="musicBtn" onclick="musicToggle()" title="background music">🎵 Music</button>
+  <audio id="bgm" src="/stonkwars/music.mp3" loop preload="none" onerror="document.getElementById('musicBtn').style.display='none'"></audio>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
 </header>
 
 <section class="stage">
   <div class="fighter" id="fA"></div>
   <div class="mid">
-    <div class="desk" id="desk">  
+    <div class="desk" id="desk">
+      <video id="deskIdle" src="/stonkwars/desk-idle.mp4" autoplay muted loop playsinline onerror="this.remove()"></video>
+      <video id="deskReact" class="react" muted playsinline preload="auto"></video>
       <div class="tag l" id="t-stonks"><span id="nm-stonks">Stonks Man</span></div>  
       <div class="tag r" id="t-notstonks"><span id="nm-notstonks">Not Stonks Man</span></div>  
     </div>  
@@ -136,8 +142,19 @@
   function mmss(ms){ms=Math.max(0,ms);var s=Math.floor(ms/1000),m=Math.floor(s/60);s=s%60;return (m<10?'0':'')+m+':'+(s<10?'0':'')+s}
   function ago(t){var s=Math.round((Date.now()-t)/1000);return s<60?s+'s':Math.round(s/60)+'m'}
 
+  // ---- the desk is video: an idle loop, plus a reaction clip when the tape says so (owner 2026-09-10) ----
+  var reactBusy=false, lastFeedAt=Date.now();
+  function react(kind){ var v=document.getElementById('deskReact'); if(!v||reactBusy) return; reactBusy=true; v.src='/stonkwars/desk-'+kind+'.mp4'; v.currentTime=0;
+    var done=function(){ v.classList.remove('on'); reactBusy=false; }; v.onended=done; v.onerror=done;
+    v.play().then(function(){ v.classList.add('on'); }).catch(done); }
+  function reactToFeed(){ if(!S||!S.feed) return; var fresh=S.feed.filter(function(e){return e.at>lastFeedAt}); if(!fresh.length) return; lastFeedAt=Math.max.apply(null,fresh.map(function(e){return e.at}));
+    var kinds=fresh.map(function(e){ if(e.kind==='sell'&&(e.reason==='rug'||e.reason==='stop')) return 'fail'; if(e.kind==='sell'&&(e.reason==='take'||e.reason==='trail')) return 'hype'; if(e.kind==='buy'&&e.usd>=150) return 'hype'; if(e.kind==='champion'||e.kind==='result') return 'hype'; return null; }).filter(Boolean);
+    if(kinds.length) react(kinds[kinds.length-1]); }
+  // ---- background music: competitive, low volume, starts on a click (browsers block autoplay with sound) ----
+  var musicOn=false;
+  window.musicToggle=function(){ var a=document.getElementById('bgm'); if(!a) return; musicOn=!musicOn; a.volume=0.12; if(musicOn){ a.play().catch(function(){ musicOn=false; }); } else a.pause(); document.getElementById('musicBtn').className='btn'+(musicOn?' on':''); document.getElementById('musicBtn').textContent=musicOn?'🎵 Music ON':'🎵 Music'; };
   // ---- voice: sequential playback of commentator/animal lines ----
-  window.voiceOn=function(){voice=!voice;document.getElementById('voiceBtn').textContent=voice?'🔊 Voice ON':'🔊 Enable voice';document.getElementById('voiceBtn').className='btn'+(voice?' on':'');if(voice)pump();};
+  window.voiceOn=function(){voice=!voice;if(voice&&!musicOn)musicToggle();document.getElementById('voiceBtn').textContent=voice?'🔊 Voice ON':'🔊 Enable voice';document.getElementById('voiceBtn').className='btn'+(voice?' on':'');if(voice)pump();};
   function pump(){
     if(!voice||playing||!queue.length) return;
     var l=queue.shift(); playing=true;
@@ -214,7 +231,8 @@
     // director mode: rotate live matches every 90s
     if(AUTO&&S.status==='running'&&Date.now()-lastRotate>90000){ var r=S.rounds[S.roundIdx]; var live=r.matches.filter(function(x){return !x.winner}); if(live.length>1){ var i=live.findIndex(function(x){return x.id===M}); M=live[(i+1)%live.length].id; lastSeq=0; queue=[]; } lastRotate=Date.now(); }
   }
-  function refresh(){ fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();}).catch(function(){}); }
+  function refreshHook(){ try{ reactToFeed(); }catch(x){} }
+  function refresh(){ fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();refreshHook();}).catch(function(){}); }
   function pollPump(){ fetch('/api/stonkwars/pumpfeed').then(function(r){return r.json()}).then(function(j){document.getElementById('pfState').textContent=j.connected?'live':'reconnecting…';document.getElementById('pumpRows').innerHTML=(j.launches||[]).map(function(t){return '<div><span><a href="'+t.url+'" target="_blank">$'+esc(t.symbol||'?')+'</a> <span class="sub">'+esc((t.name||'').slice(0,28))+'</span></span><span class="sub">'+ago(t.at)+' ago'+(t.devBuySol?' · dev '+t.devBuySol.toFixed(2)+' SOL':'')+'</span></div>'}).join('')||'<div class="sub">waiting for launches…</div>';}).catch(function(){}); }
   // ---- stream chat: viewers talk, the desk talks back ----
   var chatSeq=0;

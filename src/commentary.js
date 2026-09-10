@@ -151,6 +151,7 @@ function whyText(w) {
 
 // ---------------- event -> lines ----------------
 function reactTo(e, st, rng) {
+  if (config.STONK_AGENTS && process.env.ANTHROPIC_API_KEY && !['round', 'result', 'champion', 'picks'].includes(e.kind)) return; // the desk agents (desk.js) react on their own
   const a = e.animalId ? require('./stonkwars').BY_ID[e.animalId] : null;
   // spoken text: no emoji (the voice reads them out loud), no double spaces
   const clean = (s) => String(s || '').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim();
@@ -398,12 +399,13 @@ function start() {
   sw.onEvent((e, st) => { recent.push(e); if (recent.length > 40) recent.shift(); reactTo(e, st, rng); });
   setInterval(() => { try { watchLeads(sw._state, rng); } catch { /* never */ } }, 5000).unref();
   const bm = config.STONK_BANTER_MS == null ? 45000 : Number(config.STONK_BANTER_MS);
-  if (bm > 0) setInterval(() => banter().catch(() => {}), bm).unref();
+  const agentsOn = !!(config.STONK_AGENTS && process.env.ANTHROPIC_API_KEY); // desk.js runs the two seats as autonomous agents
+  if (bm > 0 && !agentsOn) setInterval(() => banter().catch(() => {}), bm).unref();
   const im = config.STONK_INTERVIEW_MS == null ? 240000 : Number(config.STONK_INTERVIEW_MS);
   if (im > 0) setInterval(() => interview().catch(() => {}), im).unref();
   const cm = config.STONK_CHAT_REPLY_MS == null ? 30000 : Number(config.STONK_CHAT_REPLY_MS);
-  if (cm > 0) setInterval(() => chatBanter().catch(() => {}), cm).unref(); // the desk answers the stream chat
-  console.log('[commentary] Stonks Man + Not Stonks Man at the desk' + (process.env.ANTHROPIC_API_KEY && bm > 0 ? ' (+ Claude banter every ' + Math.round(bm / 1000) + 's)' : ' (scripted only)'));
+  if (cm > 0 && !agentsOn) setInterval(() => chatBanter().catch(() => {}), cm).unref(); // the desk answers the stream chat (agents do this themselves)
+  console.log('[commentary] Stonks Man + Not Stonks Man at the desk' + (agentsOn ? ' (autonomous agents: see desk.js)' : (process.env.ANTHROPIC_API_KEY && bm > 0 ? ' (+ Claude banter every ' + Math.round(bm / 1000) + 's)' : ' (scripted only)')));
 }
 
-module.exports = { start, since, status, line, tts, interview, CAST };
+module.exports = { start, since, status, line, tts, interview, say, CAST };

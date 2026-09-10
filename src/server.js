@@ -69,6 +69,7 @@ function start() {
   feed.start();
   stonkwars.start();
   try { require('./commentary').start(); } catch (e) { console.log('[commentary] not started: ' + e.message); }
+  try { require('./desk').start(); } catch (e) { console.log('[desk] not started: ' + e.message); }             // two autonomous Claude agents at the desk
   try { require('./pumpfeed').start(); } catch (e) { console.log('[pumpfeed] not started: ' + e.message); }
   try { require('./treasury').start(); } catch (e) { console.log('[treasury] not started: ' + e.message); }
   app.listen(config.PORT, '0.0.0.0', () => {
