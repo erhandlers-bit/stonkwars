@@ -165,7 +165,9 @@
   function reactToLines(ls){ var now=Date.now(); var a=ls.filter(function(l){return l.who==='stonks'}).length, b=ls.filter(function(l){return l.who==='notstonks'}).length; if(a&&b&&now-lastArgueAt>30000){ lastArgueAt=now; react('argue'); } }
   // ---- background music: competitive, low volume, starts on a click (browsers block autoplay with sound) ----
   var musicOn=false;
-  window.musicToggle=function(){ var a=document.getElementById('bgm'); if(!a) return; musicOn=!musicOn; a.volume=0.12; if(musicOn){ a.play().catch(function(){ musicOn=false; }); } else a.pause(); document.getElementById('musicBtn').className='btn'+(musicOn?' on':''); document.getElementById('musicBtn').textContent=musicOn?'🎵 Music ON':'🎵 Music'; };
+  window.musicToggle=function(){ var a=document.getElementById('bgm'); if(!a) return; musicOn=!musicOn; a.volume=0.3; if(musicOn){ a.play().catch(function(){ musicOn=false; }); } else a.pause(); document.getElementById('musicBtn').className='btn'+(musicOn?' on':''); document.getElementById('musicBtn').textContent=musicOn?'🎵 Music ON':'🎵 Music'; };
+  // first click anywhere starts the music (browsers need a gesture); the 🎵 button still toggles it
+  document.addEventListener('click', function(){ if(!musicOn) musicToggle(); }, { once: true });
   // ---- voice: sequential playback of commentator/animal lines ----
   window.voiceOn=function(){voice=!voice;if(voice&&!musicOn)musicToggle();document.getElementById('voiceBtn').textContent=voice?'🔊 Voice ON':'🔊 Enable voice';document.getElementById('voiceBtn').className='btn'+(voice?' on':'');if(voice)pump();};
   function pump(){
