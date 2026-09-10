@@ -1,0 +1,14 @@
+# secrets — never commit
+.env
+.env.*
+!.env.example
+
+# runtime state
+data/*.json
+data/*.jsonl
+
+# deps / OS
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db

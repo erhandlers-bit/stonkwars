@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>STONK WARS</title>
+<link rel="icon" type="image/png" href="/stonkwars/logo.png">
+<meta property="og:title" content="STONK WARS">
+<meta property="og:description" content="16 animals. 16 virtual brains. One hour each to trade memecoins. Winner advances. Paper trading, not financial advice.">
+<meta property="og:image" content="/stonkwars/logo.png">
+<style>
+  :root{--bg:#07090f;--panel:#0e1220;--border:#1c2337;--text:#e8ecf5;--dim:#7d88a6;--green:#5fe89b;--red:#ff6b6b;--gold:#f5c542;--blue:#5fd0e8}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif;font-size:14px}
+  header{display:flex;align-items:center;gap:18px;padding:14px 22px;border-bottom:1px solid var(--border);background:linear-gradient(90deg,#0e1220,#07090f)}
+  header h1{margin:0;font-size:28px;letter-spacing:3px;font-weight:900}
+  header h1 span{color:var(--gold)}
+  .sub{color:var(--dim);font-size:12px}
+  .clock{margin-left:auto;text-align:right}
+  .clock .t{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
+  .clock .r{color:var(--gold);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+  .paper{font-size:10px;padding:2px 7px;border:1px solid var(--blue);color:var(--blue);border-radius:4px;letter-spacing:1px}
+  main{display:grid;grid-template-columns:1fr 340px;gap:0;min-height:calc(100vh - 66px)}
+  .bracket{display:grid;grid-template-columns:repeat(4,1fr) 200px;gap:14px;padding:18px 22px;align-items:center}
+  .col{display:flex;flex-direction:column;justify-content:space-around;gap:12px;height:100%}
+  .col h3{margin:0 0 4px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center}
+  .match{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:6px;position:relative}
+  .match.live{border-color:#2a6b4a;box-shadow:0 0 0 1px #1f5a3c inset}
+  .match.done{opacity:.75}
+  .side{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:7px;cursor:pointer}
+  .side:hover{background:#141a2c}
+  .side.win{background:#0f2a1c}
+  .side.lose{opacity:.45}
+  .side.tbd{opacity:.35}
+  /* portraits are 16:9 scenes — show the whole scene, not a 40px crop of a monitor */
+  .av{width:112px;height:63px;border-radius:8px;background:#161c2e;display:flex;align-items:center;justify-content:center;font-size:30px;overflow:hidden;flex:none;box-shadow:0 0 0 1px var(--border)}
+  .av img{width:100%;height:100%;object-fit:cover}
+  .side.win .av{box-shadow:0 0 0 2px var(--gold)}
+  .side{padding:6px}
+  .nm{font-weight:700;font-size:13px;white-space:nowrap}
+  .sd{color:var(--dim);font-size:10px}
+  .eq{margin-left:auto;text-align:right;font-variant-numeric:tabular-nums}
+  .eq .v{font-weight:800;font-size:14px}
+  .eq .p{font-size:11px}
+  .up{color:var(--green)} .dn{color:var(--red)}
+  .bar{height:3px;background:#1a2236;border-radius:2px;margin:2px 6px 0;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--green)}
+  .champ{background:linear-gradient(160deg,#1a1606,#0e1220);border:1px solid var(--gold);border-radius:14px;padding:14px;text-align:center}
+  .champ .av{width:100%;height:auto;aspect-ratio:16/9;margin:0 auto 10px;font-size:64px;border-radius:14px;border:2px solid var(--gold)}
+  .champ .t{color:var(--gold);font-size:11px;letter-spacing:3px}
+  .champ .n{font-size:20px;font-weight:900;margin-top:4px}
+  aside{border-left:1px solid var(--border);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+  aside h3{margin:0;padding:12px 16px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border)}
+  .feed{flex:1;overflow:auto;padding:8px 12px;font-size:12px}
+  .feed div{padding:6px 4px;border-bottom:1px solid #141a2c;line-height:1.35}
+  .feed .k{color:var(--dim);font-size:10px;margin-right:6px;font-variant-numeric:tabular-nums}
+  .feed .buy{color:var(--blue)} .feed .sell{color:var(--text)} .feed .result{color:var(--gold);font-weight:700} .feed .champion{color:var(--gold);font-weight:900;font-size:14px} .feed .quirk{color:#c99cff} .feed .round{color:var(--green);font-weight:700}
+  .detail{border-top:1px solid var(--border);padding:12px 16px;font-size:12px;max-height:46vh;overflow:auto}
+  .detail .big{display:block;margin-bottom:8px}
+  .detail .big .av{width:100%;height:auto;aspect-ratio:16/9;font-size:56px;margin-bottom:8px;border-radius:10px}
+  .trait{display:inline-block;background:#161c2e;border:1px solid var(--border);border-radius:5px;padding:2px 7px;margin:2px 3px 2px 0;font-size:11px;color:var(--dim)}
+  .trait b{color:var(--text)}
+  .pos{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #141a2c}
+  .admin{display:none;gap:6px;margin-left:14px}
+  .admin button{background:#161c2e;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-weight:700}
+  .admin button.go{border-color:var(--green);color:var(--green)}
+  .admin button.stop{border-color:var(--red);color:var(--red)}
+  .idle{padding:40px;text-align:center;color:var(--dim);font-size:16px}
+  @media (max-width:1100px){main{grid-template-columns:1fr}.bracket{grid-template-columns:1fr;}.col{flex-direction:row;flex-wrap:wrap}.match{flex:1 1 260px}}
+</style>
+</head>
+<body>
+<header>
+  <img src="/stonkwars/logo.png" alt="" style="width:56px;height:56px;border-radius:12px;box-shadow:0 0 0 1px var(--border)">
+  <h1>STONK <span>WARS</span></h1>
+  <div>
+    <div class="sub">16 animals · 16 virtual brains · $1,000 each · one hour to trade memecoins · winner advances</div>
+    <div class="sub"><span class="paper">PAPER TRADING · NOT FINANCIAL ADVICE</span> <span id="feedN"></span></div>
+  </div>
+  <div class="admin" id="admin">
+    <button class="go" onclick="ctl('start')">▶ Start</button>
+    <button onclick="ctl('pause')">⏸ Pause</button>
+    <button onclick="ctl('resume')">⏵ Resume</button>
+    <button class="stop" onclick="if(confirm('Reset the whole tournament?'))ctl('reset')">⟲ Reset</button>
+  </div>
+  <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
+</header>
+<div id="pickbar" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:10px 22px;border-bottom:1px solid var(--border);background:#0b0f1c;font-size:13px">
+  <b style="color:var(--gold);letter-spacing:2px">🎟️ PICK 'EM</b>
+  <span id="pkPool" class="sub">pool —</span>
+  <span id="pkLock" class="sub">—</span>
+  <button id="pkConnect" onclick="pkConnect()" style="background:#161c2e;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-weight:700">Connect Phantom</button>
+  <span id="pkMine" class="sub"></span>
+  <span id="pkMsg" style="font-size:12px"></span>
+  <div id="pkChips" style="display:flex;flex-wrap:wrap;gap:6px;width:100%"></div>
+  <div id="pkTally" class="sub" style="width:100%"></div>
+</div>
+<main>
+  <div>
+    <div class="idle" id="idle">
+      <div style="font-size:12px;letter-spacing:3px;color:var(--gold);margin-bottom:14px">MEET THE CONTENDERS · WAITING FOR THE OPENING BELL</div>
+      <div id="roster" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;text-align:left"></div>
+    </div>
+    <div class="bracket" id="bracket" style="display:none">
+      <div class="col" id="c0"><h3>Round of 16</h3></div>
+      <div class="col" id="c1"><h3>Quarterfinals</h3></div>
+      <div class="col" id="c2"><h3>Semifinals</h3></div>
+      <div class="col" id="c3"><h3>Final</h3></div>
+      <div class="col"><div class="champ" id="champ"><div class="t">CHAMPION</div><div class="av">🏆</div><div class="n" id="champName">TBD</div><div class="sub" id="champSub"></div></div></div>
+    </div>
+  </div>
+  <aside>
+    <h3>Live tape</h3>
+    <div class="feed" id="feed"></div>
+    <div class="detail" id="detail"><span class="sub">Click an animal to see its brain and its positions.</span></div>
+  </aside>
+</main>
+<script>
+(function(){
+  var S=null, sel=null;
+  var A={};
+  if(location.search.indexOf('admin=1')>=0) document.getElementById('admin').style.display='flex';
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function fmt(n){return '$'+Number(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})}
+  function neurons(n){return n>=1e9?(n/1e9).toFixed(n>=10e9?0:1)+'B':n>=1e6?(n/1e6).toFixed(0)+'M':(n/1e3).toFixed(0)+'K'}
+  function av(a){return '<div class="av">'+(a.image?'<img src="'+a.image+'" alt="">':a.emoji)+'</div>'}
+  window.ctl=function(k){var t=localStorage.getItem('stonkAdmin')||prompt('admin token');if(t)localStorage.setItem('stonkAdmin',t);fetch('/api/stonkwars/'+k,{method:'POST',headers:{'x-admin-token':t||''}}).then(function(r){return r.json()}).then(function(j){if(!j.ok&&j.reason)alert(j.reason);refresh();})};
+  function side(id,m,isLive){
+    if(!id) return '<div class="side tbd"><div class="av">?</div><div><div class="nm">TBD</div></div></div>';
+    var a=A[id], b=(S.books||{})[id]; var eq=b?b.equity:S.config.startUsd; var pnl=eq-S.config.startUsd;
+    var cls='side'; if(m.winner){cls+=m.winner===id?' win':' lose';}
+    var final=m.finalEq&&m.finalEq[id]!=null?m.finalEq[id]:null; if(final!=null){eq=final;pnl=final-S.config.startUsd;}
+    return '<div class="'+cls+'" onclick="pick(\''+id+'\')">'+av(a)+'<div><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+'</div><div class="sd">#'+a.seed+' · '+neurons(a.neurons)+' neurons</div></div>'+
+      '<div class="eq"><div class="v">'+fmt(eq)+'</div><div class="p '+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</div></div></div>';
+  }
+  function render(){
+    if(!S) return;
+    document.getElementById('feedN').textContent=S.config.feedCoins?'· watching '+S.config.feedCoins+' fresh coins across '+4+' chains':'';
+    var idle=S.status==='idle';
+    document.getElementById('idle').style.display=idle?'':'none';
+    document.getElementById('bracket').style.display=idle?'none':'grid';
+    if(idle){
+      var list=(S.animals||[]).slice().sort(function(a,b){return a.seed-b.seed});
+      document.getElementById('roster').innerHTML=list.map(function(a){
+        return '<div class="match" style="cursor:pointer" onclick="pick(\''+a.id+'\')"><div class="av" style="width:100%;height:auto;aspect-ratio:16/9;font-size:40px">'+(a.image?'<img src="'+a.image+'" alt="">':a.emoji)+'</div>'+
+          '<div style="padding:6px 4px 2px"><span class="nm">#'+a.seed+' '+esc(a.name)+'</span> <span class="sd">'+neurons(a.neurons)+' neurons</span><div class="sub" style="margin-top:3px">'+esc(a.blurb)+'</div></div></div>';
+      }).join('');
+    }
+    for(var i=0;i<4;i++){
+      var col=document.getElementById('c'+i); var r=(S.rounds||[])[i];
+      var html='<h3>'+['Round of 16','Quarterfinals','Semifinals','Final'][i]+'</h3>';
+      var n=[8,4,2,1][i];
+      for(var k=0;k<n;k++){
+        var m=r?r.matches[k]:null;
+        var live=r&&S.roundIdx===i&&S.status==='running'&&S.now>=r.startAt&&S.now<r.endAt;
+        if(!m){html+='<div class="match">'+side(null,{})+side(null,{})+'</div>';continue;}
+        var ea=(S.books[m.a]||{}).equity||0, eb=(S.books[m.b]||{}).equity||0; var tot=ea+eb||1;
+        html+='<div class="match'+(live?' live':'')+(m.winner?' done':'')+'">'+side(m.a,m,live)+'<div class="bar"><i style="width:'+Math.round(ea/tot*100)+'%"></i></div>'+side(m.b,m,live)+'</div>';
+      }
+      col.innerHTML=html;
+    }
+    var ch=S.champion?A[S.champion]:null;
+    document.getElementById('champ').querySelector('.av').innerHTML=ch?(ch.image?'<img src="'+ch.image+'">':ch.emoji):'🏆';
+    document.getElementById('champName').textContent=ch?ch.name.toUpperCase():'TBD';
+    document.getElementById('champSub').textContent=ch?(neurons(ch.neurons)+' neurons · '+fmt((S.books[ch.id]||{}).equity||0)):'';
+    // clock
+    var rn=document.getElementById('roundName'), ck=document.getElementById('clock');
+    if(S.status==='done'){rn.textContent='FINAL RESULT';ck.textContent='🏆';}
+    else if(S.status==='paused'){rn.textContent='PAUSED';ck.textContent='⏸';}
+    else if(S.status==='running'){
+      var toStart=S.roundStartAt-S.now, toEnd=S.roundEndAt-S.now;
+      if(toStart>0){rn.textContent='INTERMISSION · '+S.roundName+' in';ck.textContent=mmss(toStart);}
+      else{rn.textContent=S.roundName+' · time left';ck.textContent=mmss(toEnd);}
+    } else {rn.textContent='—';ck.textContent='--:--';}
+    // feed
+    document.getElementById('feed').innerHTML=(S.feed||[]).map(function(e){return '<div class="'+esc(e.kind)+'"><span class="k">'+new Date(e.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})+'</span>'+esc(e.text)+'</div>'}).join('');
+    if(sel) detail(sel);
+  }
+  function mmss(ms){ms=Math.max(0,ms);var s=Math.floor(ms/1000),m=Math.floor(s/60);s=s%60;return (m<10?'0':'')+m+':'+(s<10?'0':'')+s}
+  window.pick=function(id){sel=id;detail(id)};
+  function detail(id){
+    var a=A[id]; if(!a) return; var b=(S.books||{})[id]; var br=a.brain;
+    var traits=[['memory',br.memory+' coins'],['reaction',(br.reactionMs/1000)+'s'],['positions',br.maxPositions],['bet size',Math.round(br.sizeFrac*100)+'%'],['impulsivity',Math.round(br.impulsivity*100)+'%'],['pattern depth',Math.round(br.depth*100)+'%'],['stop','-'+Math.round(br.stopPct*100)+'%'],['take','+'+Math.round(br.takePct*100)+'%'],['patience',br.maxHoldMin+'m'],['quirk',br.quirk]];
+    var html='<div class="big">'+av(a)+'<div><div style="font-size:16px;font-weight:900">'+esc(a.name)+' <span class="sub">#'+a.seed+' seed</span></div><div class="sub">'+neurons(a.neurons)+' neurons · '+esc(a.blurb)+'</div></div></div>';
+    html+='<div>'+traits.map(function(t){return '<span class="trait">'+t[0]+' <b>'+esc(t[1])+'</b></span>'}).join('')+'</div>';
+    if(b){
+      var pnl=b.equity-S.config.startUsd;
+      html+='<div style="margin:10px 0 4px;font-weight:700">'+fmt(b.equity)+' <span class="'+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</span> <span class="sub">· cash '+fmt(b.cash)+' · '+b.trades+' trades · '+b.wins+'W/'+b.losses+'L</span></div>';
+      html+=(b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+p.url+'" target="_blank" style="color:var(--blue)">$'+esc(p.symbol)+'</a> <span class="sub">'+esc(p.chainId||'')+(p.forgotten?' · 🐟 forgotten':'')+'</span></span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join('')||'<div class="sub">no open positions</div>';
+      if((b.closed||[]).length) html+='<div class="sub" style="margin-top:8px">recent: '+b.closed.slice(0,5).map(function(c){return '$'+esc(c.symbol)+' '+(c.pnlUsd>=0?'+':'')+c.pnlUsd.toFixed(0)}).join(' · ')+'</div>';
+    }
+    document.getElementById('detail').innerHTML=html;
+  }
+  function refresh(){
+    fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();}).catch(function(){});
+  }
+  // ---- PICK 'EM: free picks signed by a Solana wallet; prize is the owner's creator fees ----
+  var PK={wallet:null,votes:null};
+  function b64(u8){var s='';for(var i=0;i<u8.length;i++)s+=String.fromCharCode(u8[i]);return btoa(s)}
+  window.pkConnect=function(){
+    var sol=window.solana||(window.phantom&&window.phantom.solana);
+    if(!sol){document.getElementById('pkMsg').innerHTML='<a href="https://phantom.app" target="_blank" style="color:var(--blue)">Install Phantom</a> to pick.';return;}
+    sol.connect().then(function(r){PK.wallet=(r&&r.publicKey?r.publicKey:sol.publicKey).toString();document.getElementById('pkConnect').textContent=PK.wallet.slice(0,4)+'…'+PK.wallet.slice(-4);pkRefresh();}).catch(function(e){document.getElementById('pkMsg').textContent='wallet: '+(e.message||e)});
+  };
+  window.pkPick=function(animal){
+    if(!PK.wallet){pkConnect();return;}
+    var sol=window.solana||(window.phantom&&window.phantom.solana);
+    var round=PK.votes?PK.votes.roundIdx:(S?S.roundIdx:0); var ts=Date.now();
+    var msg='STONK WARS pick\nround: '+round+'\nanimal: '+animal+'\nwallet: '+PK.wallet+'\nts: '+ts;
+    var m=document.getElementById('pkMsg'); m.style.color='var(--amber,#f5c542)'; m.textContent='sign the pick in Phantom…';
+    sol.signMessage(new TextEncoder().encode(msg),'utf8').then(function(r){
+      var sig=b64(r.signature||r);
+      return fetch('/api/stonkwars/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:PK.wallet,animal:animal,round:round,ts:ts,signature:sig})}).then(function(x){return x.json()});
+    }).then(function(j){
+      m.style.color=j.ok?'var(--green,#5fe89b)':'var(--red,#ff6b6b)'; m.textContent=j.ok?('✓ locked in: '+(A[j.animal]||{}).name+(j.changed?' (changed)':'')):('✗ '+(j.reason||'failed'));
+      pkRefresh();
+    }).catch(function(e){m.style.color='var(--red,#ff6b6b)';m.textContent='✗ '+(e.message||e)});
+  };
+  function pkRefresh(){
+    fetch('/api/stonkwars/votes'+(PK.wallet?'?wallet='+encodeURIComponent(PK.wallet):'')).then(function(r){return r.json()}).then(function(v){
+      PK.votes=v;
+      var pool=v.pool||{};
+      document.getElementById('pkPool').innerHTML='pool this round <b style="color:var(--gold)">'+(pool.sol||0).toFixed(3)+' SOL</b> <span class="sub">('+Math.round((pool.pct||0.25)*100)+'% of creator fees accrued this round'+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+')</span>';
+      var lock=document.getElementById('pkLock');
+      if(v.open){lock.innerHTML='picks lock in <b>'+mmss(v.locksAt-Date.now())+'</b>';}
+      else if(S&&S.status==='running'){lock.textContent='picks locked for '+(v.roundName||'this round')+' — reopen at the next intermission';}
+      else if(S&&S.status==='done'){lock.textContent='tournament over';}
+      else {lock.textContent='picks open when the tournament starts';}
+      document.getElementById('pkMine').innerHTML=v.mine?('your pick: <b>'+((A[v.mine]||{}).emoji||'')+' '+((A[v.mine]||{}).name||v.mine)+'</b>'):(PK.wallet?'no pick yet':'');
+      var chips=document.getElementById('pkChips');
+      if(v.open){
+        chips.innerHTML=(v.live||[]).map(function(id){var a=A[id]||{name:id,emoji:''};var me=v.mine===id;return '<button onclick="pkPick(\''+id+'\')" style="background:'+(me?'#0f2a1c':'#161c2e')+';color:'+(me?'var(--green)':'var(--text)')+';border:1px solid '+(me?'var(--green)':'var(--border)')+';border-radius:14px;padding:4px 10px;cursor:pointer;font-size:12px">'+a.emoji+' '+esc(a.name)+(v.tally&&v.tally[id]?' <span class="sub">'+v.tally[id]+'</span>':'')+'</button>'}).join('');
+      } else chips.innerHTML='';
+      var tot=v.totalVotes||0; var t=document.getElementById('pkTally');
+      var top=Object.keys(v.tally||{}).sort(function(a,b){return v.tally[b]-v.tally[a]}).slice(0,6);
+      t.innerHTML=tot?(tot+' picks · crowd favorites: '+top.map(function(id){return ((A[id]||{}).emoji||'')+' '+((A[id]||{}).name||id)+' '+Math.round(v.tally[id]/tot*100)+'%'}).join(' · ')):'';
+      var last=(v.settlements||[])[0];
+      if(last) t.innerHTML+=(t.innerHTML?'<br>':'')+'last round: '+last.correct+' of '+last.votes+' called it · '+(last.mode==='paid'?'airdropped ':'pool ')+last.poolSol.toFixed(3)+' SOL'+(last.correct?' · '+last.perWalletSol.toFixed(4)+' SOL each':'');
+    }).catch(function(){});
+  }
+  pkRefresh(); setInterval(pkRefresh,5000);
+  refresh(); setInterval(refresh,3000);
+  setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var rn=document.getElementById('roundName'),ck=document.getElementById('clock');var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd);} },1000);
+})();
+</script>
+</body>
+</html>

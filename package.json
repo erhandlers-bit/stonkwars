@@ -1,0 +1,17 @@
+{
+  "name": "stonkwars",
+  "version": "0.1.0",
+  "description": "16 animals. 16 virtual brains. One hour each to trade memecoins. Winner advances. Paper money, real chaos.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node scripts/test-picks.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4",
+    "express": "^4.19.2"
+  },
+  "license": "MIT",
+  "private": false
+}

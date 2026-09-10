@@ -1,0 +1,69 @@
+// STONK WARS server. Serves the stream page and a small JSON API.
+//
+// Public, read-only:  GET /api/stonkwars          bracket, books, tape
+//                     GET /api/stonkwars/votes    pick 'em state (+ ?wallet=)
+// Public, one write:  POST /api/stonkwars/vote    a wallet-signed pick (moves no money)
+// Admin only:         POST /api/stonkwars/{start,pause,resume,reset}
+//   Admin calls need header x-admin-token = ADMIN_TOKEN from .env. If no
+//   ADMIN_TOKEN is set, admin calls are accepted from localhost only.
+const path = require('path');
+const express = require('express');
+const config = require('./config');
+const stonkwars = require('./stonkwars');
+const votes = require('./stonkvotes');
+const feed = require('./feed');
+
+const app = express();
+app.use((req, res, next) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, x-admin-token');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
+function isAdmin(req) {
+  const want = process.env.ADMIN_TOKEN;
+  if (want) return req.get('x-admin-token') === want;
+  const ip = req.ip || '';
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
+
+app.get('/api/stonkwars', (_req, res) => res.json(stonkwars.status()));
+app.get('/api/stonkwars/votes', async (req, res) => res.json(await votes.status(String(req.query.wallet || ''))));
+app.post('/api/stonkwars/vote', express.json({ limit: '4kb' }), async (req, res) => res.json(await votes.vote(req.body)));
+
+for (const action of ['start', 'pause', 'resume', 'reset']) {
+  app.post('/api/stonkwars/' + action, (req, res) => {
+    if (!isAdmin(req)) return res.status(403).json({ ok: false, reason: 'admin only' });
+    if (action === 'start') {
+      if (stonkwars.status().status === 'running') return res.json({ ok: false, reason: 'already running' });
+      stonkwars.startTournament();
+      return res.json({ ok: true });
+    }
+    res.json(stonkwars[action]());
+  });
+}
+
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
+function start() {
+  feed.start();
+  stonkwars.start();
+  app.listen(config.PORT, '0.0.0.0', () => {
+    console.log('[stonkwars] http://localhost:' + config.PORT + '  (admin: ' + (process.env.ADMIN_TOKEN ? 'token' : 'localhost only') + ')');
+  });
+}
+
+if (require.main === module) {
+  // load .env without a dependency
+  try {
+    const fs = require('fs');
+    for (const line of fs.readFileSync(path.join(__dirname, '..', '.env'), 'utf8').split('\n')) {
+      const m = /^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)\s*$/.exec(line);
+      if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    }
+  } catch { /* no .env is fine — paper mode needs none */ }
+  start();
+}
+
+module.exports = { app, start };
