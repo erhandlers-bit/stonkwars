@@ -74,7 +74,7 @@
   <h1>STONK <span>WARS</span></h1>
   <div>
     <div class="sub">16 animals · 16 virtual brains · $1,000 each · one hour to trade memecoins · winner advances</div>
-    <div class="sub"><span id="feedN"></span> <a href="/match.html?auto=1" style="color:var(--blue);text-decoration:none;font-weight:700">🎥 showcase · director mode</a></div>
+    <div class="sub"><span id="feedN"></span> <a href="#director" style="color:var(--blue);text-decoration:none;font-weight:700">🎥 live stream · director mode</a></div>
   </div>
   <div class="admin" id="admin">
     <button class="go" onclick="ctl('start')">▶ Start</button>
@@ -84,6 +84,9 @@
   </div>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
 </header>
+<section id="director" style="background:radial-gradient(ellipse at top,#161033 0%,#07090f 70%);border-bottom:1px solid var(--border)">
+  <iframe id="directorFrame" src="/match.html?auto=1&embed=1" title="STONK WARS live stream" style="display:block;width:100%;height:900px;border:0;overflow:hidden" scrolling="no" allow="autoplay"></iframe>
+</section>
 <div id="pickbar" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:10px 22px;border-bottom:1px solid var(--border);background:#0b0f1c;font-size:13px">
   <b style="color:var(--gold);letter-spacing:2px">🎟️ PICK 'EM</b>
   <span id="pkPool" class="sub">pool —</span>
@@ -120,6 +123,9 @@
   var S=null, sel=null;
   var A={};
   if(location.search.indexOf('admin=1')>=0) document.getElementById('admin').style.display='flex';
+  // Watch: point the embedded stream at that match and scroll up to it
+  window.watchMatch=function(id){ var f=document.getElementById('directorFrame'); if(!f) return true; f.contentWindow.postMessage({stonkwarsWatch:id},'*'); document.getElementById('director').scrollIntoView({behavior:'smooth'}); return false; };
+  window.addEventListener('message',function(e){ if(e.data&&e.data.stonkwarsHeight){ var f=document.getElementById('directorFrame'); if(f) f.style.height=Math.ceil(e.data.stonkwarsHeight)+'px'; } });
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmt(n){return '$'+Number(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})}
   function neurons(n){return n>=1e9?(n/1e9).toFixed(n>=10e9?0:1)+'B':n>=1e6?(n/1e6).toFixed(0)+'M':(n/1e3).toFixed(0)+'K'}
@@ -156,7 +162,7 @@
         if(!m){html+='<div class="match">'+side(null,{})+side(null,{})+'</div>';continue;}
         var ea=(S.books[m.a]||{}).equity||0, eb=(S.books[m.b]||{}).equity||0; var tot=ea+eb||1;
         html+='<div class="match'+(live?' live':'')+(m.winner?' done':'')+'">'+side(m.a,m,live)+'<div class="bar"><i style="width:'+Math.round(ea/tot*100)+'%"></i></div>'+side(m.b,m,live)+
-          '<a href="/match.html?m='+m.id+'" style="position:absolute;right:8px;top:8px;font-size:10px;letter-spacing:1px;padding:3px 7px;border-radius:5px;background:'+(live?'#123d1e':'#161c2e')+';color:'+(live?'var(--green)':'var(--dim)')+';border:1px solid '+(live?'var(--green)':'var(--border)')+';text-decoration:none;font-weight:700">'+(live?'▶ WATCH LIVE':'▶ WATCH')+'</a></div>';
+          '<a href="/match.html?m='+m.id+'" onclick="return watchMatch(\''+m.id+'\')" style="position:absolute;right:8px;top:8px;font-size:10px;letter-spacing:1px;padding:3px 7px;border-radius:5px;background:'+(live?'#123d1e':'#161c2e')+';color:'+(live?'var(--green)':'var(--dim)')+';border:1px solid '+(live?'var(--green)':'var(--border)')+';text-decoration:none;font-weight:700">'+(live?'▶ WATCH LIVE':'▶ WATCH')+'</a></div>';
       }
       col.innerHTML=html;
     }

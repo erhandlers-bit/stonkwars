@@ -68,6 +68,8 @@
   .tape .rows{background:var(--panel);border:1px solid var(--border);border-radius:12px;max-height:200px;overflow:auto;font-size:12px}
   .tape .rows div{padding:6px 12px;border-bottom:1px solid #141a2c;line-height:1.35}
   .tape .k{color:var(--dim);font-size:10px;margin-right:6px;font-variant-numeric:tabular-nums}
+  body.embed header img,body.embed header h1,body.embed header .clock,body.embed header .links,body.embed .tape{display:none}
+  body.embed header{padding:8px 20px}
   .chip{display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;background:#161c2e;color:var(--dim);margin-left:4px}
   @media (max-width:1000px){.booth,.arena,.tickers{grid-template-columns:1fr}.vs{flex-direction:row}.vs .bar{width:200px;height:14px;flex-direction:row}.bubbles{grid-template-columns:1fr}}
 </style>
@@ -76,7 +78,7 @@
 <header>
   <img src="/stonkwars/logo.png" alt="">
   <h1>STONK <span>WARS</span></h1>
-  <div><div class="sub" id="matchTitle">LIVE MATCH</div><div class="sub"><a href="/" style="color:var(--blue)">bracket</a> · <a href="/match.html?auto=1" style="color:var(--blue)">director mode</a></div></div>
+  <div><div class="sub" id="matchTitle">LIVE MATCH</div><div class="sub links"><a href="/" style="color:var(--blue)">bracket</a> · <a href="/match.html?auto=1" style="color:var(--blue)">director mode</a></div></div>
   <button class="btn" id="voiceBtn" onclick="voiceOn()">🔊 Enable voice</button>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
 </header>
@@ -109,7 +111,13 @@
 <script>
 (function(){
   var qs=new URLSearchParams(location.search);
-  var M=qs.get('m'); var AUTO=qs.get('auto')==='1';
+  var EMBED=qs.get('embed')==='1'; var M=qs.get('m'); var AUTO=qs.get('auto')==='1'||(EMBED&&!M);
+  if(EMBED){ document.body.classList.add('embed');
+    // tell the homepage how tall we are so the iframe never scrolls on its own
+    var lastH=0; function postH(){ var h=document.documentElement.scrollHeight; if(h!==lastH){ lastH=h; parent.postMessage({stonkwarsHeight:h},'*'); } }
+    setInterval(postH,700); window.addEventListener('load',postH);
+    window.addEventListener('message',function(e){ if(e.data&&e.data.stonkwarsWatch){ M=String(e.data.stonkwarsWatch); AUTO=false; lastRotate=Date.now(); refresh(); } });
+  }
   var S=null, A={}, lastSeq=0, voice=false, queue=[], playing=false, lastRotate=0;
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmt(n){return '$'+Number(n).toLocaleString(undefined,{maximumFractionDigits:0})}
