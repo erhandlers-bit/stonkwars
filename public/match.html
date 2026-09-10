@@ -92,10 +92,9 @@
   <img src="/stonkwars/logo.png" alt="">
   <h1>STONK <span>WARS</span></h1>
   <div><div class="sub" id="matchTitle">LIVE MATCH</div><div class="sub links"><a href="/" style="color:var(--blue)">bracket</a> · <a href="/match.html?auto=1" style="color:var(--blue)">director mode</a></div></div>
-  <button class="btn" id="devBtn" onclick="devLogin()" title="log in as the dev">👑 DEV login</button>
-  <span id="devCtl" style="display:none;gap:6px"><button class="btn" onclick="devCtl('start')">▶ Start</button><button class="btn" onclick="devCtl('pause')">⏸ Pause</button><button class="btn" onclick="devCtl('resume')">⏵ Resume</button><button class="btn" onclick="if(confirm('Reset the whole tournament?'))devCtl('reset')">⟲ Reset</button><span id="devMsg" class="sub"></span></span>
   <audio id="bgm" src="/stonkwars/music.mp3" loop preload="none" ></audio>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
+  <div id="devWrap" style="display:flex;align-items:center;gap:6px;margin-left:12px"><button class="btn" id="devBtn" onclick="devLogin()" title="log in as the dev">👑 DEV login</button> <span id="devCtl" style="display:none;gap:6px"><button class="btn" onclick="devCtl('start')">▶ Start</button><button class="btn" onclick="devCtl('pause')">⏸ Pause</button><button class="btn" onclick="devCtl('resume')">⏵ Resume</button><button class="btn" onclick="if(confirm('Reset the whole tournament?'))devCtl('reset')">⟲ Reset</button><span id="devMsg" class="sub"></span></span></div>
 </header>
 
 <section class="stage">

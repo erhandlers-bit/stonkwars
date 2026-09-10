@@ -111,6 +111,7 @@
     <button class="stop" onclick="if(confirm('Reset the whole tournament?'))ctl('reset')">⟲ Reset</button>
   </div>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
+  <button id="devBtn" onclick="devLogin()" style="margin-left:12px;background:#161c2e;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:8px 12px;font-weight:900;cursor:pointer;letter-spacing:1px;font-size:12px">👑 DEV login</button>
 </header>
 <div id="pickbar" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:10px 22px;border-bottom:1px solid var(--border);background:#0b0f1c;font-size:13px">
   <b style="color:var(--gold);letter-spacing:2px">🎟️ PICK 'EM</b>
@@ -163,6 +164,13 @@
   // Watch: point the embedded stream at that match and scroll up to it
   window.watchMatch=function(id){ var f=document.getElementById('directorFrame'); if(!f) return true; f.contentWindow.postMessage({stonkwarsWatch:id},'*'); document.getElementById('director').scrollIntoView({behavior:'smooth'}); return false; };
   window.addEventListener('message',function(e){ if(e.data&&e.data.stonkwarsHeight){ var f=document.getElementById('directorFrame'); if(f) f.style.height=Math.ceil(e.data.stonkwarsHeight)+'px'; } });
+  // DEV login (top right): key checked by the server, kept in this browser; the embedded stream picks it up on reload
+  function devUi(){ var on=false; try{ on=!!localStorage.getItem('stonkChatKey'); }catch(x){} var b=document.getElementById('devBtn'); b.textContent=on?'👑 DEV (logout)':'👑 DEV login'; b.style.background=on?'var(--gold)':'#161c2e'; b.style.color=on?'#000':'var(--gold)'; }
+  window.devLogin=function(){ var had=null; try{ had=localStorage.getItem('stonkChatKey'); }catch(x){} var f=document.getElementById('directorFrame');
+    if(had){ try{ localStorage.removeItem('stonkChatKey'); }catch(x){} devUi(); if(f) f.contentWindow.location.reload(); return; }
+    var k=prompt('DEV key:'); if(!k) return; k=k.trim();
+    fetch('/api/stonkwars/devlogin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})}).then(function(r){return r.json()}).then(function(j){ if(j.ok){ try{ localStorage.setItem('stonkChatKey',k); }catch(x){} devUi(); if(f) f.contentWindow.location.reload(); } else alert('Nope: '+(j.reason||'wrong key')); }).catch(function(){ alert('could not reach the server'); }); };
+  devUi();
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmt(n){return '$'+Number(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})}
   function neurons(n){return n>=1e9?(n/1e9).toFixed(n>=10e9?0:1)+'B':n>=1e6?(n/1e6).toFixed(0)+'M':(n/1e3).toFixed(0)+'K'}
