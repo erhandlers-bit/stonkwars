@@ -277,8 +277,10 @@ function makeRound(idx, ids, startAt) {
   } else {
     for (let i = 0; i < ids.length; i += 2) matches.push({ id: 'r' + idx + 'm' + (i / 2), a: ids[i], b: ids[i + 1] });
   }
-  for (const m of matches) { m.startAt = startAt; m.endAt = startAt + dur; m.winner = null; m.finalEq = null; }
-  return { idx, name: ROUND_NAMES[idx], matches, startAt, endAt: startAt + dur };
+  // SEQUENTIAL (owner 2026-09-10: "showcase every match one at a time"): match k opens when match k-1 closed, plus a breather
+  const gap = config.STONK_MATCH_GAP_MS == null ? 60000 : Number(config.STONK_MATCH_GAP_MS);
+  matches.forEach((m, i) => { m.startAt = startAt + i * (dur + gap); m.endAt = m.startAt + dur; m.winner = null; m.finalEq = null; });
+  return { idx, name: ROUND_NAMES[idx], matches, startAt, endAt: matches[matches.length - 1].endAt };
 }
 function startTournament() {
   Object.assign(state, { status: 'running', startedAt: Date.now(), roundIdx: 0, rounds: [], champion: null, books: {}, feed: [], pauseOffsetMs: 0, pausedAt: null });
@@ -286,14 +288,15 @@ function startTournament() {
   // Pre-bell window: the first round starts after one intermission so the
   // crowd can lock in their picks (stonkvotes.js) before anyone trades.
   const pre = config.STONK_PREGAME_MS || config.STONK_INTERMISSION_MS || 180000; // the pregame show (10 min) before round 1
+  const dur = config.STONK_MATCH_MS || 3600000;
   state.rounds.push(makeRound(0, seedOrder(), Date.now() + pre));
-  event('round', '🏟️ STONK WARS — picks are OPEN. Round of 16 bell rings in ' + Math.round(pre / 60000) + ' min. 16 brains, $1,000 each, one hour.');
+  event('round', '🏟️ STONK WARS — picks are OPEN. Round of 16 bell rings in ' + Math.round(pre / 60000) + ' min. 16 brains, $1,000 each, one match at a time, ' + Math.round(dur / 60000) + ' minutes each.');
   try { require('./stonkvotes').onTournamentStart().catch(() => {}); } catch { /* optional */ } // snapshot the creator-fee baseline
   save();
 }
-function settleRound(round) {
-  for (const m of round.matches) {
-    if (m.winner) continue;
+function settleRound(round) { for (const m of round.matches) if (!m.winner) decideMatch(m); }
+function decideMatch(m) {
+  {
     const ea = equityOf(state.books[m.a]), eb = equityOf(state.books[m.b]);
     m.finalEq = { [m.a]: +ea.toFixed(2), [m.b]: +eb.toFixed(2) };
     m.winner = ea > eb ? m.a : eb > ea ? m.b : (state.books[m.a].realized >= state.books[m.b].realized ? m.a : m.b);
@@ -334,13 +337,17 @@ async function tick() {
   const now = Date.now();
   const round = state.rounds[state.roundIdx];
   if (!round) return;
-  if (now >= round.endAt) { advance(); return; }
-  if (now < round.startAt) return; // intermission
+  // each match is decided the moment its own clock runs out; the round advances when the last one is in
+  for (const m of round.matches) if (!m.winner && now >= m.endAt) decideMatch(m);
+  if (round.matches.every((m) => m.winner)) { advance(); return; }
+  if (now < round.startAt) return; // pregame / intermission
   if (now - lastRefresh > 15000) { lastRefresh = now; refreshPrices().catch(() => {}); }
   // shared context: who holds what, who leads, what was just sold
   const holders = {}, recentlySold = {};
   let leader = null, leaderEq = -1;
-  const live = new Set(); for (const m of round.matches) { live.add(m.a); live.add(m.b); }
+  const active = round.matches.filter((m) => !m.winner && now >= m.startAt && now < m.endAt); // one at a time
+  if (!active.length) { save(); return; } // between matches
+  const live = new Set(); for (const m of active) { live.add(m.a); live.add(m.b); }
   for (const id of live) {
     const book = state.books[id];
     for (const a of Object.keys(book.positions)) holders[a] = (holders[a] || 0) + 1;
@@ -348,7 +355,7 @@ async function tick() {
     const eq = equityOf(book); if (eq > leaderEq) { leaderEq = eq; leader = id; }
   }
   const ctx = { holders, recentlySold, leaderLastBuy: leader ? state.books[leader].lastBuy : null, rngs: {} };
-  for (const m of round.matches) {
+  for (const m of active) {
     for (const id of [m.a, m.b]) {
       const animal = BY_ID[id], book = state.books[id];
       if (now - (book.lastTickAt || 0) < animal.brain.reactionMs) continue;
@@ -357,6 +364,21 @@ async function tick() {
       if (!rngCache[key]) rngCache[key] = rngFor(fnv(key));
       ctx.rngs[id] = rngCache[key];
       try { act(animal, book, m.id, ctx, now); } catch (e) { event('error', animal.name + ' brain fault: ' + String(e.message).slice(0, 80)); }
+    }
+  }
+  // BUST RULE (owner 2026-09-10: "if they lose all their money on a rug they automatically lose, but the round keeps going"):
+  // equity at or under STONK_BUST_USD ends the match on the spot; the rest of the schedule pulls forward
+  const bustUsd = Number(config.STONK_BUST_USD == null ? 30 : config.STONK_BUST_USD);
+  for (const m of active) {
+    if (m.winner) continue;
+    const ea = equityOf(state.books[m.a]), eb = equityOf(state.books[m.b]);
+    if (ea <= bustUsd || eb <= bustUsd) {
+      const loser = ea <= bustUsd ? m.a : m.b; const L = BY_ID[loser];
+      event('bust', '💀 ' + L.emoji + ' ' + L.name + ' is down to $' + Math.min(ea, eb).toFixed(0) + ' — busted. Match over on the spot.', { animalId: loser, matchId: m.id });
+      m.endAt = now; decideMatch(m);
+      const dur = config.STONK_MATCH_MS || 3600000, gap = config.STONK_MATCH_GAP_MS == null ? 60000 : Number(config.STONK_MATCH_GAP_MS);
+      let t = now + gap; for (const x of round.matches) { if (x.winner || x.startAt <= now) continue; x.startAt = t; x.endAt = t + dur; t += dur + gap; }
+      round.endAt = round.matches[round.matches.length - 1].endAt;
     }
   }
   save();
@@ -372,6 +394,13 @@ function resume() {
   state.status = 'running'; state.pausedAt = null; save(); return { ok: true };
 }
 function imageFor(id) { try { return fs.existsSync(path.join(IMG_DIR, id + '.png')) ? '/stonkwars/' + id + '.png' : (fs.existsSync(path.join(IMG_DIR, id + '.jpg')) ? '/stonkwars/' + id + '.jpg' : null); } catch { return null; } }
+// the match on the clock right now (or the next one up, during a breather)
+function activeMatch(round, now) {
+  if (!round) return null;
+  const m = round.matches.find((x) => !x.winner && now >= x.startAt && now < x.endAt) || round.matches.find((x) => !x.winner) || null;
+  if (!m) return null;
+  return { id: m.id, idx: round.matches.indexOf(m), count: round.matches.length, startAt: m.startAt, endAt: m.endAt, live: now >= m.startAt && now < m.endAt };
+}
 function status() {
   const now = Date.now();
   const round = state.rounds[state.roundIdx] || null;
@@ -385,6 +414,7 @@ function status() {
   return {
     status: state.status, startedAt: state.startedAt, now, champion: state.champion,
     roundIdx: state.roundIdx, roundName: round ? round.name : null, roundStartAt: round ? round.startAt : null, roundEndAt: round ? round.endAt : null,
+    active: activeMatch(round, now),
     rounds: state.rounds, books, feed: state.feed.slice(0, 80),
     preview: state.status === 'idle' ? makeRound(0, seedOrder(), 0) : null, // the bracket people pick on before the bell
     animals: ANIMALS.map((a) => ({ id: a.id, name: a.name, emoji: a.emoji, neurons: a.neurons, brain: a.brain, blurb: a.blurb, image: imageFor(a.id), seed: seedOrder().indexOf(a.id) + 1 })),

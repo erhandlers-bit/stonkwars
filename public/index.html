@@ -17,6 +17,11 @@
   header h1 span{color:var(--gold)}
   .sub{color:var(--dim);font-size:12px}
   .clock{margin-left:auto;text-align:right}
+  .pot{margin-left:auto;text-align:right;padding-right:14px;border-right:1px solid var(--border);margin-right:14px}
+  .pot .r{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .pot .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+  .pot .s{color:var(--dim);font-size:11px}
+  .clock{margin-left:0}
   .clock .t{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
   .clock .r{color:var(--gold);font-size:12px;letter-spacing:2px;text-transform:uppercase}
   main{display:grid;grid-template-columns:1fr;gap:0;min-height:calc(100vh - 66px)}
@@ -110,6 +115,7 @@
     <button onclick="ctl('resume')">⏵ Resume</button>
     <button class="stop" onclick="if(confirm('Reset the whole tournament?'))ctl('reset')">⟲ Reset</button>
   </div>
+  <div class="pot" id="pot" title="creator fees waiting in the vault → 50% buys the coin → half of that to the correct pickers"><div class="r">THE POT</div><div class="v" id="potFees">— SOL</div><div class="s" id="potSplit">buyback — · payouts —</div></div>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
   <button id="devBtn" onclick="devLogin()" style="margin-left:12px;background:#161c2e;color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:8px 12px;font-weight:900;cursor:pointer;letter-spacing:1px;font-size:12px">👑 DEV login</button>
 </header>
@@ -197,11 +203,12 @@
       var n=[8,4,2,1][i];
       for(var k=0;k<n;k++){
         var m=r?r.matches[k]:null;
-        var live=r&&S.roundIdx===i&&S.status==='running'&&S.now>=r.startAt&&S.now<r.endAt;
         if(!m){html+='<div class="match">'+side(null,{})+side(null,{})+'</div>';continue;}
+        var live=r&&S.roundIdx===i&&S.status==='running'&&S.now>=m.startAt&&S.now<m.endAt;
+        var soon=r&&S.roundIdx===i&&S.status==='running'&&!m.winner&&S.now<m.startAt?Math.max(1,Math.ceil((m.startAt-S.now)/60000)):0;
         var ea=(S.books[m.a]||{}).equity||0, eb=(S.books[m.b]||{}).equity||0; var tot=ea+eb||1;
         html+='<div class="match'+(live?' live':'')+(m.winner?' done':'')+(pickable?' pickable':'')+'">'+side(m.a,m,live,pickable)+'<div class="bar"><i style="width:'+Math.round(ea/tot*100)+'%"></i></div>'+side(m.b,m,live,pickable)+
-          '<a href="/match.html?m='+m.id+'" onclick="return watchMatch(\''+m.id+'\')" style="position:absolute;right:8px;top:8px;font-size:10px;letter-spacing:1px;padding:3px 7px;border-radius:5px;background:'+(live?'#123d1e':'#161c2e')+';color:'+(live?'var(--green)':'var(--dim)')+';border:1px solid '+(live?'var(--green)':'var(--border)')+';text-decoration:none;font-weight:700">'+(live?'▶ WATCH LIVE':'▶ WATCH')+'</a></div>';
+          (soon?'<span class="sub" style="position:absolute;left:8px;top:8px;font-size:10px;letter-spacing:1px">⏱ IN '+soon+' MIN</span>':'')+(live?'<span style="position:absolute;right:8px;top:8px;font-size:10px;letter-spacing:1px;padding:3px 7px;border-radius:5px;background:#123d1e;color:var(--green);border:1px solid var(--green)">● LIVE NOW</span>':'')+'</div>';
       }
       col.innerHTML=html;
     }
@@ -214,9 +221,9 @@
     if(S.status==='done'){rn.textContent='FINAL RESULT';ck.textContent='🏆';}
     else if(S.status==='paused'){rn.textContent='PAUSED';ck.textContent='⏸';}
     else if(S.status==='running'){
-      var toStart=S.roundStartAt-S.now, toEnd=S.roundEndAt-S.now;
-      if(toStart>0){rn.textContent='INTERMISSION · '+S.roundName+' in';ck.textContent=mmss(toStart);}
-      else{rn.textContent=S.roundName+' · time left';ck.textContent=mmss(toEnd);}
+      var am=S.active||{}; var toStart=(am.startAt||S.roundStartAt)-S.now, toEnd=(am.endAt||S.roundEndAt)-S.now;
+      if(toStart>0){rn.textContent=(S.now<S.roundStartAt?'INTERMISSION · '+S.roundName:'NEXT MATCH')+' in';ck.textContent=mmss(toStart);}
+      else{rn.textContent=S.roundName+' · match '+((am.idx||0)+1)+'/'+(am.count||'')+' · time left';ck.textContent=mmss(toEnd);}
     } else {rn.textContent='—';ck.textContent='--:--';}
     // feed
     var fd=document.getElementById('feed'); if(fd) fd.innerHTML=(S.feed||[]).map(function(e){return '<div class="'+esc(e.kind)+'"><span class="k">'+new Date(e.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})+'</span>'+esc(e.text)+'</div>'}).join('');
@@ -283,7 +290,7 @@
   function pkRefresh(){
     fetch('/api/stonkwars/votes'+(PK.wallet?'?wallet='+encodeURIComponent(PK.wallet):'')).then(function(r){return r.json()}).then(function(v){
       PK.votes=v; var pool=v.pool||{}; var hg=v.holdGate||{};
-      var SYM=(v.coin&&v.coin.symbol)||'COIN'; var coin='$'+SYM;
+      var SYM=(v.coin&&v.coin.symbol)||'COIN'; var coin='$'+SYM; window.__coin=SYM;
       document.getElementById('pkPool').innerHTML='prize this round <b style="color:var(--gold)">paid in $'+SYM+'</b> <span class="sub">— every round the creator fees are claimed, half buys back $'+SYM+', and half of that $'+SYM+' is split among everyone who picked winners (one share per correct pick)'+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+'</span>';
       var lock=document.getElementById('pkLock');
       if(v.open&&v.preview){lock.innerHTML='<b style="color:var(--green)">picks are OPEN</b> — lock at the opening bell';}
@@ -313,9 +320,13 @@
         return '<tr><td>'+(['R16','QF','SF','Final'][r.round]||r.round)+'</td><td><a href="https://solscan.io/account/'+esc(r.wallet)+'" target="_blank" rel="noopener">'+short(r.wallet)+'</a></td><td>'+r.shares+'</td><td><b>'+(r.currency==='COIN'?Math.round(r.amount).toLocaleString()+' $'+LSYM:Number(r.amount).toFixed(4)+' SOL')+'</b></td><td class="'+(r.status==='paid'?'up':(r.status==='failed'?'dn':'sub'))+'">'+r.status+'</td><td>'+(r.txid?'<a href="https://solscan.io/tx/'+esc(r.txid)+'" target="_blank" rel="noopener">'+r.txid.slice(0,6)+'…</a>':'—')+'</td></tr>'}).join('')+'</table>';
     }).catch(function(){});
   }
+  // the pot: fees in the creator vault right now -> buyback -> winners (polled every 30s)
+  function potRefresh(){ fetch('/api/stonkwars/treasury').then(function(r){return r.json()}).then(function(t){ var fees=Number(t.unclaimedSol||0)+Number((t.sweep&&t.sweep.accruedSol)||0); var bb=fees*Number(t.buybackPct||0.5); var pay=bb*Number(t.winnerShare||0.5);
+    document.getElementById('potFees').textContent=fees.toFixed(3)+' SOL'; document.getElementById('potSplit').textContent='buyback '+bb.toFixed(3)+' SOL · payouts '+pay.toFixed(3)+' SOL in $'+((window.__coin)||'STONK')+(t.live?'':' · dry run'); }).catch(function(){}); }
+  potRefresh(); setInterval(potRefresh,30000);
   pkRefresh(); setInterval(pkRefresh,5000); ledgerRefresh(); setInterval(ledgerRefresh,30000);
   refresh(); setInterval(refresh,3000);
-  setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var rn=document.getElementById('roundName'),ck=document.getElementById('clock');var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd);} },1000);
+  setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var rn=document.getElementById('roundName'),ck=document.getElementById('clock');var am=S.active||{};var toStart=(am.startAt||S.roundStartAt)-S.now,toEnd=(am.endAt||S.roundEndAt)-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd);} },1000);
 })();
 </script>
 </body>

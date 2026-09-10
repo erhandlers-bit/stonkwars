@@ -24,10 +24,10 @@ const config = require('./config');
 
 const TTS_DIR = path.join(__dirname, '..', 'data', 'tts');
 const CAST = {
-  // el = ElevenLabs settings (used when ELEVENLABS_API_KEY is set): same voice for both seats — Brian, a deep
+  // el = ElevenLabs settings (used when ELEVENLABS_API_KEY is set): same voice for both seats — Will (owner pick, option 6), a
   // broadcast narrator; Stonks Man quicker and more expressive, Not Stonks Man flatter and slower (owner 2026-09-10)
-  stonks: { name: 'Stonks Man', emoji: '📈', voice: 'en-US-GuyNeural', rate: '+38%', pitch: '+5Hz', image: '/stonkwars/stonks-r.png', el: { voice: 'nPczCjzI2devNBz1zQrb', speed: 1.15, stability: 0.35, style: 0.6 } },      // owner 2026-09-10: Guy, faster, more exciting
-  notstonks: { name: 'Not Stonks Man', emoji: '📉', voice: 'en-US-GuyNeural', rate: '+30%', pitch: '-5Hz', image: '/stonkwars/stonks.png', el: { voice: 'nPczCjzI2devNBz1zQrb', speed: 1.05, stability: 0.7, style: 0.15 } }, // same man, one seat over: same voice, a shade lower
+  stonks: { name: 'Stonks Man', emoji: '📈', voice: 'en-US-GuyNeural', rate: '+38%', pitch: '+5Hz', image: '/stonkwars/stonks-r.png', el: { voice: 'bIHbv24MWmeRgasZH58o', speed: 1.15, stability: 0.35, style: 0.6 } },      // owner 2026-09-10: Guy, faster, more exciting
+  notstonks: { name: 'Not Stonks Man', emoji: '📉', voice: 'en-US-GuyNeural', rate: '+30%', pitch: '-5Hz', image: '/stonkwars/stonks.png', el: { voice: 'bIHbv24MWmeRgasZH58o', speed: 1.05, stability: 0.7, style: 0.15 } }, // same man, one seat over: same voice, a shade lower
 };
 
 // Every trading animal gets a voice too — for the interviews. Rate/pitch are
@@ -381,7 +381,7 @@ async function tts(line) {
       const el = c.el;
       const r = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + (process.env.ELEVENLABS_VOICE_ID || el.voice) + '?output_format=mp3_44100_96', {
         method: 'POST', headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY, 'content-type': 'application/json' },
-        body: JSON.stringify({ text: line.text, model_id: process.env.ELEVENLABS_MODEL || 'eleven_turbo_v2_5', voice_settings: { stability: el.stability, similarity_boost: 0.8, style: el.style, use_speaker_boost: true, speed: el.speed } }),
+        body: JSON.stringify({ text: line.text, model_id: process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2', voice_settings: { stability: el.stability, similarity_boost: 0.8, style: el.style, use_speaker_boost: true, speed: el.speed } }),
         signal: AbortSignal.timeout(20000),
       });
       if (r.ok) { const buf = Buffer.from(await r.arrayBuffer()); if (buf.length > 1000) { try { fs.writeFileSync(file, buf); } catch { /* optional */ } return buf; } }

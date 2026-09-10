@@ -15,6 +15,11 @@
   header h1 span{color:var(--gold)}
   .sub{color:var(--dim);font-size:12px}
   .clock{margin-left:auto;text-align:right}
+  .pot{margin-left:auto;text-align:right;padding-right:14px;border-right:1px solid var(--border);margin-right:14px}
+  .pot .r{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .pot .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+  .pot .s{color:var(--dim);font-size:11px}
+  .clock{margin-left:0}
   .clock .t{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
   .clock .r{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase}
   .btn{background:#161c2e;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-weight:700;font-size:12px}
@@ -63,8 +68,9 @@
   .fighter .sec{font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-top:4px}
   .fighter .pos a{color:var(--blue);text-decoration:none;font-weight:700}
   /* tickers */
-  .tickers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:0 20px 14px}
-  .ticker.chat .rows{max-height:170px;min-height:120px}
+  .tickers{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 14px}
+  .mid .ticker.chat{width:100%}
+  .ticker.chat .rows{max-height:300px;min-height:200px}
   .ticker.chat .rows div{display:block;line-height:1.4}
   .ticker.chat .rows b{color:var(--blue)}
   .ticker.chat .rows .bot{background:#1a1606}
@@ -93,6 +99,7 @@
   <img src="/stonkwars/logo.png" alt="">
   <h1>STONK <span>WARS</span></h1>
   <div><div class="sub" id="matchTitle">LIVE MATCH</div><div class="sub links"><a href="/" style="color:var(--blue)">bracket</a> · <a href="/match.html?auto=1" style="color:var(--blue)">director mode</a></div></div>
+  <div class="pot" id="pot" title="creator fees waiting in the vault → 50% buys the coin → half of that to the correct pickers"><div class="r">THE POT</div><div class="v" id="potFees">— SOL</div><div class="s" id="potSplit">buyback — · payouts —</div></div>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
   <div id="devWrap" style="display:flex;align-items:center;gap:6px;margin-left:12px"><button class="btn" id="devBtn" onclick="devLogin()" title="log in as the dev">👑 DEV login</button> <span id="devCtl" style="display:none;gap:6px"><button class="btn" onclick="devCtl('start')">▶ Start</button><button class="btn" onclick="devCtl('pause')">⏸ Pause</button><button class="btn" onclick="devCtl('resume')">⏵ Resume</button><button class="btn" onclick="if(confirm('Reset the whole tournament?'))devCtl('reset')">⟲ Reset</button><span id="devMsg" class="sub"></span></span></div>
 </header>
@@ -112,14 +119,14 @@
     </div>  
     <div class="interview" id="iv"><div class="av" id="iv-av"></div><div><div class="tag">🎤 RINGSIDE INTERVIEW · <span id="iv-name"></span></div><div class="q" id="iv-text"></div></div></div>
     <div class="vs"><div class="v">VS</div><div class="bar"><i id="vsbar" style="width:50%"></i></div><div class="sub" id="vsline"></div></div>
-  </div>
+    <div class="ticker chat"><h3><span>💬 Stream chat</span><span id="chatState" class="sub">the desk answers on air</span></h3><div class="rows" id="chatRows"></div><form class="chatin" onsubmit="return chatSend(event)"><input id="chatName" maxlength="20" placeholder="name" autocomplete="off"><input id="chatText" maxlength="200" placeholder="say something to the desk…" autocomplete="off"><button class="btn" type="submit">Send</button></form></div>
+      </div>
   <div class="fighter" id="fB"></div>
 </section>
 
 <section class="tickers">
   <div class="ticker"><h3><span>🆕 New on pump.fun</span><span id="pfState" class="sub"></span></h3><div class="rows" id="pumpRows"></div></div>
   <div class="ticker"><h3><span>📈 Live market — what they trade from</span><span id="mkState" class="sub"></span></h3><div class="rows" id="mktRows"></div></div>
-  <div class="ticker chat"><h3><span>💬 Stream chat</span><span id="chatState" class="sub">the desk answers on air</span></h3><div class="rows" id="chatRows"></div><form class="chatin" onsubmit="return chatSend(event)"><input id="chatName" maxlength="20" placeholder="name" autocomplete="off"><input id="chatText" maxlength="200" placeholder="say something to the desk…" autocomplete="off"><button class="btn" type="submit">Send</button></form></div>
 </section>
 
 <section class="tape"><div class="rows" id="tape"></div></section>
@@ -231,7 +238,8 @@
     if(!M||M!==m.id){ M=m.id; lastSeq=0; }
     var a=A[m.a]||{}, b=A[m.b]||{};
     var pre=S.status==='running'&&S.roundIdx===0&&S.now<S.roundStartAt;
-    document.getElementById('matchTitle').textContent=pre?('⏱ OPENING BELL IN '+mmss(S.roundStartAt-S.now)+' · MEET THE CONTENDERS'):((S.roundName||'')+' · '+a.name+' vs '+b.name);
+    var upNext=S.status==='running'&&!pre&&S.active&&!S.active.live&&S.active.id===m.id;
+    document.getElementById('matchTitle').textContent=pre?('⏱ OPENING BELL IN '+mmss(S.roundStartAt-S.now)+' · MEET THE CONTENDERS'):((upNext?'UP NEXT · ':'')+(S.roundName||'')+' · '+a.name+' vs '+b.name);
     document.title='STONK WARS · '+a.name+' vs '+b.name;
     document.getElementById('fA').outerHTML=fighter(m.a,m.b,m).replace('<div class="fighter','<div id="fA" class="fighter');
     document.getElementById('fB').outerHTML=fighter(m.b,m.a,m).replace('<div class="fighter','<div id="fB" class="fighter');
@@ -239,7 +247,7 @@
     document.getElementById('vsbar').style.width=Math.round(ea/((ea+eb)||1)*100)+'%';
     document.getElementById('vsline').textContent=fmt(ea)+' / '+fmt(eb);
     var rn=document.getElementById('roundName'), ck=document.getElementById('clock');
-    if(S.status==='running'){var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now; if(toStart>0){rn.textContent='BELL IN';ck.textContent=mmss(toStart);} else {rn.textContent='TIME LEFT';ck.textContent=mmss(toEnd);} }
+    if(S.status==='running'){var am=S.active||{}; var toStart=(am.startAt||S.roundStartAt)-S.now,toEnd=(am.endAt||S.roundEndAt)-S.now; if(toStart>0){rn.textContent=(S.now<S.roundStartAt?'BELL IN':'NEXT MATCH IN');ck.textContent=mmss(toStart);} else {rn.textContent='MATCH '+((am.idx||0)+1)+'/'+(am.count||'')+' · TIME LEFT';ck.textContent=mmss(toEnd);} }
     else {rn.textContent=S.status.toUpperCase();ck.textContent='--:--';}
     document.getElementById('tape').innerHTML=(S.feed||[]).filter(function(e){return e.matchId===m.id||!e.matchId}).slice(0,30).map(function(e){return '<div class="'+esc(e.kind)+'"><span class="k">'+new Date(e.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})+'</span>'+esc(e.text)+'</div>'}).join('');
     document.getElementById('mktRows').innerHTML=(S.market||[]).map(function(c){return '<div><span><a href="'+c.url+'" target="_blank">$'+esc(c.symbol)+'</a><span class="chip">'+esc(c.chainId)+'</span>'+(c.boosted?'<span class="chip">promo</span>':'')+'</span><span class="sub">'+c.ageMin+'m · $'+Math.round(c.liqUsd/1000)+'k pool · '+(c.liqUsd?(c.volH24/c.liqUsd).toFixed(1):'?')+'x churn</span><span class="'+(c.chgH24>=0?'up':'dn')+'">'+(c.chgH24>=0?'+':'')+c.chgH24+'%</span></div>'}).join('');
@@ -266,9 +274,13 @@
     var key=null; try{key=localStorage.getItem('stonkChatKey');}catch(x){}
     fetch('/api/stonkwars/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(key?{name:name,text:text,key:key}:{name:name,text:text})}).then(function(r){return r.json()}).then(function(j){ if(j.ok){t.value=''; st.textContent='the desk answers on air'; pollChat();} else st.textContent=j.reason||'nope'; }).catch(function(){ st.textContent='could not send'; }); return false; };
   try{ var sn=localStorage.getItem('stonkChatName'); if(sn) document.getElementById('chatName').value=sn; if(localStorage.getItem('stonkChatKey')) document.getElementById('chatName').value='DEV'; }catch(x){}
+  // the pot: fees in the creator vault right now -> buyback -> winners (polled every 30s)
+  function potRefresh(){ fetch('/api/stonkwars/treasury').then(function(r){return r.json()}).then(function(t){ var fees=Number(t.unclaimedSol||0)+Number((t.sweep&&t.sweep.accruedSol)||0); var bb=fees*Number(t.buybackPct||0.5); var pay=bb*Number(t.winnerShare||0.5);
+    document.getElementById('potFees').textContent=fees.toFixed(3)+' SOL'; document.getElementById('potSplit').textContent='buyback '+bb.toFixed(3)+' SOL · payouts '+pay.toFixed(3)+' SOL in $'+((window.__coin)||'STONK')+(t.live?'':' · dry run'); }).catch(function(){}); }
+  potRefresh(); setInterval(potRefresh,30000);
   pollChat(); setInterval(pollChat,2000);
   refresh(); setInterval(refresh,3000); pollCommentary(); setInterval(pollCommentary,2000); pollPump(); setInterval(pollPump,4000);
-  setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var ck=document.getElementById('clock');var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd); if(S.roundIdx===0&&toStart>0){ var mt=document.getElementById('matchTitle'); if(mt) mt.textContent='⏱ OPENING BELL IN '+mmss(toStart)+' · MEET THE CONTENDERS'; } } },1000);
+  setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var ck=document.getElementById('clock');var toStart=S.roundStartAt-S.now,toEnd=S.roundEndAt-S.now;var am=S.active||{}; toStart=(am.startAt||S.roundStartAt)-S.now; toEnd=(am.endAt||S.roundEndAt)-S.now; ck.textContent=mmss(toStart>0?toStart:toEnd); if(S.roundIdx===0&&S.now<S.roundStartAt&&toStart>0){ var mt=document.getElementById('matchTitle'); if(mt) mt.textContent='⏱ OPENING BELL IN '+mmss(toStart)+' · MEET THE CONTENDERS'; } } },1000);
 })();
 </script>
 </body>

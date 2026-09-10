@@ -79,20 +79,18 @@ const strip = (s) => String(s || '').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27
 let featuredId = null, featuredAt = 0;
 function featured() {
   const sw = require('./stonkwars'); const st = sw.status();
+  if (st.active) { featuredId = st.active.id; return featuredId; } // matches run one at a time: the live (or next) one is the stream
   const r = st.rounds && st.rounds[st.roundIdx]; if (!r) return null;
-  const live = r.matches.filter((m) => !m.winner);
-  if (!live.length) return featuredId && r.matches.some((m) => m.id === featuredId) ? featuredId : r.matches[0].id;
-  const ms = Number(config.STONK_FEATURE_MS || 90000);
-  if (!live.some((m) => m.id === featuredId) || Date.now() - featuredAt > ms) { const i = live.findIndex((m) => m.id === featuredId); featuredId = live[(i + 1) % live.length].id; featuredAt = Date.now(); }
-  return featuredId;
+  return r.matches[r.matches.length - 1].id;
 }
 function featuredMatch(st) { const r = st.rounds && st.rounds[st.roundIdx]; const id = featured(); return r && id ? r.matches.find((m) => m.id === id) || null : null; }
 function standings(sw, st) {
   if (st.status !== 'running' || !st.rounds[st.roundIdx]) return 'The tournament is ' + st.status + '.';
   const r = st.rounds[st.roundIdx];
   const now = st.now || Date.now();
-  const phase = now < r.startAt ? 'intermission, bell in ' + Math.max(1, Math.round((r.startAt - now) / 60000)) + ' min' : Math.max(0, Math.round((r.endAt - now) / 60000)) + ' min left';
-  const m = featuredMatch(st); if (!m) return st.roundName + ' (' + phase + ').';
+  const m = featuredMatch(st); if (!m) return st.roundName + '.';
+  const idx = r.matches.indexOf(m) + 1;
+  const phase = 'match ' + idx + ' of ' + r.matches.length + (now < m.startAt ? ', starts in ' + Math.max(1, Math.round((m.startAt - now) / 60000)) + ' min — preview it' : ', ' + Math.max(0, Math.round((m.endAt - now) / 60000)) + ' min left');
   const A = sw.BY_ID[m.a], B = sw.BY_ID[m.b];
   const ea = Math.round(st.books[m.a].equity), eb = Math.round(st.books[m.b].equity);
   const held = (id) => Object.values(st.books[id].positions || {}).map((p) => '$' + p.symbol).join(', ') || 'all cash';

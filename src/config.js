@@ -6,8 +6,10 @@ module.exports = {
   STONK_START_USD: 1000,               // every animal starts with this (paper money)
   // one hour per round; all matches in a round run at once. Env overrides
   // exist so a rehearsal can run with 3-minute rounds: STONK_MATCH_MS=180000
-  STONK_MATCH_MS: Number(process.env.STONK_MATCH_MS) || 60 * 60_000,
+  STONK_MATCH_MS: Number(process.env.STONK_MATCH_MS) || 30 * 60_000, // owner 2026-09-10: 30 minutes per match, one match at a time
   STONK_INTERMISSION_MS: Number(process.env.STONK_INTERMISSION_MS) || 3 * 60_000, // break between rounds (and the pick window before round 1)
+  STONK_MATCH_GAP_MS: process.env.STONK_MATCH_GAP_MS != null ? Number(process.env.STONK_MATCH_GAP_MS) : 60_000,       // breather between consecutive matches of a round (the desk previews the next one)
+  STONK_BUST_USD: 30,                 // equity at/under this = busted, match lost immediately
   STONK_CHAINS: ['solana', 'base', 'bsc'], // chains the shared coin feed watches
 
   // Paper fill model: round-trip cost by chain (fee + typical impact floor).
@@ -32,7 +34,7 @@ module.exports = {
   STONK_AGENTS: true,
   STONK_AGENT_MODEL: 'claude-opus-5',
   STONK_AGENT_TICK_MS: 12_000,       // one seat takes a turn this often (a seat only calls the model when something is new)
-  STONK_PREGAME_MS: 10 * 60_000,    // owner 2026-09-10: 10-minute countdown before the opening bell; the desk introduces the field
+  STONK_PREGAME_MS: Number(process.env.STONK_PREGAME_MS) || 10 * 60_000,    // owner 2026-09-10: 10-minute countdown before the opening bell; the desk introduces the field
   STONK_INTRO_GAP_MS: 22_000,       // one contender introduced this often during the pregame (16 x 22s = ~6 min)
   STONK_INTERVIEW_MS: 4 * 60_000,   // a commentator interviews a random live animal this often
   STONK_BANTER_MODEL: 'claude-haiku-4-5-20251001', // cheap and fast; four hours costs cents
