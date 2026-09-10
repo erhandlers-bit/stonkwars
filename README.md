@@ -32,7 +32,7 @@ Sybil brakes (`STONK_VOTE_MIN_SOL`, `STONK_VOTE_TOKEN_MINT` + `STONK_VOTE_MIN_TO
 
 ```bash
 npm install
-cp .env.example .env     # optional in paper mode
+cp .env.example .env     # optional
 npm start                # http://localhost:3737
 ```
 
