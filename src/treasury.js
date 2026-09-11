@@ -38,7 +38,9 @@ function w3() { if (!web3) web3 = require('@solana/web3.js'); return web3; }
 function rpc() { return new (w3().Connection)(process.env.RPC_URL || 'https://api.mainnet-beta.solana.com', 'confirmed'); }
 function keypair() { try { return require('./stonkvotes').payoutKeypair(); } catch { return null; } }
 function devPubkey() { const kp = keypair(); return kp ? kp.publicKey : (config.STONK_PAYOUT_WALLET ? new (w3().PublicKey)(config.STONK_PAYOUT_WALLET) : null); }
-function isLive() { return !!config.STONK_TREASURY_ENABLED && !!keypair(); }
+// the key in .env must be the wallet named in config (2026-09-10 relaunch: a stale key would claim/pay from the wrong wallet)
+function keyMismatch() { const kp = keypair(); return !!(kp && config.STONK_PAYOUT_WALLET && kp.publicKey.toBase58() !== config.STONK_PAYOUT_WALLET); }
+function isLive() { return !!config.STONK_TREASURY_ENABLED && !!keypair() && !keyMismatch(); }
 
 function creatorVault(dev) {
   const { PublicKey } = w3();
@@ -220,7 +222,7 @@ async function status() {
   let unclaimed = null, dev = null;
   try { const d = devPubkey(); if (d) { dev = d.toBase58(); unclaimed = (await rpc().getBalance(creatorVault(d))) / 1e9; } } catch { /* rpc */ }
   return {
-    live: isLive(), dev, unclaimedSol: unclaimed == null ? null : +unclaimed.toFixed(4),
+    live: isLive(), keyMismatch: keyMismatch(), dev, unclaimedSol: unclaimed == null ? null : +unclaimed.toFixed(4),
     buybackPct: Number(config.STONK_BUYBACK_PCT ?? 0.5), winnerShare: Number(config.STONK_WINNER_SHARE ?? 0.5), mint: config.STONK_BUYBACK_MINT || null,
     totals: state.totals, rounds: state.rounds.slice(0, 8),
     sweep: { everyMs: Number(config.STONK_CLAIM_MS == null ? 300000 : config.STONK_CLAIM_MS), last: state.lastSweep, accruedSol: +Number((state.accrued && state.accrued.sol) || 0).toFixed(6), claims: ((state.accrued && state.accrued.claims) || []).slice(0, 12) },
@@ -246,6 +248,7 @@ async function sweep() {
 }
 function start() {
   load();
+  if (keyMismatch()) console.log('[treasury] STONK_PAYOUT_KEY is NOT the key of STONK_PAYOUT_WALLET ' + config.STONK_PAYOUT_WALLET + ' — treasury held in DRY RUN until the .env key is replaced');
   if (!state.accrued) state.accrued = { sol: 0, claims: [] };
   const ms = Number(config.STONK_CLAIM_MS == null ? 300000 : config.STONK_CLAIM_MS);
   if (ms > 0 && devPubkey()) { setInterval(() => sweep().catch((e) => console.log('[treasury] sweep: ' + String(e.message).slice(0, 100))), ms).unref(); console.log('[treasury] claiming creator fees every ' + Math.round(ms / 60000) + ' min (' + (isLive() ? 'LIVE' : 'dry run') + ')'); } else if (devPubkey()) console.log('[treasury] fees are claimed at each match settlement (' + (isLive() ? 'LIVE' : 'dry run') + ')' + (config.STONK_BUYBACK_MINT ? '' : ' — no buyback mint set, payouts are recorded only'));
