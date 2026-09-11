@@ -153,7 +153,7 @@ async function vote(body) {
     const m = byId[mid];
     if (!m) return { ok: false, reason: 'unknown match ' + mid };
     if (animal !== m.a && animal !== m.b) return { ok: false, reason: 'that animal is not in match ' + mid };
-    if (!o.preview && !matchOpen(m, nowMs)) return { ok: false, reason: 'picks for that match are locked (20 minutes in)' };
+    if (!o.preview && !matchOpen(m, nowMs)) return { ok: false, reason: 'picks for that match are locked (' + Math.round(pickWindow() / 60000) + ' minutes in)' };
   }
   if (typeof wallet !== 'string' || wallet.length < 32) return { ok: false, reason: 'bad wallet' };
   const t = Number(ts);
@@ -213,6 +213,7 @@ async function onTournamentStart() {
   // picks made on the idle preview carry into the real round 0; settled rounds
   // belong to the previous tournament and must not count again
   for (const k of Object.keys(state.rounds)) if (state.rounds[k] && state.rounds[k].settled) delete state.rounds[k];
+  for (const k of Object.keys(state.rounds)) if (state.rounds[k]) delete state.rounds[k].settledMatches; // per-match records belong to the last tournament: a fresh bracket's matches pay again
   save();
   try {
     const f = await cumulativeFees();

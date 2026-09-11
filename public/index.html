@@ -6,7 +6,7 @@
 <title>STONK WARS</title>
 <link rel="icon" type="image/png" href="/stonkwars/logo.png">
 <meta property="og:title" content="STONK WARS">
-<meta property="og:description" content="16 animals. 16 virtual brains. One hour each to trade memecoins. Winner advances.">
+<meta property="og:description" content="16 animals. 16 virtual brains. 15 minutes each to trade memecoins. Winner advances.">
 <meta property="og:image" content="/stonkwars/banner.png">
 <style>
   :root{--bg:#07090f;--panel:#0e1220;--border:#1c2337;--text:#e8ecf5;--dim:#7d88a6;--green:#5fe89b;--red:#ff6b6b;--gold:#f5c542;--blue:#5fd0e8}
@@ -106,7 +106,7 @@
   <img src="/stonkwars/logo.png" alt="" style="width:56px;height:56px;border-radius:12px;box-shadow:0 0 0 1px var(--border)">
   <h1>STONK <span>WARS</span></h1>
   <div>
-    <div class="sub">16 animals · 16 virtual brains · $1,000 each · one hour to trade memecoins · winner advances</div>
+    <div class="sub">16 animals · 16 virtual brains · $1,000 each · 15 minutes to trade memecoins · winner advances</div>
     <div class="sub"><span id="feedN"></span> <a href="#director" style="color:var(--blue);text-decoration:none;font-weight:700">🎥 live stream · director mode</a></div>
   </div>
   <div class="admin" id="admin">
@@ -156,7 +156,7 @@
 <div class="card-bg" id="cardBg" onclick="if(event.target===this)closeCard()"><div class="x" onclick="closeCard()">×</div><div class="card" id="card"></div></div>
 <footer>
   <div id="flywheel"><h3>The flywheel</h3><div class="fly">
-    <div><b>1</b>16 traders trade meme coins for an hour per round. You pick the winner of every match and lock the set with your wallet. Free.</div>
+    <div><b>1</b>16 traders trade meme coins for 15 minutes per match. You pick the winner of every match and lock the set with your wallet. Free.</div>
     <div><b>2</b>At the end of every round, all creator fees the coin has earned are claimed into the dev wallet.</div>
     <div><b>3</b>Half of those fees buy the coin on the open market. A buyback, every round.</div>
     <div><b>4</b>Half of the coin bought is split among everyone who picked winners — one share per correct pick. To be paid you must hold at least <span id="flyHold">5M $STONK</span> in the wallet you picked with.</div>
@@ -208,7 +208,7 @@
       for(var k=0;k<n;k++){
         var m=r?r.matches[k]:null;
         if(!m){html+='<div class="match">'+side(null,{})+side(null,{})+'</div>';continue;}
-        var mpick=pickable&&openById[m.id]!==false; // this match still takes picks (20 min into it)
+        var mpick=pickable&&openById[m.id]!==false; // this match still takes picks (until the pick window closes)
         var live=r&&S.roundIdx===i&&S.status==='running'&&S.now>=m.startAt&&S.now<m.endAt;
         var soon=r&&S.roundIdx===i&&S.status==='running'&&!m.winner&&S.now<m.startAt?Math.max(1,Math.ceil((m.startAt-S.now)/60000)):0;
         var ea=(S.books[m.a]||{}).equity||0, eb=(S.books[m.b]||{}).equity||0; var tot=ea+eb||1;
@@ -274,7 +274,7 @@
   function pkCount(){ var ms=openMatches(); var n=ms.filter(function(m){return PK.sel[m.id]}).length; var c=document.getElementById('lkCount'); var b=document.getElementById('lkBtn');
     if(!PK.votes||!PK.votes.open){ c.textContent=(S&&S.status==='running')?'picks are locked for '+(PK.votes&&PK.votes.roundName||'this round')+' — they reopen at the next intermission':(S&&S.status==='done'?'tournament over':'picks open soon'); b.disabled=true; return; }
     var mine=PK.votes.mine?Object.keys(PK.votes.mine).length:0; b.disabled=n===0;
-    c.innerHTML='<b>'+n+' of '+ms.length+'</b> winners picked'+(mine?' · <span class="up">'+mine+' locked on-chain</span>':'')+(PK.votes.preview?' · each match takes picks until 20 minutes in':(PK.votes.locksAt?' · next lock in '+mmss(PK.votes.locksAt-Date.now()):'')); }
+    c.innerHTML='<b>'+n+' of '+ms.length+'</b> winners picked'+(mine?' · <span class="up">'+mine+' locked on-chain</span>':'')+(PK.votes.preview?' · each match takes picks until '+Math.round((PK.votes.pickWindowMs||300000)/60000)+' minutes in':(PK.votes.locksAt?' · next lock in '+mmss(PK.votes.locksAt-Date.now()):'')); }
   function tallyPct(mid,id){ var t=PK.votes&&PK.votes.tally&&PK.votes.tally[mid]; if(!t) return null; var tot=0; for(var k in t) tot+=t[k]; return tot?Math.round((t[id]||0)/tot*100):null; }
   window.pkLock=function(){
     if(!PK.wallet){pkConnect();return;}
@@ -299,7 +299,7 @@
       document.getElementById('pkPool').innerHTML='prize this round <b style="color:var(--gold)">paid in $'+SYM+'</b> <span class="sub">— every round the creator fees are claimed, half buys back $'+SYM+', and half of that $'+SYM+' is split among everyone who picked winners (one share per correct pick)'+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+'</span>';
       var lock=document.getElementById('pkLock');
       if(v.open&&v.preview){lock.innerHTML='<b style="color:var(--green)">picks are OPEN</b> — lock at the opening bell';}
-      else if(v.open){lock.innerHTML='picks open — each match locks <b>20 min</b> after its bell'+(v.locksAt?' · next lock in <b>'+mmss(v.locksAt-Date.now())+'</b>':'');}
+      else if(v.open){lock.innerHTML='picks open — each match locks <b>'+Math.round((v.pickWindowMs||300000)/60000)+' min</b> after its bell'+(v.locksAt?' · next lock in <b>'+mmss(v.locksAt-Date.now())+'</b>':'');}
       else if(S&&S.status==='running'){lock.textContent='picks locked for '+(v.roundName||'this round')+' — reopen at the next intermission';}
       else if(S&&S.status==='done'){lock.textContent='tournament over';}
       else {lock.textContent='picks open when the bracket is set';}

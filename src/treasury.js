@@ -95,7 +95,20 @@ async function buyback(conn, kp, lamports) {
   const sig = await conn.sendRawTransaction(tx.serialize(), { skipPreflight: false, maxRetries: 3 });
   await confirmSig(conn, sig);
   const after = await tokenBalance(conn, kp.publicKey, mint);
-  return { sig, received: after - before, quotedOut: BigInt(q.outAmount) };
+  let received = after - before;
+  // 2026-09-10: the balance read right after confirmation came back unchanged (lagging RPC read) and a real 576,979-token
+  // buy was booked as 0 — the transaction's own token-balance delta is the truth; the quote is the last resort
+  if (received <= 0n) received = await receivedFrom(conn, sig, kp.publicKey, mint, BigInt(q.outAmount));
+  return { sig, received, quotedOut: BigInt(q.outAmount) };
+}
+async function receivedFrom(conn, sig, owner, mint, fallback) {
+  try {
+    const tx = await conn.getParsedTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
+    const pick = (arr) => (arr || []).find((b) => b.mint === mint.toBase58() && b.owner === owner.toBase58());
+    const pre = pick(tx && tx.meta && tx.meta.preTokenBalances), post = pick(tx && tx.meta && tx.meta.postTokenBalances);
+    if (post) { const d = BigInt(post.uiTokenAmount.amount) - BigInt(pre ? pre.uiTokenAmount.amount : 0); if (d > 0n) return d; }
+  } catch { /* fall through to the quote */ }
+  return fallback;
 }
 
 // ---- 3. AIRDROP the coin ----
@@ -137,7 +150,16 @@ async function airdrop(conn, kp, winners, perShare) {
 }
 
 // ---- the round ----
-async function settleRound(roundIdx, winners) {
+// One settlement at a time (2026-09-10: two matches decided in the same tick both read the same vault, both claimed it —
+// same signature, counted twice — and each swapped half of it, i.e. 100% instead of 50%). The second caller now runs after
+// the first and sees the vault already emptied, so it records "below minimum" instead of double-spending.
+let settleChain = Promise.resolve();
+function settleRound(roundIdx, winners) {
+  const p = settleChain.then(() => settleRoundInner(roundIdx, winners));
+  settleChain = p.catch(() => {});
+  return p;
+}
+async function settleRoundInner(roundIdx, winners) {
   const conn = rpc();
   const dev = devPubkey();
   const rec = { roundIdx, at: Date.now(), mode: isLive() ? 'live' : 'dry', winners: winners.length, claimedSol: 0, buybackSol: 0, boughtPro: 0, toWinnersPro: 0, perWinnerPro: 0, txs: {}, transfers: [], notes: [] };
@@ -170,7 +192,7 @@ async function settleRound(roundIdx, winners) {
         const per = toWinners / totalShares; // one share per correct pick
         rec.perSharePro = Number(per) / 1e6; rec.perWinnerPro = rec.perSharePro;
         rec.transfers = await airdrop(conn, kp, winners, per);
-      } else rec.notes.push(winners.length ? 'nothing to send' : 'no correct pickers this round — the the coin stays in the dev wallet');
+      } else rec.notes.push(winners.length ? 'nothing to send' : 'no correct pickers this round — the coin stays in the dev wallet');
     } else {
       const q = await quote(buybackLamports);
       rec.boughtPro = Number(q.outAmount) / 1e6;
@@ -226,6 +248,6 @@ function start() {
   load();
   if (!state.accrued) state.accrued = { sol: 0, claims: [] };
   const ms = Number(config.STONK_CLAIM_MS == null ? 300000 : config.STONK_CLAIM_MS);
-  if (ms > 0 && devPubkey()) { setInterval(() => sweep().catch((e) => console.log('[treasury] sweep: ' + String(e.message).slice(0, 100))), ms).unref(); console.log('[treasury] claiming creator fees every ' + Math.round(ms / 60000) + ' min (' + (isLive() ? 'LIVE' : 'dry run') + ')'); }
+  if (ms > 0 && devPubkey()) { setInterval(() => sweep().catch((e) => console.log('[treasury] sweep: ' + String(e.message).slice(0, 100))), ms).unref(); console.log('[treasury] claiming creator fees every ' + Math.round(ms / 60000) + ' min (' + (isLive() ? 'LIVE' : 'dry run') + ')'); } else if (devPubkey()) console.log('[treasury] fees are claimed at each match settlement (' + (isLive() ? 'LIVE' : 'dry run') + ')' + (config.STONK_BUYBACK_MINT ? '' : ' — no buyback mint set, payouts are recorded only'));
 }
 module.exports = { start, settleRound, status, quote, sweep };
