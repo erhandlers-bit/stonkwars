@@ -92,7 +92,43 @@
   body.embed header img,body.embed header h1,body.embed header .clock,body.embed header .links,body.embed .tape{display:none}
   body.embed header{padding:8px 20px}
   .chip{display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;background:#161c2e;color:var(--dim);margin-left:4px}
-  @media (max-width:1000px){.stage,.tickers{grid-template-columns:1fr}.mid{order:-1}}
+  @media (max-width:1000px){.stage{grid-template-columns:1fr 1fr}.mid{grid-column:1/-1;order:-1}.tickers{grid-template-columns:1fr}}
+  /* ---- phones & small tablets (owner 2026-09-10): fighters side by side under the desk, then stacked ---- */
+  @media (max-width:760px){
+    header{flex-wrap:wrap;gap:8px 10px;padding:8px 12px}
+    body.embed header{padding:8px 12px}
+    body.embed .pot,body.embed #buyBtn,body.embed #caChip,body.embed #devBtn{display:none!important} /* the homepage header already shows these on phones */
+    body.embed #devWrap{margin-left:auto}
+    header img{width:36px;height:36px}
+    header h1{font-size:18px;letter-spacing:2px}
+    .pot,.clock{margin-left:0}
+    .pot{padding-right:10px;margin-right:4px;text-align:left}
+    .pot .v{font-size:17px}
+    .clock .t{font-size:22px}
+    #devWrap{margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+    #devCtl{flex-wrap:wrap;justify-content:flex-end}
+    #buyBtn{margin-left:0}
+    #caChip{margin-left:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .stage{padding:10px 12px;gap:10px}
+    .tickers{padding:0 12px 12px;gap:10px}
+    .tape{padding:0 12px 12px}
+    .desk .tag{padding:3px 6px;letter-spacing:1px}
+    .bubble{font-size:14px;min-height:40px}
+    .fighter .body{padding:8px 10px}
+    .fighter .nm{font-size:16px}
+    .fighter .eq{font-size:24px}
+    .interview .av{width:90px;height:51px}
+    .ticker.chat .rows{min-height:140px;max-height:220px}
+    #chatName{width:70px}
+  }
+  @media (max-width:560px){
+    .stage{grid-template-columns:1fr}
+    .bubbles{grid-template-columns:1fr}
+    .caster{min-height:0}
+    .bubble{min-height:0}
+    .vs{padding:6px 10px;gap:8px}
+    .vs .v{font-size:18px}
+  }
 </style>
 </head>
 <body>
@@ -137,6 +173,7 @@
 <script>
 (function(){
   var qs=new URLSearchParams(location.search);
+  var SILENT=qs.get('silent')==='1'; // layout checks without audio
   var EMBED=qs.get('embed')==='1'; var M=qs.get('m'); var AUTO=qs.get('auto')==='1'||(EMBED&&!M);
   if(EMBED){ document.body.classList.add('embed');
     // tell the homepage how tall we are so the iframe never scrolls on its own
@@ -184,6 +221,7 @@
   function pump(){
     if(introPlaying){ if(isPregame()) queue=[]; return; } // nobody talks over the promo (pregame drops the lines; intermissions hold them)
     if(!voice||playing||!queue.length) return;
+    if(SILENT){ showLine(queue.shift()); return; }
     var l=queue.shift(); playing=true;
     mark(l,true); showLine(l); // the bubble changes when the voice starts, so what you read is what you hear
     var a=new Audio('/api/tts/'+l.id);
@@ -269,9 +307,9 @@
   var lastInterPlay=0;
   function isIntermission(){ return !!(S&&S.status==='running'&&S.roundIdx>0&&S.roundStartAt&&S.now<S.roundStartAt); }
   function maybeIntro(){ if(isPregame()){ ensureIntro(true); return; } if(isIntermission()){ if(!document.getElementById('introVid')&&Date.now()-lastInterPlay>=60000){ lastInterPlay=Date.now(); ensureIntro(false); } return; } stopIntro(); }
-  function ensureIntro(loop){ var d=document.getElementById('desk'); if(!d||document.getElementById('introVid')) return; var v=document.createElement('video'); v.id='introVid'; v.className='intro'; v.src='/stonkwars/intro.mp4?v=1'; v.playsInline=true; v.loop=!!loop; v.preload='auto'; introPlaying=true; if(loop) queue=[]; if(!loop){ v.onended=stopIntro; v.onerror=stopIntro; } d.appendChild(v); v.play().catch(function(){ v.muted=true; v.play().catch(function(){ stopIntro(); }); }); }
+  function ensureIntro(loop){ var d=document.getElementById('desk'); if(!d||document.getElementById('introVid')) return; var v=document.createElement('video'); v.id='introVid'; v.className='intro'; v.src='/stonkwars/intro.mp4?v=1'; v.playsInline=true; v.loop=!!loop; v.preload='auto'; introPlaying=true; if(loop) queue=[]; if(!loop){ v.onended=stopIntro; v.onerror=stopIntro; } if(SILENT) v.muted=true; d.appendChild(v); v.play().catch(function(){ v.muted=true; v.play().catch(function(){ stopIntro(); }); }); }
   function stopIntro(){ var v=document.getElementById('introVid'); if(v){ v.pause(); v.remove(); } if(introPlaying){ introPlaying=false; pump(); } }
-  ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ var v=document.getElementById('introVid'); if(v&&v.muted){ v.muted=false; v.play().catch(function(){ v.muted=true; }); } }); });
+  ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ var v=document.getElementById('introVid'); if(v&&v.muted&&!SILENT){ v.muted=false; v.play().catch(function(){ v.muted=true; }); } }); });
   window.playIntro=ensureIntro;
   function refreshHook(){ try{ reactToFeed(); reactToState(); maybeIntro(); }catch(x){} }
   function refresh(){ fetch('/api/stonkwars').then(function(r){return r.json()}).then(function(j){S=j;A={};(j.animals||[]).forEach(function(a){A[a.id]=a});render();refreshHook();}).catch(function(){}); }

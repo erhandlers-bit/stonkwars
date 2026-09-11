@@ -59,10 +59,13 @@
   .card .in{padding:16px 20px 20px}
   .card h2{margin:0 0 4px;font-size:26px;letter-spacing:1px}
   .card .bio{font-size:15px;line-height:1.5;margin:10px 0}
-  .card .x{position:absolute;top:14px;right:18px;font-size:28px;color:#fff;cursor:pointer;background:rgba(0,0,0,.5);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center}
+  .card-bg .x{position:absolute;top:14px;right:18px;font-size:28px;color:#fff;cursor:pointer;background:rgba(0,0,0,.5);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center}
   .card .vote{background:var(--gold);color:#000;border:0;border-radius:10px;padding:10px 16px;font-weight:900;cursor:pointer;letter-spacing:1px;margin-top:8px}
   .side .tl{font-size:10px;color:var(--dim);margin-left:4px;font-weight:400;white-space:nowrap}
   .match.pickable{border-color:#3a2f12}
+  .mbadge{position:absolute;top:8px;font-size:10px;letter-spacing:1px}
+  .mbadge.soon{left:8px}
+  .mbadge.live{right:8px;padding:3px 7px;border-radius:5px;background:#123d1e;color:var(--green);border:1px solid var(--green)}
   .lockbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 22px;border-top:1px solid var(--border);background:#0b0f1c;font-size:13px}
   .lockbar .go{background:var(--gold);color:#000;border:0;border-radius:8px;padding:10px 16px;font-weight:900;cursor:pointer;letter-spacing:1px;font-size:13px}
   .lockbar .go[disabled]{opacity:.5;cursor:default}
@@ -99,6 +102,59 @@
   .admin button.stop{border-color:var(--red);color:var(--red)}
   .idle{padding:12px;text-align:center;color:var(--dim);font-size:16px}
   @media (max-width:1100px){main{grid-template-columns:1fr}.bracket{grid-template-columns:1fr;}.col{flex-direction:row;flex-wrap:wrap}.match{flex:1 1 260px}}
+  /* ---- phones & small tablets (owner 2026-09-10: "look good on desktop and mobile both") ---- */
+  /* tablets and narrow laptops: header wraps into rows — logo + title + DEV, the tagline, pot + clock, BUY + CA */
+  @media (max-width:1000px){
+    header{flex-wrap:wrap;gap:10px 14px;padding:12px 16px}
+    header>img{order:0}
+    header h1{order:0}
+    #devBtn{order:1;margin-left:auto}
+    header>div:not(.pot):not(.clock):not(.admin){order:2;width:100%}
+    .admin{order:3;width:100%;margin-left:0;flex-wrap:wrap}
+    .pot{order:4;margin:0 4px 0 0;padding-right:12px;text-align:left}
+    .clock{order:5;margin-left:auto}
+    #buyBtn{order:6;margin-left:0}
+    #caChip{order:7;margin-left:0}
+  }
+  @media (max-width:760px){
+    header{gap:8px 10px;padding:10px 12px}
+    header>img{width:40px!important;height:40px!important}
+    header h1{font-size:20px;letter-spacing:2px}
+    #devBtn{padding:6px 9px;font-size:11px}
+    .pot{padding-right:10px}
+    .pot .v{font-size:17px}
+    .clock .t{font-size:24px}
+    #buyBtn{width:100%;text-align:center;padding:10px}
+    #caChip{width:100%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #pickbar{padding:10px 12px;gap:8px 12px}
+    main{min-height:0}
+    .idle{font-size:13px;padding:10px}
+    .bracket{padding:12px;gap:10px}
+    .col{gap:8px}
+    .match{flex:1 1 100%}
+    .mbadge{position:static;display:inline-block;margin:2px 6px 6px}
+    .champ{max-width:340px;margin:0 auto}
+    .lockbar{padding:12px}
+    .lockbar span.sub{margin-left:0;width:100%}
+    .detail{padding:10px 12px}
+    footer{padding:14px 12px;gap:16px;grid-template-columns:minmax(0,1fr)}
+    footer>div{min-width:0}
+    .fly{grid-template-columns:1fr}
+    #ledger{overflow:auto;-webkit-overflow-scrolling:touch}
+    .card-bg{padding:8px}
+    .card h2{font-size:20px}
+    .card .in{padding:12px 14px 16px}
+    .card .bio{font-size:14px}
+    .card-bg .x{top:8px;right:10px}
+  }
+  @media (max-width:480px){
+    .av{width:84px;height:47px;font-size:22px}
+    .nm{font-size:12px}
+    .side{gap:6px;padding:5px}
+    .side .vote{padding:4px 7px;font-size:10px;margin-left:4px}
+    .eq .v{font-size:13px}
+    .side .tl{display:none}
+  }
 </style>
 </head>
 <body>
@@ -132,7 +188,7 @@
   <div id="pkTally" class="sub" style="width:100%"></div>
 </div>
 <section id="director" style="background:radial-gradient(ellipse at top,#161033 0%,#07090f 70%);border-bottom:1px solid var(--border)">
-  <iframe id="directorFrame" src="/match.html?auto=1&embed=1" title="STONK WARS live stream" style="display:block;width:100%;height:900px;border:0;overflow:hidden" scrolling="no" allow="autoplay"></iframe>
+  <iframe id="directorFrame" data-src="/match.html?auto=1&embed=1" title="STONK WARS live stream" style="display:block;width:100%;height:900px;border:0;overflow:hidden" scrolling="no" allow="autoplay"></iframe>
 </section>
 <main>
   <div>
@@ -170,6 +226,7 @@
   var A={};
   if(location.search.indexOf('admin=1')>=0) document.getElementById('admin').style.display='flex';
   // Watch: point the embedded stream at that match and scroll up to it
+  (function(){ var f=document.getElementById('directorFrame'); if(f&&!f.src){ f.src=f.getAttribute('data-src')+(new URLSearchParams(location.search).get('silent')==='1'?'&silent=1':''); } })(); // ?silent=1 = layout checks without audio
   window.watchMatch=function(id){ var f=document.getElementById('directorFrame'); if(!f) return true; f.contentWindow.postMessage({stonkwarsWatch:id},'*'); document.getElementById('director').scrollIntoView({behavior:'smooth'}); return false; };
   window.addEventListener('message',function(e){ if(e.data&&e.data.stonkwarsHeight){ var f=document.getElementById('directorFrame'); if(f) f.style.height=Math.ceil(e.data.stonkwarsHeight)+'px'; } });
   // DEV login (top right): key checked by the server, kept in this browser; the embedded stream picks it up on reload
@@ -213,7 +270,7 @@
         var soon=r&&S.roundIdx===i&&S.status==='running'&&!m.winner&&S.now<m.startAt?Math.max(1,Math.ceil((m.startAt-S.now)/60000)):0;
         var ea=(S.books[m.a]||{}).equity||0, eb=(S.books[m.b]||{}).equity||0; var tot=ea+eb||1;
         html+='<div class="match'+(live?' live':'')+(m.winner?' done':'')+(mpick?' pickable':'')+'">'+side(m.a,m,live,mpick)+'<div class="bar"><i style="width:'+Math.round(ea/tot*100)+'%"></i></div>'+side(m.b,m,live,mpick)+
-          (soon?'<span class="sub" style="position:absolute;left:8px;top:8px;font-size:10px;letter-spacing:1px">⏱ IN '+soon+' MIN</span>':'')+(live?'<span style="position:absolute;right:8px;top:8px;font-size:10px;letter-spacing:1px;padding:3px 7px;border-radius:5px;background:#123d1e;color:var(--green);border:1px solid var(--green)">● LIVE NOW</span>':'')+'</div>';
+          (soon?'<span class="sub mbadge soon">⏱ IN '+soon+' MIN</span>':'')+(live?'<span class="mbadge live">● LIVE NOW</span>':'')+'</div>';
       }
       col.innerHTML=html;
     }
