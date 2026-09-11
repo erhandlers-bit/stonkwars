@@ -302,6 +302,12 @@ function decideMatch(m) {
     m.winner = ea > eb ? m.a : eb > ea ? m.b : (state.books[m.a].realized >= state.books[m.b].realized ? m.a : m.b);
     const w = BY_ID[m.winner], l = BY_ID[m.winner === m.a ? m.b : m.a];
     event('result', w.emoji + ' ' + w.name + ' beats ' + l.emoji + ' ' + l.name + ' — $' + m.finalEq[m.winner].toFixed(0) + ' vs $' + m.finalEq[l.id].toFixed(0), { matchId: m.id, winner: m.winner });
+    // per-match payout (owner 2026-09-10): runs in the background, never stalls the bracket
+    try {
+      require('./stonkvotes').settleMatch(state.roundIdx, m)
+        .then((rec) => { if (rec) event('picks', '🎟️ ' + rec.correct + ' of ' + rec.votes + ' picks called ' + w.name + (rec.mode === 'paid' ? ' — airdropped ' + Math.round((rec.treasury && rec.treasury.toWinnersPro) || 0).toLocaleString() + ' $' + (require('./stonkvotes').coinInfo().symbol) : ' — recorded (' + (rec.note || 'dry run') + ')'), { matchId: m.id }); })
+        .catch((e) => event('error', 'match payout failed: ' + String(e.message).slice(0, 80)));
+    } catch { /* votes module optional */ }
   }
 }
 function advance() {

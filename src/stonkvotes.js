@@ -240,6 +240,7 @@ async function poolNow() {
 async function settle(roundIdx, round) {
   const r = state.rounds[roundIdx] || { votes: {} };
   if (r.settled) return r.settled;
+  if (config.STONK_SETTLE_PER_MATCH) { r.settled = { roundIdx, at: Date.now(), perMatch: true, votes: Object.keys(r.votes).length, correct: 0, shares: 0, mode: 'per-match', poolSol: 0, perWalletSol: 0, txs: [] }; save(); return r.settled; } // already paid match by match
   const winnerOf = {}; for (const m of round.matches) if (m.winner) winnerOf[m.id] = m.winner;
   const shares = [];
   for (const [wallet, v] of Object.entries(r.votes)) {
@@ -307,12 +308,43 @@ async function settle(roundIdx, round) {
   return rec;
 }
 
+// ---- PER-MATCH settlement (owner 2026-09-10: "payout every match in the round, after each hour of trades") ----
+// Called by the engine the moment a match is decided. Everyone who picked that match's winner gets one share
+// (if they hold the coin); the treasury claims what accrued, buys back, and pays out. Round-end settle() then skips.
+async function settleMatch(roundIdx, m) {
+  if (!config.STONK_SETTLE_PER_MATCH || !m || !m.winner) return null;
+  const r = (state.rounds[roundIdx] = state.rounds[roundIdx] || { votes: {} });
+  r.settledMatches = r.settledMatches || {};
+  if (r.settledMatches[m.id]) return r.settledMatches[m.id];
+  const pickers = [];
+  for (const [wallet, v] of Object.entries(r.votes)) { const p = picksOf(v, { matches: [m] }); if (p[m.id]) pickers.push({ wallet, pick: p[m.id] }); }
+  const ineligible = [], winners = [];
+  for (const pk of pickers.filter((x) => x.pick === m.winner)) {
+    const h = await holding(pk.wallet, true);
+    if (h.gated && !h.eligible) ineligible.push({ wallet: pk.wallet, shares: 1, holdTokens: h.tokens, holdUsd: h.usd });
+    else winners.push({ wallet: pk.wallet, shares: 1 });
+  }
+  const rec = { roundIdx, matchId: m.id, at: Date.now(), votes: pickers.length, correct: winners.length, shares: winners.length, ineligible,
+    holdGate: { mint: holdMint() || null, minUsd: holdMinUsd(), minTokens: holdMinTokens() }, mode: 'owed', poolSol: 0, perWalletSol: 0, txs: [] };
+  if (config.STONK_BUYBACK_MINT) {
+    try {
+      const t = await require('./treasury').settleRound(roundIdx, winners);
+      rec.mode = t.mode === 'live' ? 'paid' : 'owed';
+      rec.treasury = t; rec.poolSol = t.buybackSol; rec.perSharePro = t.perSharePro; rec.perWalletPro = t.perWinnerPro; rec.currency = 'COIN';
+      rec.txs = (t.transfers || []).map((x) => ({ wallet: x.wallet, shares: x.shares, pro: x.pro, txid: x.txid, error: x.error, owed: !x.txid }));
+      if (t.notes && t.notes.length) rec.note = t.notes.join('; ');
+    } catch (e) { rec.note = 'treasury failed: ' + String(e.message).slice(0, 120); }
+  } else rec.note = 'no buyback coin configured — recorded only';
+  r.settledMatches[m.id] = rec; state.settlements.unshift(rec); if (state.settlements.length > 200) state.settlements.length = 200; save();
+  return rec;
+}
+
 // ---- public ledger: every wallet ever paid (or owed), with amounts ----
 function ledger() {
   const rows = [];
   for (const s of state.settlements) {
     for (const t of s.txs || []) {
-      rows.push({ round: s.roundIdx, at: s.at, wallet: t.wallet, shares: t.shares || 1,
+      rows.push({ round: s.roundIdx, match: s.matchId || null, at: s.at, wallet: t.wallet, shares: t.shares || 1,
         amount: t.pro != null ? t.pro : (t.sol || 0), currency: t.pro != null ? 'COIN' : 'SOL',
         txid: t.txid || null, status: t.txid ? 'paid' : (t.error ? 'failed' : 'owed'), error: t.error || null });
     }
@@ -352,4 +384,4 @@ async function status(wallet) {
 }
 
 function start() { load(); }
-module.exports = { start, vote, settle, status, ledger, messageFor, onTournamentStart, payoutKeypair, holding, coinInfo };
+module.exports = { start, vote, settle, settleMatch, status, ledger, messageFor, onTournamentStart, payoutKeypair, holding, coinInfo };
