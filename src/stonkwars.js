@@ -345,6 +345,8 @@ async function tick() {
   if (!round) return;
   // each match is decided the moment its own clock runs out; the round advances when the last one is in
   for (const m of round.matches) if (!m.winner && now >= m.endAt) decideMatch(m);
+  // catch-up: any decided match not yet paid (e.g. decided before per-match payouts existed) settles now; idempotent
+  if (config.STONK_SETTLE_PER_MATCH && now - (state.lastSettleSweep || 0) > 30000) { state.lastSettleSweep = now; for (const m of round.matches) if (m.winner) { try { require('./stonkvotes').settleMatch(state.roundIdx, m).catch(() => {}); } catch { /* optional */ } } }
   if (round.matches.every((m) => m.winner)) { advance(); return; }
   if (now < round.startAt) return; // pregame / intermission
   if (now - lastRefresh > 15000) { lastRefresh = now; refreshPrices().catch(() => {}); }

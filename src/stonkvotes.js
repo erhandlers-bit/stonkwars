@@ -316,6 +316,8 @@ async function settleMatch(roundIdx, m) {
   const r = (state.rounds[roundIdx] = state.rounds[roundIdx] || { votes: {} });
   r.settledMatches = r.settledMatches || {};
   if (r.settledMatches[m.id]) return r.settledMatches[m.id];
+  const key = roundIdx + '/' + m.id; if (settling.has(key)) return null; settling.add(key); // one settlement per match, ever
+  try {
   const pickers = [];
   for (const [wallet, v] of Object.entries(r.votes)) { const p = picksOf(v, { matches: [m] }); if (p[m.id]) pickers.push({ wallet, pick: p[m.id] }); }
   const ineligible = [], winners = [];
@@ -337,7 +339,9 @@ async function settleMatch(roundIdx, m) {
   } else rec.note = 'no buyback coin configured — recorded only';
   r.settledMatches[m.id] = rec; state.settlements.unshift(rec); if (state.settlements.length > 200) state.settlements.length = 200; save();
   return rec;
+  } finally { settling.delete(key); }
 }
+const settling = new Set();
 
 // ---- public ledger: every wallet ever paid (or owed), with amounts ----
 function ledger() {

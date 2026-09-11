@@ -12,7 +12,8 @@ const fake = { status: 'running', roundIdx: 0, roundName: 'Round of 16', rounds:
 require.cache[require.resolve('../src/stonkwars')] = { id: 'x', filename: 'x', loaded: true, exports: { status: () => fake } };
 const config = require('../src/config');
 config.STONK_BUYBACK_MINT = ''; // exercise the SOL "owed" path, not the treasury
-config.STONK_HOLD_MINT = ''; config.STONK_HOLD_MIN_USD = 0; // no RPC in an offline test
+config.STONK_HOLD_MINT = ''; config.STONK_HOLD_MIN_USD = 0; config.STONK_HOLD_MIN_TOKENS = 0; // no RPC in an offline test
+config.STONK_SETTLE_PER_MATCH = false; // this file exercises the round-level settlement path
 const votes = require('../src/stonkvotes');
 const kp = Keypair.generate();
 const wallet = kp.publicKey.toBase58();
