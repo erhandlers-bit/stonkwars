@@ -342,7 +342,7 @@ async function status(wallet) {
     pickWindowMs: pickWindow(),
     totalVotes: Object.keys(r.votes).length, tally,
     mine,
-    pool: { sol: +pool.sol.toFixed(4), pct: pool.pct, walletSol: +pool.walletSol.toFixed(4), address: pool.address, paying: !!config.STONK_PAYOUT_ENABLED && !!payoutKeypair() },
+    pool: { sol: +pool.sol.toFixed(4), pct: pool.pct, walletSol: +pool.walletSol.toFixed(4), address: pool.address, paying: (!!config.STONK_TREASURY_ENABLED && !!config.STONK_BUYBACK_MINT && !!payoutKeypair()) || (!!config.STONK_PAYOUT_ENABLED && !!payoutKeypair()) },
     gate: { minSol: Number(config.STONK_VOTE_MIN_SOL || 0), tokenMint: config.STONK_VOTE_TOKEN_MINT || null, minTokens: Number(config.STONK_VOTE_MIN_TOKENS || 0) },
     coin: coinInfo(),
     holdGate: { mint: holdMint() || null, minUsd: holdMinUsd(), minTokens: holdMinTokens(), symbol: price.symbol || coinInfo().symbol, priceUsd: price.usd || 0 },
