@@ -51,7 +51,7 @@ module.exports = {
   STONK_TREASURY_ENABLED: false,
   // owner 2026-09-10: "buy back its OWN token and pay out in it, not $PRO" — paste the
   // STONK WARS coin mint here at launch. Empty = no buyback; settlements are recorded as owed.
-  STONK_BUYBACK_MINT: '',            // owner 2026-09-10: coin relaunching — paste the new mint here to bring back the BUY button, CA chip, hold gate and buybacks (first coin was AJ273XahxBYsXNFXMhKGL3YWGuJVhmHHNeBk3YZBpump)
+  STONK_BUYBACK_MINT: 'Eg4eG7B1VjajeHbmFRBo3uTP37BbCZrFyqZpsL75pump', // the STONK WARS coin, relaunched 2026-09-10 (creator = dev wallet 4HukHCev…; the first coin AJ273Xah… is retired)
   STONK_COIN_SYMBOL: 'STONK',       // ticker shown on the site until the mint is set (then Dexscreener's symbol wins)
   STONK_BUYBACK_PCT: 0.5,           // half of claimed fees buy the coin
   STONK_WINNER_SHARE: 0.5,          // half of the coin bought goes to the correct pickers

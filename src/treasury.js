@@ -27,6 +27,18 @@ const SOL_MINT = 'So11111111111111111111111111111111111111112';
 const PUMP_PROGRAM = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
 const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 const ATA_PROGRAM = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
+const TOKEN_2022_PROGRAM = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
+// pump.fun mints live on either token program (the 2026-09-10 relaunch coin is Token-2022): detect once per mint
+const programCache = {};
+async function tokenProgramOf(conn, mint) {
+  const k = mint.toBase58();
+  if (!programCache[k]) {
+    const info = await conn.getAccountInfo(mint);
+    if (!info) throw new Error('mint not found: ' + k);
+    programCache[k] = info.owner.toBase58() === TOKEN_2022_PROGRAM ? TOKEN_2022_PROGRAM : TOKEN_PROGRAM;
+  }
+  return programCache[k];
+}
 const JUP = 'https://lite-api.jup.ag/swap/v1';
 
 const state = { rounds: [], totals: { claimedSol: 0, boughtPro: 0, sentPro: 0, winnersPaid: 0 }, accrued: { sol: 0, claims: [] }, lastSweep: null };
@@ -46,12 +58,12 @@ function creatorVault(dev) {
   const { PublicKey } = w3();
   return PublicKey.findProgramAddressSync([Buffer.from('creator-vault'), dev.toBytes()], new PublicKey(PUMP_PROGRAM))[0];
 }
-function ata(owner, mint) {
+function ata(owner, mint, program = TOKEN_PROGRAM) {
   const { PublicKey } = w3();
-  return PublicKey.findProgramAddressSync([owner.toBytes(), new PublicKey(TOKEN_PROGRAM).toBytes(), mint.toBytes()], new PublicKey(ATA_PROGRAM))[0];
+  return PublicKey.findProgramAddressSync([owner.toBytes(), new PublicKey(program).toBytes(), mint.toBytes()], new PublicKey(ATA_PROGRAM))[0];
 }
 async function tokenBalance(conn, owner, mint) {
-  try { const r = await conn.getTokenAccountBalance(ata(owner, mint)); return BigInt(r.value.amount); } catch { return 0n; }
+  try { const r = await conn.getTokenAccountBalance(ata(owner, mint, await tokenProgramOf(conn, mint))); return BigInt(r.value.amount); } catch { return 0n; }
 }
 async function confirmSig(conn, sig) {
   const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash('confirmed');
@@ -118,7 +130,9 @@ function u64le(n) { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); re
 async function airdrop(conn, kp, winners, perShare) {
   const { PublicKey, Transaction, TransactionInstruction, SystemProgram, sendAndConfirmTransaction } = w3();
   const mint = new PublicKey(config.STONK_BUYBACK_MINT);
-  const src = ata(kp.publicKey, mint);
+  const prog = await tokenProgramOf(conn, mint);
+  const decimals = (await conn.getTokenSupply(mint)).value.decimals;
+  const src = ata(kp.publicKey, mint, prog);
   const out = [];
   for (let i = 0; i < winners.length; i += 5) { // ATA creates are chunky; 5 per tx stays under limits
     const batch = winners.slice(i, i + 5);
@@ -128,16 +142,16 @@ async function airdrop(conn, kp, winners, perShare) {
       const w = typeof e === 'string' ? e : e.wallet; const shares = typeof e === 'string' ? 1 : (e.shares || 1);
       const amt = perShare * BigInt(shares); amounts[w] = { amt, shares };
       let owner; try { owner = new PublicKey(w); } catch { out.push({ wallet: w, shares, error: 'bad address' }); continue; }
-      const dest = ata(owner, mint);
+      const dest = ata(owner, mint, prog);
       // create the recipient's token account if missing (idempotent: instruction data [1])
       tx.add(new TransactionInstruction({ programId: new PublicKey(ATA_PROGRAM), data: Buffer.from([1]), keys: [
         { pubkey: kp.publicKey, isSigner: true, isWritable: true }, { pubkey: dest, isSigner: false, isWritable: true },
         { pubkey: owner, isSigner: false, isWritable: false }, { pubkey: mint, isSigner: false, isWritable: false },
-        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, { pubkey: new PublicKey(TOKEN_PROGRAM), isSigner: false, isWritable: false },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, { pubkey: new PublicKey(prog), isSigner: false, isWritable: false },
       ] }));
-      // SPL transfer (instruction 3)
-      tx.add(new TransactionInstruction({ programId: new PublicKey(TOKEN_PROGRAM), data: Buffer.concat([Buffer.from([3]), u64le(amt)]), keys: [
-        { pubkey: src, isSigner: false, isWritable: true }, { pubkey: dest, isSigner: false, isWritable: true }, { pubkey: kp.publicKey, isSigner: true, isWritable: false },
+      // TransferChecked (instruction 12: amount u64 + decimals u8) — valid on both token programs
+      tx.add(new TransactionInstruction({ programId: new PublicKey(prog), data: Buffer.concat([Buffer.from([12]), u64le(amt), Buffer.from([decimals])]), keys: [
+        { pubkey: src, isSigner: false, isWritable: true }, { pubkey: mint, isSigner: false, isWritable: false }, { pubkey: dest, isSigner: false, isWritable: true }, { pubkey: kp.publicKey, isSigner: true, isWritable: false },
       ] }));
     }
     if (!tx.instructions.length) continue;
