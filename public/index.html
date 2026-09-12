@@ -181,7 +181,7 @@
   <b style="color:var(--gold);letter-spacing:2px">🎟️ PICK 'EM</b>
   <span id="pkPool" class="sub">pool —</span>
   <span id="pkLock" class="sub">—</span>
-  <button id="pkConnect" onclick="pkConnect()" style="background:#c4b5fd;color:#1a1033;border:2px solid #a78bfa;border-radius:12px;padding:14px 26px;cursor:pointer;font-weight:900;font-size:17px;letter-spacing:1px;box-shadow:0 6px 24px rgba(167,139,250,.35)">👛 Connect Phantom</button>
+  <button id="pkConnect" onclick="pkConnect()" style="background:#c4b5fd;color:#1a1033;border:2px solid #a78bfa;border-radius:12px;padding:14px 26px;cursor:pointer;font-weight:900;font-size:17px;letter-spacing:1px;box-shadow:0 6px 24px rgba(167,139,250,.35)">👛 Connect Wallet</button>
   <span id="pkMine" class="sub"></span>
   <span id="pkMsg" style="font-size:12px"></span>
   <div id="pkChips" style="display:flex;flex-wrap:wrap;gap:6px;width:100%"></div>
@@ -323,7 +323,7 @@
   function b64(u8){var s='';for(var i=0;i<u8.length;i++)s+=String.fromCharCode(u8[i]);return btoa(s)}
   window.pkConnect=function(){
     var sol=window.solana||(window.phantom&&window.phantom.solana);
-    if(!sol){document.getElementById('pkMsg').innerHTML='<a href="https://phantom.app" target="_blank" style="color:var(--blue)">Install Phantom</a> to pick.';return;}
+    if(!sol){document.getElementById('pkMsg').innerHTML='No Solana wallet found — <a href="https://phantom.app" target="_blank" style="color:var(--blue)">install one (Phantom)</a> to pick.';return;}
     sol.connect().then(function(r){PK.wallet=(r&&r.publicKey?r.publicKey:sol.publicKey).toString();document.getElementById('pkConnect').textContent=PK.wallet.slice(0,4)+'…'+PK.wallet.slice(-4);pkRefresh();}).catch(function(e){document.getElementById('pkMsg').textContent='wallet: '+(e.message||e)});
   };
   window.pkSel=function(mid,id){ PK.sel[mid]=id; PK.touched=true; render(); pkCount(); };
@@ -339,7 +339,7 @@
     var round=PK.votes?PK.votes.roundIdx:0; var picks={}; openMatches().forEach(function(m){ if(PK.sel[m.id]) picks[m.id]=PK.sel[m.id]; });
     var keys=Object.keys(picks).sort(); if(!keys.length){document.getElementById('lkMsg').textContent='pick at least one winner first';return;}
     var ts=Date.now(); var msg='STONK WARS picks\nround: '+round+'\npicks: '+keys.map(function(k){return k+'='+picks[k]}).join(' ')+'\nwallet: '+PK.wallet+'\nts: '+ts;
-    var m=document.getElementById('lkMsg'); m.style.color='var(--amber,#f5c542)'; m.textContent='sign your '+keys.length+' picks in Phantom…';
+    var m=document.getElementById('lkMsg'); m.style.color='var(--amber,#f5c542)'; m.textContent='sign your '+keys.length+' picks in your wallet…';
     sol.signMessage(new TextEncoder().encode(msg),'utf8').then(function(r){
       var sig=b64(r.signature||r);
       return fetch('/api/stonkwars/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:PK.wallet,picks:picks,round:round,ts:ts,signature:sig})}).then(function(x){return x.json()});
