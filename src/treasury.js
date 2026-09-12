@@ -87,17 +87,16 @@ async function claim(conn, kp) {
 }
 
 // ---- 2. BUYBACK ----
-async function quote(lamports) {
-  const mint = config.STONK_BUYBACK_MINT;
+async function quote(lamports, mint = config.STONK_BUYBACK_MINT) {
   const q = await (await fetch(JUP + '/quote?inputMint=' + SOL_MINT + '&outputMint=' + mint + '&amount=' + lamports + '&slippageBps=' + (config.STONK_SWAP_SLIPPAGE_BPS || 300), { signal: AbortSignal.timeout(20000) })).json();
   if (!q.outAmount) throw new Error('no route: ' + JSON.stringify(q).slice(0, 120));
   return q;
 }
-async function buyback(conn, kp, lamports) {
+async function buyback(conn, kp, lamports, mintStr = config.STONK_BUYBACK_MINT) {
   const { VersionedTransaction, PublicKey } = w3();
-  const mint = new PublicKey(config.STONK_BUYBACK_MINT);
+  const mint = new PublicKey(mintStr);
   const before = await tokenBalance(conn, kp.publicKey, mint);
-  const q = await quote(lamports);
+  const q = await quote(lamports, mintStr);
   const s = await (await fetch(JUP + '/swap', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ quoteResponse: q, userPublicKey: kp.publicKey.toBase58(), wrapAndUnwrapSol: true, dynamicComputeUnitLimit: true, prioritizationFeeLamports: 'auto' }),
@@ -125,11 +124,20 @@ async function receivedFrom(conn, sig, owner, mint, fallback) {
   return fallback;
 }
 
+const decimalsCache = {};
+async function mintDecimals(conn, mint) { const k = mint.toBase58(); if (decimalsCache[k] == null) decimalsCache[k] = (await conn.getTokenSupply(mint)).value.decimals; return decimalsCache[k]; }
+// plain SOL transfer (the partner share)
+async function sendSol(conn, kp, to, lamports) {
+  const { Transaction, SystemProgram, sendAndConfirmTransaction } = w3();
+  const tx = new Transaction().add(SystemProgram.transfer({ fromPubkey: kp.publicKey, toPubkey: to, lamports }));
+  return sendAndConfirmTransaction(conn, tx, [kp], { commitment: 'confirmed' });
+}
+
 // ---- 3. AIRDROP the coin ----
 function u64le(n) { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; }
-async function airdrop(conn, kp, winners, perShare) {
+async function airdrop(conn, kp, winners, perShare, mintStr = config.STONK_BUYBACK_MINT) {
   const { PublicKey, Transaction, TransactionInstruction, SystemProgram, sendAndConfirmTransaction } = w3();
-  const mint = new PublicKey(config.STONK_BUYBACK_MINT);
+  const mint = new PublicKey(mintStr);
   const prog = await tokenProgramOf(conn, mint);
   const decimals = (await conn.getTokenSupply(mint)).value.decimals;
   const src = ata(kp.publicKey, mint, prog);
@@ -157,9 +165,9 @@ async function airdrop(conn, kp, winners, perShare) {
     if (!tx.instructions.length) continue;
     try {
       const sig = await sendAndConfirmTransaction(conn, tx, [kp], { commitment: 'confirmed' });
-      for (const e of batch) { const w = typeof e === 'string' ? e : e.wallet; if (amounts[w]) out.push({ wallet: w, shares: amounts[w].shares, pro: Number(amounts[w].amt) / 1e6, txid: sig }); }
+      for (const e of batch) { const w = typeof e === 'string' ? e : e.wallet; if (amounts[w]) out.push({ wallet: w, shares: amounts[w].shares, pro: Number(amounts[w].amt) / 10 ** decimals, txid: sig }); }
     } catch (e) {
-      for (const en of batch) { const w = typeof en === 'string' ? en : en.wallet; if (amounts[w]) out.push({ wallet: w, shares: amounts[w].shares, pro: Number(amounts[w].amt) / 1e6, error: String(e.message).slice(0, 100) }); }
+      for (const en of batch) { const w = typeof en === 'string' ? en : en.wallet; if (amounts[w]) out.push({ wallet: w, shares: amounts[w].shares, pro: Number(amounts[w].amt) / 10 ** decimals, error: String(e.message).slice(0, 100) }); }
     }
   }
   return out;
@@ -198,24 +206,71 @@ async function settleRoundInner(roundIdx, winners) {
       const kp = keypair();
       if (claimNow) rec.txs.claim = await claim(conn, kp);
       state.accrued.sol = 0; save(); // the round's tally is spent; sweeps start a fresh one
-      const b = await buyback(conn, kp, buybackLamports);
-      rec.txs.swap = b.sig;
-      rec.boughtPro = Number(b.received) / 1e6;
-      const toWinners = (b.received * BigInt(Math.round(Number(config.STONK_WINNER_SHARE ?? 0.5) * 10000))) / 10000n;
-      rec.toWinnersPro = Number(toWinners) / 1e6;
-      if (winners.length && toWinners > 0n) {
-        const totalShares = BigInt(winners.reduce((a, w) => a + (typeof w === 'string' ? 1 : (w.shares || 1)), 0) || 1);
-        const per = toWinners / totalShares; // one share per correct pick
-        rec.perSharePro = Number(per) / 1e6; rec.perWinnerPro = rec.perSharePro;
-        rec.transfers = await airdrop(conn, kp, winners, per);
-      } else rec.notes.push(winners.length ? 'nothing to send' : 'no correct pickers this round — the coin stays in the dev wallet');
+      const { PublicKey } = w3();
+      const prizeMint = String(config.STONK_PRIZE_MINT || '');
+      const totalShares = BigInt(winners.reduce((a, w) => a + (typeof w === 'string' ? 1 : (w.shares || 1)), 0) || 1);
+      if (prizeMint) {
+        // owner 2026-09-12 (option A): the buyback pool splits — STONK_BUYBACK_SPLIT buys the project's coin (kept), the rest
+        // buys the prize token and ALL of it goes to the correct pickers; with nobody to pay, the whole pool buys the project's coin
+        const ownLamports = winners.length ? Math.floor(buybackLamports * Number(config.STONK_BUYBACK_SPLIT ?? 0.5)) : buybackLamports;
+        const prizeLamports = buybackLamports - ownLamports;
+        rec.ownSol = +(ownLamports / 1e9).toFixed(6); rec.prizeSol = +(prizeLamports / 1e9).toFixed(6);
+        const own = await buyback(conn, kp, ownLamports);
+        rec.txs.swap = own.sig; rec.boughtPro = Number(own.received) / 1e6; rec.toWinnersPro = 0; rec.perSharePro = 0; rec.perWinnerPro = 0;
+        if (prizeLamports > 0) {
+          const pdec = await mintDecimals(conn, new PublicKey(prizeMint));
+          const pz = await buyback(conn, kp, prizeLamports, prizeMint);
+          rec.txs.prizeSwap = pz.sig;
+          rec.prize = { mint: prizeMint, symbol: config.STONK_PRIZE_SYMBOL || 'PRIZE', decimals: pdec };
+          rec.boughtPrize = Number(pz.received) / 10 ** pdec; rec.toWinnersPrize = rec.boughtPrize;
+          const per = pz.received / totalShares; // one share per correct pick — the whole prize buy
+          rec.perSharePrize = Number(per) / 10 ** pdec;
+          rec.transfers = (await airdrop(conn, kp, winners, per, prizeMint)).map((t) => { const o = Object.assign({}, t); o.prize = o.pro; delete o.pro; return o; });
+        } else rec.notes.push('no correct pickers this match — the whole buyback bought the project coin');
+      } else {
+        const b = await buyback(conn, kp, buybackLamports);
+        rec.txs.swap = b.sig;
+        rec.boughtPro = Number(b.received) / 1e6;
+        const toWinners = (b.received * BigInt(Math.round(Number(config.STONK_WINNER_SHARE ?? 0.5) * 10000))) / 10000n;
+        rec.toWinnersPro = Number(toWinners) / 1e6;
+        if (winners.length && toWinners > 0n) {
+          const per = toWinners / totalShares; // one share per correct pick
+          rec.perSharePro = Number(per) / 1e6; rec.perWinnerPro = rec.perSharePro;
+          rec.transfers = await airdrop(conn, kp, winners, per);
+        } else rec.notes.push(winners.length ? 'nothing to send' : 'no correct pickers this round — the coin stays in the dev wallet');
+      }
+      // partner share (owner 2026-09-12, option A): a slice of THIS settlement's SOL reserve, sent right after the buybacks
+      const partner = String(config.STONK_PARTNER_WALLET || ''); const pShare = Number(config.STONK_PARTNER_SHARE || 0);
+      if (partner && pShare > 0) {
+        const partnerLamports = Math.floor((Math.floor(fees * 1e9) - buybackLamports) * pShare);
+        rec.partnerWallet = partner; rec.partnerSol = +(partnerLamports / 1e9).toFixed(6);
+        if (partnerLamports > 0) { try { rec.txs.partner = await sendSol(conn, kp, new PublicKey(partner), partnerLamports); } catch (e) { rec.notes.push('partner transfer failed: ' + String(e.message).slice(0, 100)); } }
+      }
     } else {
-      const q = await quote(buybackLamports);
-      rec.boughtPro = Number(q.outAmount) / 1e6;
-      rec.toWinnersPro = rec.boughtPro * Number(config.STONK_WINNER_SHARE ?? 0.5);
       const totalShares = winners.reduce((a, w) => a + (typeof w === 'string' ? 1 : (w.shares || 1)), 0);
-      rec.perSharePro = totalShares ? rec.toWinnersPro / totalShares : 0; rec.perWinnerPro = rec.perSharePro;
-      rec.transfers = winners.map((w) => { const shares = typeof w === 'string' ? 1 : (w.shares || 1); return { wallet: typeof w === 'string' ? w : w.wallet, shares, pro: rec.perSharePro * shares, owed: true }; });
+      const prizeMintDry = String(config.STONK_PRIZE_MINT || '');
+      if (prizeMintDry) {
+        const ownLamports = winners.length ? Math.floor(buybackLamports * Number(config.STONK_BUYBACK_SPLIT ?? 0.5)) : buybackLamports;
+        const prizeLamports = buybackLamports - ownLamports;
+        rec.ownSol = +(ownLamports / 1e9).toFixed(6); rec.prizeSol = +(prizeLamports / 1e9).toFixed(6);
+        const qo = await quote(ownLamports); rec.boughtPro = Number(qo.outAmount) / 1e6; rec.toWinnersPro = 0; rec.perSharePro = 0; rec.perWinnerPro = 0;
+        if (prizeLamports > 0) {
+          const pdec = await mintDecimals(conn, new (w3().PublicKey)(prizeMintDry));
+          const qp = await quote(prizeLamports, prizeMintDry);
+          rec.prize = { mint: prizeMintDry, symbol: config.STONK_PRIZE_SYMBOL || 'PRIZE', decimals: pdec };
+          rec.boughtPrize = Number(qp.outAmount) / 10 ** pdec; rec.toWinnersPrize = rec.boughtPrize;
+          rec.perSharePrize = totalShares ? rec.toWinnersPrize / totalShares : 0;
+          rec.transfers = winners.map((w) => { const shares = typeof w === 'string' ? 1 : (w.shares || 1); return { wallet: typeof w === 'string' ? w : w.wallet, shares, prize: rec.perSharePrize * shares, owed: true }; });
+        }
+      } else {
+        const q = await quote(buybackLamports);
+        rec.boughtPro = Number(q.outAmount) / 1e6;
+        rec.toWinnersPro = rec.boughtPro * Number(config.STONK_WINNER_SHARE ?? 0.5);
+        rec.perSharePro = totalShares ? rec.toWinnersPro / totalShares : 0; rec.perWinnerPro = rec.perSharePro;
+        rec.transfers = winners.map((w) => { const shares = typeof w === 'string' ? 1 : (w.shares || 1); return { wallet: typeof w === 'string' ? w : w.wallet, shares, pro: rec.perSharePro * shares, owed: true }; });
+      }
+      const partnerDry = String(config.STONK_PARTNER_WALLET || ''); const pShareDry = Number(config.STONK_PARTNER_SHARE || 0);
+      if (partnerDry && pShareDry > 0) { rec.partnerWallet = partnerDry; rec.partnerSol = +(Math.floor((Math.floor(fees * 1e9) - buybackLamports) * pShareDry) / 1e9).toFixed(6); }
       rec.notes.push('DRY RUN — would claim ' + rec.claimedSol + ' SOL, buy ~' + Math.round(rec.boughtPro).toLocaleString() + ' PRO with ' + rec.buybackSol + ' SOL, send ' + Math.round(rec.toWinnersPro).toLocaleString() + ' PRO to ' + winners.length + ' winners');
     }
   } catch (e) { rec.notes.push('FAILED: ' + String(e.message).slice(0, 160)); }
@@ -225,20 +280,27 @@ function finish(rec) {
   state.rounds.unshift(rec); if (state.rounds.length > 40) state.rounds.length = 40;
   if (rec.mode === 'live') {
     state.totals.claimedSol += rec.claimedSol - (rec.sweptSol || 0); state.totals.boughtPro += rec.boughtPro; // sweeps were counted as they happened
-    state.totals.sentPro += rec.transfers.filter((t) => t.txid).reduce((a, t) => a + t.pro, 0);
+    state.totals.sentPro += rec.transfers.filter((t) => t.txid).reduce((a, t) => a + (t.pro || 0), 0);
+    state.totals.boughtPrize = (state.totals.boughtPrize || 0) + (rec.boughtPrize || 0);
+    state.totals.sentPrize = (state.totals.sentPrize || 0) + rec.transfers.filter((t) => t.txid).reduce((a, t) => a + (t.prize || 0), 0);
+    state.totals.partnerSol = +((state.totals.partnerSol || 0) + (rec.txs && rec.txs.partner ? (rec.partnerSol || 0) : 0)).toFixed(6);
     state.totals.winnersPaid += rec.transfers.filter((t) => t.txid).length;
   }
   save();
   return rec;
 }
 
+// what leaves this process: the prize token's address stays private (owner's request)
+function publicRec(r) { if (!r || !r.prize) return r; const o = Object.assign({}, r); o.prize = { symbol: r.prize.symbol, decimals: r.prize.decimals }; return o; }
 async function status() {
   let unclaimed = null, dev = null;
   try { const d = devPubkey(); if (d) { dev = d.toBase58(); unclaimed = (await rpc().getBalance(creatorVault(d))) / 1e9; } } catch { /* rpc */ }
   return {
     live: isLive(), keyMismatch: keyMismatch(), dev, unclaimedSol: unclaimed == null ? null : +unclaimed.toFixed(4),
     buybackPct: Number(config.STONK_BUYBACK_PCT ?? 0.5), winnerShare: Number(config.STONK_WINNER_SHARE ?? 0.5), mint: config.STONK_BUYBACK_MINT || null,
-    totals: state.totals, rounds: state.rounds.slice(0, 8),
+    prize: config.STONK_PRIZE_MINT ? { symbol: config.STONK_PRIZE_SYMBOL || 'PRIZE', split: Number(config.STONK_BUYBACK_SPLIT ?? 0.5) } : null,
+    partner: config.STONK_PARTNER_WALLET ? { wallet: config.STONK_PARTNER_WALLET, share: Number(config.STONK_PARTNER_SHARE || 0) } : null,
+    totals: state.totals, rounds: state.rounds.slice(0, 8).map(publicRec),
     sweep: { everyMs: Number(config.STONK_CLAIM_MS == null ? 300000 : config.STONK_CLAIM_MS), last: state.lastSweep, accruedSol: +Number((state.accrued && state.accrued.sol) || 0).toFixed(6), claims: ((state.accrued && state.accrued.claims) || []).slice(0, 12) },
   };
 }

@@ -314,7 +314,7 @@ function decideMatch(m) {
     // per-match payout (owner 2026-09-10): runs in the background, never stalls the bracket
     try {
       require('./stonkvotes').settleMatch(state.roundIdx, m)
-        .then((rec) => { if (rec) event('picks', '🎟️ ' + rec.correct + ' of ' + rec.votes + ' picks called ' + w.name + (rec.mode === 'paid' ? ' — airdropped ' + Math.round((rec.treasury && rec.treasury.toWinnersPro) || 0).toLocaleString() + ' $' + (require('./stonkvotes').coinInfo().symbol) : ' — recorded (' + (rec.note || 'dry run') + ')'), { matchId: m.id }); })
+        .then((rec) => { if (rec) event('picks', '🎟️ ' + rec.correct + ' of ' + rec.votes + ' picks called ' + w.name + (rec.mode === 'paid' ? ' — airdropped ' + (rec.prize ? Math.round((rec.treasury && rec.treasury.toWinnersPrize) || 0).toLocaleString() + ' ' + rec.prize.symbol + ' (prize token)' : Math.round((rec.treasury && rec.treasury.toWinnersPro) || 0).toLocaleString() + ' $' + (require('./stonkvotes').coinInfo().symbol)) : ' — recorded (' + (rec.note || 'dry run') + ')'), { matchId: m.id }); })
         .catch((e) => event('error', 'match payout failed: ' + String(e.message).slice(0, 80)));
     } catch { /* votes module optional */ }
   }

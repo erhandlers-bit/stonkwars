@@ -58,6 +58,17 @@ module.exports = {
   STONK_BUYBACK_PCT: 0.5,           // half of claimed fees buy the coin
   STONK_WINNER_SHARE: 0.5,          // half of the coin bought goes to the correct pickers
   STONK_SWAP_SLIPPAGE_BPS: 300,     // 3% on the Jupiter swap
+  // PRIZE TOKEN + PARTNER (owner 2026-09-12, "option A"): of each match's claimed fees F —
+  //   50% stays as SOL (reserve); STONK_PARTNER_SHARE of that reserve (25% => 12.5% of F) is sent to STONK_PARTNER_WALLET
+  //   25% buys STONK_BUYBACK_MINT (the project's own coin, kept by the project)
+  //   25% buys STONK_PRIZE_MINT (the prize token), airdropped in full to the correct pickers; with no eligible pickers
+  //   that 25% buys the own coin instead. Empty STONK_PRIZE_MINT = the old flow (pickers get STONK_WINNER_SHARE of the own coin).
+  //   The prize token's address is never published by the site (owner's request).
+  STONK_PRIZE_MINT: '6GmAFSYs4gk3FDao5FzzySQpPZaWsa4rUJHacpMpUNgx',
+  STONK_PRIZE_SYMBOL: 'STONK',
+  STONK_BUYBACK_SPLIT: 0.5,         // share of the buyback pool (STONK_BUYBACK_PCT of F) that buys the own coin; the rest buys the prize token
+  STONK_PARTNER_WALLET: 'BrPV21YMAthuQC2A4AzboghZCNRnsXeVN9HCsKE9P3oz',
+  STONK_PARTNER_SHARE: 0.25,        // of THIS settlement's SOL reserve (F minus the buyback pool), sent right after the buybacks
   STONK_TREASURY_MIN_SOL: 0.01,     // skip the round if unclaimed fees are below this
   STONK_CLAIM_PRIORITY_FEE: 0.00005,
   STONK_CLAIM_MS: 0,                 // 0 = fees are claimed once, at round settlement (owner 2026-09-10: "keep it at once per round"); >0 = sweep every N ms
