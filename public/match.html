@@ -263,7 +263,7 @@
     var pnl=b.equity-S.config.startUsd;
     var acts=(S.feed||[]).filter(function(e){return e.animalId===id}).slice(0,6);
     var lead=b.equity>((S.books||{})[opp]||{}).equity;
-    return '<div class="fighter'+(lead?' lead':'')+'"><div class="hero">'+(a.image?'<img src="'+a.image+'">':'')+'<div class="badge">#'+a.seed+' seed · '+neurons(a.neurons||0)+' neurons · '+esc((a.brain||{}).quirk||'')+'</div></div>'+
+    return '<div class="fighter'+(lead?' lead':'')+'"><div class="hero">'+(a.image?'<img src="'+a.image+'">':'')+'<div class="badge">brain #'+a.seed+' · '+neurons(a.neurons||0)+' neurons · '+esc((a.brain||{}).quirk||'')+'</div></div>'+
       '<div class="body"><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+'</div>'+
       '<div><span class="eq '+(pnl>=0?'up':'dn')+'">'+fmt(b.equity)+'</span> <span class="'+(pnl>=0?'up':'dn')+'" style="font-weight:700">'+(pnl>=0?'+':'')+fmt(pnl)+'</span> <span class="sub">· '+b.trades+' trades · '+b.wins+'W/'+b.losses+'L · cash '+fmt(b.cash||0)+'</span></div>'+
       '<div class="sec">Holding</div><div class="list">'+((b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+esc(p.url||chart(p))+'" target="_blank" rel="noopener">$'+esc(p.symbol)+' ↗</a><span class="chip">'+esc(p.chainId||'')+'</span>'+(p.forgotten?' <span class="chip">🐟 forgotten</span>':'')+'</span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join('')||'<div class="sub">nothing — all cash</div>')+'</div>'+

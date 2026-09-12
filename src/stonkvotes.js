@@ -214,6 +214,19 @@ async function onTournamentStart() {
   // belong to the previous tournament and must not count again
   for (const k of Object.keys(state.rounds)) if (state.rounds[k] && state.rounds[k].settled) delete state.rounds[k];
   for (const k of Object.keys(state.rounds)) if (state.rounds[k]) delete state.rounds[k].settledMatches; // per-match records belong to the last tournament: a fresh bracket's matches pay again
+  // the bracket is random per tournament (2026-09-12): later rounds are the previous tournament's; round-0 picks survive
+  // only where they name an animal that is actually in that match (idle-preview picks were made on this bracket)
+  try {
+    const st = require('./stonkwars').status(); const r0 = st.rounds && st.rounds[0];
+    for (const k of Object.keys(state.rounds)) if (String(k) !== '0') delete state.rounds[k];
+    if (r0 && state.rounds[0]) {
+      const byId = {}; for (const m of r0.matches) byId[m.id] = m;
+      for (const [w, v] of Object.entries(state.rounds[0].votes || {})) {
+        const keep = {}; for (const [mid, a] of Object.entries(picksOf(v, r0))) if (byId[mid] && (byId[mid].a === a || byId[mid].b === a)) keep[mid] = a;
+        if (Object.keys(keep).length) v.picks = keep; else delete state.rounds[0].votes[w];
+      }
+    }
+  } catch { /* engine not loaded (tests) */ }
   save();
   try {
     const f = await cumulativeFees();

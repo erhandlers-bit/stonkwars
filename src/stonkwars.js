@@ -267,7 +267,15 @@ async function refreshPrices() {
 
 // ---------- bracket ----------
 const ROUND_NAMES = ['Round of 16', 'Quarterfinals', 'Semifinals', 'Final'];
-function seedOrder() { return ANIMALS.slice().sort((a, b) => b.neurons - a.neurons).map((a) => a.id); }
+function seedOrder() { return ANIMALS.slice().sort((a, b) => b.neurons - a.neurons).map((a) => a.id); } // brain rank (labels only)
+// bracket order for the NEXT tournament: random (owner 2026-09-12: "randomize the seeds, don't keep them the same").
+// Drawn once, persisted, shown as the idle preview so early picks stay valid, consumed by startTournament.
+function bracketOrder() {
+  const ids = ANIMALS.map((a) => a.id);
+  const ok = Array.isArray(state.nextOrder) && state.nextOrder.length === ids.length && ids.every((id) => state.nextOrder.includes(id));
+  if (!ok) { const o = ids.slice(); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } state.nextOrder = o; save(); }
+  return state.nextOrder.slice();
+}
 function makeRound(idx, ids, startAt) {
   const dur = config.STONK_MATCH_MS || 3600000;
   const matches = [];
@@ -289,8 +297,9 @@ function startTournament() {
   // crowd can lock in their picks (stonkvotes.js) before anyone trades.
   const pre = config.STONK_PREGAME_MS || config.STONK_INTERMISSION_MS || 180000; // the pregame show (10 min) before round 1
   const dur = config.STONK_MATCH_MS || 3600000;
-  state.rounds.push(makeRound(0, seedOrder(), Date.now() + pre));
-  event('round', '🏟️ STONK WARS — picks are OPEN. Round of 16 bell rings in ' + Math.round(pre / 60000) + ' min. 16 brains, $1,000 each, one match at a time, ' + Math.round(dur / 60000) + ' minutes each.');
+  const order = bracketOrder(); state.nextOrder = null; // consumed — the next tournament draws a fresh bracket
+  state.rounds.push(makeRound(0, order, Date.now() + pre));
+  event('round', '🏟️ STONK WARS — picks are OPEN. Round of 16 bell rings in ' + Math.round(pre / 60000) + ' min. 16 brains, $1,000 each, fresh random bracket, one match at a time, ' + Math.round(dur / 60000) + ' minutes each.');
   try { require('./stonkvotes').onTournamentStart().catch(() => {}); } catch { /* optional */ } // snapshot the creator-fee baseline
   save();
 }
@@ -322,9 +331,10 @@ function advance() {
   } catch { /* votes module optional */ }
   const winners = round.matches.map((m) => m.winner);
   if (winners.length === 1) {
-    state.champion = winners[0]; state.status = 'done';
+    state.champion = winners[0]; state.status = 'done'; state.endedAt = Date.now();
     const c = BY_ID[state.champion];
     event('champion', '🏆 ' + c.emoji + ' ' + c.name.toUpperCase() + ' IS THE STONK WARS CHAMPION — ' + c.neurons.toExponential(1) + ' neurons of pure alpha.');
+    if (config.STONK_AUTO_RESTART) event('round', '🔁 Next tournament in ' + Math.round((Number(config.STONK_RESTART_DELAY_MS == null ? 60000 : config.STONK_RESTART_DELAY_MS) + (config.STONK_PREGAME_MS || 0)) / 60000) + ' min — fresh random bracket, picks open at the bell.');
     save(); return;
   }
   // winners keep their book (cash + open positions) — it is one continuous hour-by-hour run
@@ -339,6 +349,11 @@ function advance() {
 let lastRefresh = 0;
 const rngCache = {};
 async function tick() {
+  // auto-restart (owner 2026-09-12): a finished tournament rolls straight into the next one after a short celebration
+  if (state.status === 'done' && config.STONK_AUTO_RESTART) {
+    if (!state.endedAt) { state.endedAt = Date.now(); save(); }
+    if (Date.now() - state.endedAt >= Number(config.STONK_RESTART_DELAY_MS == null ? 60000 : config.STONK_RESTART_DELAY_MS)) { startTournament(); return; }
+  }
   if (state.status !== 'running') return;
   const now = Date.now();
   const round = state.rounds[state.roundIdx];
@@ -424,7 +439,7 @@ function status() {
     roundIdx: state.roundIdx, roundName: round ? round.name : null, roundStartAt: round ? round.startAt : null, roundEndAt: round ? round.endAt : null,
     active: activeMatch(round, now),
     rounds: state.rounds, books, feed: state.feed.slice(0, 80),
-    preview: state.status === 'idle' ? makeRound(0, seedOrder(), 0) : null, // the bracket people pick on before the bell
+    preview: state.status === 'idle' ? makeRound(0, bracketOrder(), 0) : null, // the bracket people pick on before the bell
     animals: ANIMALS.map((a) => ({ id: a.id, name: a.name, emoji: a.emoji, neurons: a.neurons, brain: a.brain, blurb: a.blurb, image: imageFor(a.id), seed: seedOrder().indexOf(a.id) + 1 })),
     config: { matchMs: config.STONK_MATCH_MS || 3600000, intermissionMs: config.STONK_INTERMISSION_MS || 180000, startUsd: config.STONK_START_USD || 1000, feedCoins: feedCoins().length },
     // the live market every animal is choosing from — for the showcase ticker

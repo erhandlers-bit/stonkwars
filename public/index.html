@@ -6,7 +6,7 @@
 <title>STONK WARS</title>
 <link rel="icon" type="image/png" href="/stonkwars/logo.png">
 <meta property="og:title" content="STONK WARS">
-<meta property="og:description" content="16 animals. 16 virtual brains. 15 minutes each to trade memecoins. Winner advances.">
+<meta property="og:description" content="16 animals. 16 virtual brains. 20 minutes each to trade memecoins. Winner advances.">
 <meta property="og:image" content="/stonkwars/banner.png">
 <style>
   :root{--bg:#07090f;--panel:#0e1220;--border:#1c2337;--text:#e8ecf5;--dim:#7d88a6;--green:#5fe89b;--red:#ff6b6b;--gold:#f5c542;--blue:#5fd0e8}
@@ -162,7 +162,7 @@
   <img src="/stonkwars/logo.png" alt="" style="width:56px;height:56px;border-radius:12px;box-shadow:0 0 0 1px var(--border)">
   <h1>STONK <span>WARS</span></h1>
   <div>
-    <div class="sub">16 animals · 16 virtual brains · $1,000 each · 15 minutes to trade memecoins · winner advances</div>
+    <div class="sub">16 animals · 16 virtual brains · $1,000 each · 20 minutes to trade memecoins · winner advances</div>
     <div class="sub"><span id="feedN"></span> <a href="#director" style="color:var(--blue);text-decoration:none;font-weight:700">🎥 live stream · director mode</a></div>
   </div>
   <div class="admin" id="admin">
@@ -212,7 +212,7 @@
 <div class="card-bg" id="cardBg" onclick="if(event.target===this)closeCard()"><div class="x" onclick="closeCard()">×</div><div class="card" id="card"></div></div>
 <footer>
   <div id="flywheel"><h3>The flywheel</h3><div class="fly">
-    <div><b>1</b>16 traders trade meme coins for 15 minutes per match. You pick the winner of every match and lock the set with your wallet. Free.</div>
+    <div><b>1</b>16 traders trade meme coins for 20 minutes per match; the bracket is drawn at random every tournament and the next tournament starts by itself. You pick the winner of every match and lock the set with your wallet. Free.</div>
     <div><b>2</b>At the end of every round, all creator fees the coin has earned are claimed into the dev wallet.</div>
     <div><b>3</b>Half of those fees buy the coin on the open market. A buyback, every round.</div>
     <div><b>4</b>Half of the coin bought is split among everyone who picked winners — one share per correct pick. To be paid you must hold at least <span id="flyHold">5M $STONK</span> in the wallet you picked with.</div>
@@ -297,7 +297,7 @@
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeCard(); });
   window.openCard=function(id,mid,pickable){ var a=A[id]; if(!a) return; var b=(S.books||{})[id]; var br=a.brain||{};
     var traits=[['memory',br.memory+' coins'],['reaction',(br.reactionMs/1000)+'s'],['positions',br.maxPositions],['bet size',Math.round(br.sizeFrac*100)+'%'],['impulsivity',Math.round(br.impulsivity*100)+'%'],['pattern depth',Math.round(br.depth*100)+'%'],['stop','-'+Math.round(br.stopPct*100)+'%'],['take','+'+Math.round(br.takePct*100)+'%'],['patience',br.maxHoldMin+' min'],['quirk',br.quirk]];
-    var html=(a.image?'<img src="'+a.image+'" alt="">':'')+'<div class="in"><h2>'+esc(a.name)+' <span class="sub">#'+a.seed+' seed · '+neurons(a.neurons)+' neurons</span></h2>'+
+    var html=(a.image?'<img src="'+a.image+'" alt="">':'')+'<div class="in"><h2>'+esc(a.name)+' <span class="sub">brain #'+a.seed+' · '+neurons(a.neurons)+' neurons</span></h2>'+
       '<div class="bio">'+esc(a.blurb||'')+'</div><div>'+traits.map(function(t){return '<span class="trait">'+t[0]+' <b>'+esc(t[1])+'</b></span>'}).join('')+'</div>';
     if(b){ var pnl=b.equity-S.config.startUsd; html+='<div style="margin:12px 0 4px;font-weight:700;font-size:16px">'+fmt(b.equity)+' <span class="'+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</span> <span class="sub">· '+b.trades+' trades · '+b.wins+'W/'+b.losses+'L</span></div>'+(b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+p.url+'" target="_blank" style="color:var(--blue)">$'+esc(p.symbol)+'</a></span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join(''); }
     if(pickable) html+='<button class="vote" onclick="pkSel(\''+mid+'\',\''+id+'\');closeCard();">🗳️ VOTE '+esc(a.name.toUpperCase())+' TO WIN</button>';
@@ -305,7 +305,7 @@
   function detail(id){
     var a=A[id]; if(!a) return; var b=(S.books||{})[id]; var br=a.brain;
     var traits=[['memory',br.memory+' coins'],['reaction',(br.reactionMs/1000)+'s'],['positions',br.maxPositions],['bet size',Math.round(br.sizeFrac*100)+'%'],['impulsivity',Math.round(br.impulsivity*100)+'%'],['pattern depth',Math.round(br.depth*100)+'%'],['stop','-'+Math.round(br.stopPct*100)+'%'],['take','+'+Math.round(br.takePct*100)+'%'],['patience',br.maxHoldMin+'m'],['quirk',br.quirk]];
-    var html='<div class="big">'+av(a)+'<div><div style="font-size:16px;font-weight:900">'+esc(a.name)+' <span class="sub">#'+a.seed+' seed</span></div><div class="sub">'+neurons(a.neurons)+' neurons · '+esc(a.blurb)+'</div></div></div>';
+    var html='<div class="big">'+av(a)+'<div><div style="font-size:16px;font-weight:900">'+esc(a.name)+' <span class="sub">brain #'+a.seed+'</span></div><div class="sub">'+neurons(a.neurons)+' neurons · '+esc(a.blurb)+'</div></div></div>';
     html+='<div>'+traits.map(function(t){return '<span class="trait">'+t[0]+' <b>'+esc(t[1])+'</b></span>'}).join('')+'</div>';
     if(b){
       var pnl=b.equity-S.config.startUsd;
