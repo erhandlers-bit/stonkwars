@@ -44,7 +44,7 @@ const BIOS = {
   gigachad: 'Gigachad — meme power 91, a jawline with a brokerage account who bets half the stack and has never heard of a stop loss',
   grumpycat: 'Grumpy Cat — meme power 88, a permanent scowl who says NO to nearly every coin and never forgives the one that burned her',
   nyancat: 'Nyan Cat — meme power 82, a Pop-Tart cat trailing a rainbow who scalps momentum at speeds that violate several treaties',
-  badluckbrian: 'Bad Luck Brian — meme power 78, braces and a plaid vest, who hears every pump exactly one minute after it ends',
+  goku: 'Goku — meme power 1000, a Saiyan from a planet that no longer exists who senses a coin\'s energy, takes the hit and powers up mid-drawdown, screaming the whole time',
   successkid: 'Success Kid — meme power 84, a fist-clenched toddler on a beach who takes twenty percent, pumps his fist and does it again',
   harold: 'Hide the Pain Harold — meme power 86, a stock-photo grandfather who smiles through every drawdown and sells the instant it turns green',
   distracted: 'Distracted Boyfriend — meme power 87, a stock-photo man who drops whatever he is holding the moment a shinier coin walks past',
