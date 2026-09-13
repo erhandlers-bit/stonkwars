@@ -24,7 +24,18 @@ const ALL_TRADERS = [].concat(...Object.values(ROSTERS).map((r) => r.traders));
 const BY_ID = Object.fromEntries(ALL_TRADERS.map((a) => [a.id, a]));
 // the roster in play: the running tournament's; otherwise the one the DEV picked for the next one (default: animals)
 function rosterId() { const running = state.status === 'running' || state.status === 'paused'; return (running ? state.roster : (state.nextRoster || state.roster)) || 'animals'; }
-function roster() { return ROSTERS[rosterId()] || ROSTERS.animals; }
+const RANDOM = { id: 'random', name: 'RANDOM MIX', tagline: '16 traders drawn at random from every roster · a new draw each tournament' };
+function drawRandom() { const o = ALL_TRADERS.map((a) => a.id); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } return o.slice(0, 16); }
+function rosterMeta(id) { return id === 'random' ? RANDOM : (ROSTERS[id] || null); }
+function roster() {
+  const id = rosterId();
+  if (id !== 'random') return ROSTERS[id] || ROSTERS.animals;
+  // RANDOM MIX: the 16 in play are whoever is in the bracket; before a bracket exists they are the persisted draw
+  const r0 = state.rounds && state.rounds[0];
+  let ids = (state.status !== 'idle' && r0) ? r0.matches.flatMap((m) => [m.a, m.b]) : null;
+  if (!ids) { if (!Array.isArray(state.nextOrder) || state.nextOrder.length !== 16 || !state.nextOrder.every((x) => BY_ID[x])) { state.nextOrder = drawRandom(); save(); } ids = state.nextOrder; }
+  return { id: 'random', name: RANDOM.name, tagline: RANDOM.tagline, traders: ids.map((x) => BY_ID[x]).filter(Boolean) };
+}
 
 // ---------- deterministic randomness ----------
 function fnv(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; }
@@ -429,7 +440,7 @@ function status() {
     rounds: state.rounds, books, feed: state.feed.slice(0, 80),
     preview: state.status === 'idle' ? makeRound(0, bracketOrder(), 0) : null, // the bracket people pick on before the bell
     roster: { id: rosterId(), name: roster().name, tagline: roster().tagline }, nextRoster: state.nextRoster || null,
-    rosters: Object.values(ROSTERS).map((r) => ({ id: r.id, name: r.name, tagline: r.tagline })),
+    rosters: Object.values(ROSTERS).map((r) => ({ id: r.id, name: r.name, tagline: r.tagline })).concat([{ id: RANDOM.id, name: RANDOM.name, tagline: RANDOM.tagline }]),
     animals: roster().traders.map((a) => ({ id: a.id, name: a.name, emoji: a.emoji, neurons: a.neurons, stat: a.stat, statText: a.statText, brain: a.brain, blurb: a.blurb, image: imageFor(a.id), seed: seedOrder().indexOf(a.id) + 1 })),
     config: { matchMs: config.STONK_MATCH_MS || 3600000, intermissionMs: config.STONK_INTERMISSION_MS || 180000, startUsd: config.STONK_START_USD || 1000, feedCoins: feedCoins().length },
     // the live market every animal is choosing from — for the showcase ticker
@@ -448,9 +459,9 @@ function start() {
 // DEV picks the roster for the NEXT tournament (owner 2026-09-12); the running one is never switched mid-bracket
 function setRoster(id) {
   id = String(id || '');
-  if (!ROSTERS[id]) return { ok: false, reason: 'unknown roster ' + id + ' (have: ' + Object.keys(ROSTERS).join(', ') + ')' };
+  if (!rosterMeta(id)) return { ok: false, reason: 'unknown roster ' + id + ' (have: ' + Object.keys(ROSTERS).concat('random').join(', ') + ')' };
   state.nextRoster = id; state.nextOrder = null; save();
-  event('round', '🎭 Next tournament: ' + ROSTERS[id].name + ' — ' + ROSTERS[id].tagline);
+  event('round', '🎭 Next tournament: ' + rosterMeta(id).name + ' — ' + rosterMeta(id).tagline);
   return { ok: true, roster: id, appliesAt: state.status === 'running' ? 'next tournament' : 'next start' };
 }
 function skip() {
