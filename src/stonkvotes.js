@@ -358,15 +358,16 @@ async function settleMatch(roundIdx, m) {
 const settling = new Set();
 
 // the prize token (owner 2026-09-12): what the site may say about it — a symbol, never the address
-function prizeInfo() { return { enabled: !!config.STONK_PRIZE_MINT, symbol: config.STONK_PRIZE_SYMBOL || 'PRIZE', split: Number(config.STONK_BUYBACK_SPLIT ?? 0.5), partnerShare: config.STONK_PARTNER_WALLET ? Number(config.STONK_PARTNER_SHARE || 0) : 0 }; }
-function publicTreasury(t) { if (!t || !t.prize) return t; const o = Object.assign({}, t); o.prize = { symbol: t.prize.symbol, decimals: t.prize.decimals }; return o; }
+function prizeInfo() { return { enabled: !!config.STONK_PRIZE_MINT, symbol: config.STONK_PRIZE_SYMBOL || 'PRIZE', split: Number(config.STONK_BUYBACK_SPLIT ?? 0.5) }; }
+// what the site may see of a settlement: no prize-token address, no partner transfer (owner 2026-09-13)
+function publicTreasury(t) { if (!t) return t; const o = Object.assign({}, t); if (t.prize) o.prize = { symbol: t.prize.symbol, decimals: t.prize.decimals }; delete o.partnerSol; delete o.partnerWallet; if (t.txs && t.txs.partner) { o.txs = Object.assign({}, t.txs); delete o.txs.partner; } return o; }
 
 // ---- public ledger: every wallet ever paid (or owed), with amounts ----
 function ledger() {
   const rows = [];
   for (const s of state.settlements) {
-    if (s.treasury && s.treasury.txs && s.treasury.txs.partner) rows.push({ round: s.roundIdx, match: s.matchId || null, at: s.at, wallet: s.treasury.partnerWallet, shares: 0, kind: 'partner', amount: s.treasury.partnerSol || 0, currency: 'SOL', txid: s.treasury.txs.partner, status: 'paid', error: null });
     for (const t of s.txs || []) {
+      if (t.pro == null && t.prize == null) continue; // owner 2026-09-13: the public ledger lists token airdrops only, never SOL
       rows.push({ round: s.roundIdx, match: s.matchId || null, at: s.at, wallet: t.wallet, shares: t.shares || 1,
         amount: t.pro != null ? t.pro : (t.prize != null ? t.prize : (t.sol || 0)), currency: t.pro != null ? 'COIN' : (t.prize != null ? 'PRIZE' : 'SOL'),
         txid: t.txid || null, status: t.txid ? 'paid' : (t.error ? 'failed' : 'owed'), error: t.error || null });
@@ -374,7 +375,7 @@ function ledger() {
   }
   const totals = {};
   for (const r of rows) { const k = r.wallet + '|' + r.currency; totals[k] = totals[k] || { wallet: r.wallet, currency: r.currency, paid: 0, owed: 0, rounds: 0 }; totals[k].rounds++; if (r.status === 'paid') totals[k].paid += r.amount; else if (r.status === 'owed') totals[k].owed += r.amount; }
-  return { coin: coinInfo(), prize: prizeInfo(), rows, wallets: Object.values(totals).sort((a, b) => (b.paid + b.owed) - (a.paid + a.owed)), settlements: state.settlements.map((s) => ({ roundIdx: s.roundIdx, at: s.at, votes: s.votes, correct: s.correct, shares: s.shares, mode: s.mode, poolSol: s.poolSol, currency: s.currency || 'SOL', prize: s.prize || null, toWinnersPro: s.treasury ? s.treasury.toWinnersPro : undefined, toWinnersPrize: s.treasury ? s.treasury.toWinnersPrize : undefined, partnerSol: s.treasury && s.treasury.txs && s.treasury.txs.partner ? s.treasury.partnerSol : undefined, ineligible: (s.ineligible || []).length, note: s.note })) };
+  return { coin: coinInfo(), prize: prizeInfo(), rows, wallets: Object.values(totals).sort((a, b) => (b.paid + b.owed) - (a.paid + a.owed)), settlements: state.settlements.map((s) => ({ roundIdx: s.roundIdx, at: s.at, votes: s.votes, correct: s.correct, shares: s.shares, mode: s.mode, poolSol: s.poolSol, currency: s.currency || 'SOL', prize: s.prize || null, toWinnersPro: s.treasury ? s.treasury.toWinnersPro : undefined, toWinnersPrize: s.treasury ? s.treasury.toWinnersPrize : undefined, ineligible: (s.ineligible || []).length, note: s.note })) };
 }
 
 async function status(wallet) {

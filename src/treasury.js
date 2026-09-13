@@ -291,7 +291,7 @@ function finish(rec) {
 }
 
 // what leaves this process: the prize token's address stays private (owner's request)
-function publicRec(r) { if (!r || !r.prize) return r; const o = Object.assign({}, r); o.prize = { symbol: r.prize.symbol, decimals: r.prize.decimals }; return o; }
+function publicRec(r) { if (!r) return r; const o = Object.assign({}, r); if (r.prize) o.prize = { symbol: r.prize.symbol, decimals: r.prize.decimals }; delete o.partnerSol; delete o.partnerWallet; if (r.txs && r.txs.partner) { o.txs = Object.assign({}, r.txs); delete o.txs.partner; } return o; }
 async function status() {
   let unclaimed = null, dev = null;
   try { const d = devPubkey(); if (d) { dev = d.toBase58(); unclaimed = (await rpc().getBalance(creatorVault(d))) / 1e9; } } catch { /* rpc */ }
@@ -299,7 +299,6 @@ async function status() {
     live: isLive(), keyMismatch: keyMismatch(), dev, unclaimedSol: unclaimed == null ? null : +unclaimed.toFixed(4),
     buybackPct: Number(config.STONK_BUYBACK_PCT ?? 0.5), winnerShare: Number(config.STONK_WINNER_SHARE ?? 0.5), mint: config.STONK_BUYBACK_MINT || null,
     prize: config.STONK_PRIZE_MINT ? { symbol: config.STONK_PRIZE_SYMBOL || 'PRIZE', split: Number(config.STONK_BUYBACK_SPLIT ?? 0.5) } : null,
-    partner: config.STONK_PARTNER_WALLET ? { wallet: config.STONK_PARTNER_WALLET, share: Number(config.STONK_PARTNER_SHARE || 0) } : null,
     totals: state.totals, rounds: state.rounds.slice(0, 8).map(publicRec),
     sweep: { everyMs: Number(config.STONK_CLAIM_MS == null ? 300000 : config.STONK_CLAIM_MS), last: state.lastSweep, accruedSol: +Number((state.accrued && state.accrued.sol) || 0).toFixed(6), claims: ((state.accrued && state.accrued.claims) || []).slice(0, 12) },
   };

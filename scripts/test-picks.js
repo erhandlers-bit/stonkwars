@@ -61,7 +61,8 @@ const ok = (name, cond, detail) => { console.log((cond ? '  PASS  ' : '  FAIL  '
   ok('settlement counts one share per correct pick', rec.correct === 1 && rec.shares === 2 && rec.txs.length === 1 && rec.txs[0].shares === 2, JSON.stringify({ correct: rec.correct, shares: rec.shares, mode: rec.mode }));
   ok('dry-run records the payout as owed (no keys, no sends)', rec.mode === 'owed' && rec.txs[0].owed === true, rec.note);
   const led = votes.ledger();
-  ok('ledger lists the wallet with its amount', led.rows.length === 1 && led.rows[0].wallet === wallet && led.wallets.length === 1, JSON.stringify(led.rows[0]));
+  // owner 2026-09-13: the public ledger lists token airdrops only — a SOL-only (dry-run) settlement produces no public rows
+  ok('ledger hides SOL-only settlements (token airdrops only)', led.rows.length === 0 && led.wallets.length === 0, JSON.stringify(led.rows));
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   // scrub the throwaway state so a real tournament starts clean
   try { require('fs').unlinkSync(__dirname + '/../data/stonkvotes.json'); } catch { /* none */ }
