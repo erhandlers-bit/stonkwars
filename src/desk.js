@@ -177,7 +177,7 @@ async function turn(who) {
     // all sixteen introduced: free banter until the bell (the normal quiet-fill rules apply)
   }
 
-  const transcript = commentary.status().latest.slice(0, 10).reverse()
+  const transcript = commentary.status().latest.slice(0, 6).reverse() // 6 lines is enough for callbacks and costs fewer input tokens
     .filter((l) => l.who === 'stonks' || l.who === 'notstonks' || String(l.who).startsWith('animal:'))
     .map((l) => (l.who === 'stonks' ? 'STONKS MAN' : l.who === 'notstonks' ? 'NOT STONKS MAN' : (l.name || 'A TRADER').toUpperCase() + ' (interviewed)') + ': ' + l.text).join('\n');
   const obs =
@@ -191,7 +191,7 @@ async function turn(who) {
   me.calls++;
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: config.STONK_AGENT_MODEL || 'claude-opus-5', max_tokens: 120, system: PERSONA[who] + '\n\n' + RULES, messages: [{ role: 'user', content: obs }] }),
+    body: JSON.stringify({ model: config.STONK_AGENT_MODEL || 'claude-haiku-4-5-20251001', max_tokens: 120, system: PERSONA[who] + '\n\n' + RULES, messages: [{ role: 'user', content: obs }] }),
     signal: AbortSignal.timeout(25000),
   });
   const j = await r.json();
@@ -216,7 +216,7 @@ async function tick() {
   }
 }
 
-function status() { return { enabled: started, model: config.STONK_AGENT_MODEL || 'claude-opus-5', agents, events: events.length, backoffUntil }; }
+function status() { return { enabled: started, model: config.STONK_AGENT_MODEL || 'claude-haiku-4-5-20251001', agents, events: events.length, backoffUntil }; }
 
 function start() {
   if (!config.STONK_AGENTS) return false;
@@ -226,7 +226,7 @@ function start() {
   const ms = Number(config.STONK_AGENT_TICK_MS || 12000);
   setInterval(() => tick().catch(() => {}), ms).unref();
   started = true;
-  console.log('[desk] two autonomous agents on the call (' + (config.STONK_AGENT_MODEL || 'claude-opus-5') + ', a turn every ' + Math.round(ms / 1000) + 's)');
+  console.log('[desk] two autonomous agents on the call (' + (config.STONK_AGENT_MODEL || 'claude-haiku-4-5-20251001') + ', a turn every ' + Math.round(ms / 1000) + 's)');
   return true;
 }
 

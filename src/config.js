@@ -37,17 +37,21 @@ module.exports = {
   // --- COMMENTARY (the showcase view) ---
   STONK_BANTER_MS: 45_000,          // Claude-written banter cadence; 0 = scripted lines only
   STONK_CHAT_REPLY_MS: 30_000,      // the desk reads the stream chat and answers this often (0 = never)
-  STONK_CHAT_MODEL: 'claude-opus-5',   // the desk answers chat with Opus 5 (owner 2026-09-10); banter stays on STONK_BANTER_MODEL
+  STONK_CHAT_MODEL: 'claude-haiku-4-5-20251001', // owner 2026-09-13 (cost): Haiku answers chat — was Opus 5, ~20x the price for one line
   // DESK AGENTS (owner 2026-09-10): each Stonks Man is its own Claude agent that reads the
   // events, the transcript and the chat and decides when to speak. Needs ANTHROPIC_API_KEY.
   STONK_AGENTS: true,
-  STONK_AGENT_MODEL: 'claude-opus-5',
-  STONK_AGENT_TICK_MS: 12_000,       // one seat takes a turn this often (a seat only calls the model when something is new)
+  STONK_AGENT_MODEL: 'claude-haiku-4-5-20251001', // owner 2026-09-13 (cost): the desk runs on Haiku — Opus 5 was ~$170/day of one-liners
+  STONK_AGENT_TICK_MS: 20_000,       // owner 2026-09-13: a seat takes a turn this often (was 12s; ~40% fewer calls and less talking over each other)
   STONK_PREGAME_MS: Number(process.env.STONK_PREGAME_MS) || 5 * 60_000,     // owner 2026-09-10: 5-minute pregame (video -> intros -> banter)
   STONK_INTRO_GAP_MS: 15_000,       // one contender introduced this often during the pregame (16 x 15s = 4 min)
   STONK_INTERVIEW_MS: 4 * 60_000,   // a commentator interviews a random live animal this often
   STONK_BANTER_MODEL: 'claude-haiku-4-5-20251001', // cheap and fast; four hours costs cents
   STONK_LINE_GAP_MS: 3500,          // a commentator will not talk over itself faster than this
+  // VOICES. Edge (msedge-tts) is free and unlimited; ElevenLabs bills per character and the show burned 181k/day.
+  // '' = Edge for every line (free, the default). 'all' = ElevenLabs for every line. A comma list = the paid voice
+  // only for those line kinds, e.g. 'result,champion,round,interview' keeps it for the moments that carry the show.
+  STONK_EL_KINDS: '',
 
   // --- TREASURY (owner 2026-09-10): claim fees -> buy the coin -> pay winners IN the coin ---
   // Per round: claim all pump.fun creator fees; swap STONK_BUYBACK_PCT of them

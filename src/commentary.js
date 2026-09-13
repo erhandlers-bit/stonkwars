@@ -373,11 +373,15 @@ async function chatBanter() {
 let ttsLib = null;
 async function tts(line) {
   try { fs.mkdirSync(TTS_DIR, { recursive: true }); } catch { /* exists */ }
-  const file = path.join(TTS_DIR, crypto.createHash('md5').update((process.env.ELEVENLABS_API_KEY ? 'el|' : 'edge|') + line.who + '|' + line.text).digest('hex') + '.mp3');
+  // owner 2026-09-13 (cost): Edge is free, ElevenLabs bills per character — STONK_EL_KINDS decides which lines get the paid voice
+  const elCfg = String(config.STONK_EL_KINDS == null ? '' : config.STONK_EL_KINDS).trim();
+  const elKinds = elCfg.split(',').map((s) => s.trim()).filter(Boolean);
+  const useEl = !!process.env.ELEVENLABS_API_KEY && elKinds.length > 0 && (elCfg === 'all' || elKinds.includes(String(line.kind || '')));
+  const file = path.join(TTS_DIR, crypto.createHash('md5').update((useEl ? 'el|' : 'edge|') + line.who + '|' + line.text).digest('hex') + '.mp3');
   if (fs.existsSync(file)) return fs.readFileSync(file);
   const c = speaker(line.who);
   // ElevenLabs first (realistic), Edge if there is no key or the call fails — the show never goes silent
-  if (process.env.ELEVENLABS_API_KEY && c.el) {
+  if (useEl && c.el) {
     try {
       const el = c.el;
       const r = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + (process.env.ELEVENLABS_VOICE_ID || el.voice) + '?output_format=mp3_44100_96', {
