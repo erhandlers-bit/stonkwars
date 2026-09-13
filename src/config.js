@@ -35,17 +35,18 @@ module.exports = {
   STONK_PAYOUT_WALLET: '',             // public address to read the pool from when STONK_PAYOUT_KEY is unset
   STONK_FEE_VAULT: '',                 // optional: launchpad creator-fee vault (unclaimed fees count toward accrual)
   // --- COMMENTARY (the showcase view) ---
-  STONK_BANTER_MS: 45_000,          // Claude-written banter cadence; 0 = scripted lines only
-  STONK_CHAT_REPLY_MS: 30_000,      // the desk reads the stream chat and answers this often (0 = never)
+  STONK_BANTER_MS: 0,               // owner 2026-09-13 FREE MODE: 0 = scripted lines only, no API call
+  STONK_CHAT_REPLY_MS: 0,           // owner 2026-09-13 FREE MODE: the desk no longer answers stream chat (that was an API call each time)
   STONK_CHAT_MODEL: 'claude-haiku-4-5-20251001', // owner 2026-09-13 (cost): Haiku answers chat — was Opus 5, ~20x the price for one line
   // DESK AGENTS (owner 2026-09-10): each Stonks Man is its own Claude agent that reads the
   // events, the transcript and the chat and decides when to speak. Needs ANTHROPIC_API_KEY.
-  STONK_AGENTS: true,
+  STONK_AGENTS: false,              // owner 2026-09-13 FREE MODE: the two autonomous comedians are OFF. Set true to bring them back
+                                    // (leave the three knobs above at 0 — the agents do banter, interviews and chat themselves).
   STONK_AGENT_MODEL: 'claude-haiku-4-5-20251001', // owner 2026-09-13 (cost): the desk runs on Haiku — Opus 5 was ~$170/day of one-liners
   STONK_AGENT_TICK_MS: 20_000,       // owner 2026-09-13: a seat takes a turn this often (was 12s; ~40% fewer calls and less talking over each other)
   STONK_PREGAME_MS: Number(process.env.STONK_PREGAME_MS) || 5 * 60_000,     // owner 2026-09-10: 5-minute pregame (video -> intros -> banter)
   STONK_INTRO_GAP_MS: 15_000,       // one contender introduced this often during the pregame (16 x 15s = 4 min)
-  STONK_INTERVIEW_MS: 4 * 60_000,   // a commentator interviews a random live animal this often
+  STONK_INTERVIEW_MS: 0,            // owner 2026-09-13 FREE MODE: ringside interviews were an API call each
   STONK_BANTER_MODEL: 'claude-haiku-4-5-20251001', // cheap and fast; four hours costs cents
   STONK_LINE_GAP_MS: 3500,          // a commentator will not talk over itself faster than this
   // VOICES. Edge (msedge-tts) is free and unlimited; ElevenLabs bills per character and the show burned 181k/day.
