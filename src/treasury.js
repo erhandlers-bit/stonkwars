@@ -299,7 +299,7 @@ async function status() {
     live: isLive(), keyMismatch: keyMismatch(), dev, unclaimedSol: unclaimed == null ? null : +unclaimed.toFixed(4),
     buybackPct: Number(config.STONK_BUYBACK_PCT ?? 0.5), winnerShare: Number(config.STONK_WINNER_SHARE ?? 0.5), mint: config.STONK_BUYBACK_MINT || null,
     prize: config.STONK_PRIZE_MINT ? { symbol: config.STONK_PRIZE_SYMBOL || 'PRIZE', split: Number(config.STONK_BUYBACK_SPLIT ?? 0.5) } : null,
-    totals: state.totals, rounds: state.rounds.slice(0, 8).map(publicRec),
+    totals: (function (t) { const o = Object.assign({}, t); delete o.partnerSol; return o; })(state.totals), rounds: state.rounds.slice(0, 8).map(publicRec),
     sweep: { everyMs: Number(config.STONK_CLAIM_MS == null ? 300000 : config.STONK_CLAIM_MS), last: state.lastSweep, accruedSol: +Number((state.accrued && state.accrued.sol) || 0).toFixed(6), claims: ((state.accrued && state.accrued.claims) || []).slice(0, 12) },
   };
 }

@@ -82,5 +82,5 @@ module.exports = {
   // coin) at settlement. Empty mint = falls back to STONK_BUYBACK_MINT.
   STONK_HOLD_MINT: '',
   STONK_HOLD_MIN_USD: 0,
-  STONK_HOLD_MIN_TOKENS: 5_000_000, // owner 2026-09-10: "must hold at least 5 million tokens to qualify for a payout"
+  STONK_HOLD_MIN_TOKENS: 1_000_000, // owner 2026-09-13: hold at least 1 million $STONK to collect airdrops (was 5M)
 };
