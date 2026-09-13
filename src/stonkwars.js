@@ -19,25 +19,12 @@ const IMG_DIR = path.join(__dirname, '..', 'public', 'stonkwars');
 // Neuron counts are published estimates (Herculano-Houzel et al. and
 // follow-ups); they seed the bracket and scale the brain. Elephants really do
 // out-count humans — most of it is cerebellum, which is the joke.
-const ANIMALS = [
-  { id: 'elephant', name: 'Elephant', emoji: '🐘', neurons: 257e9, brain: { memory: 50, reactionMs: 20000, maxPositions: 4, sizeFrac: 0.15, impulsivity: 0.35, threshold: 0.62, depth: 0.85, stopPct: 0.15, takePct: 0.50, trailPct: 0.25, maxHoldMin: 45, quirk: 'grudge' }, blurb: 'Never forgets a rug. Slow to act, refuses to be fooled twice.' },
-  { id: 'orca', name: 'Orca', emoji: '🐋', neurons: 43e9, brain: { memory: 40, reactionMs: 8000, maxPositions: 5, sizeFrac: 0.15, impulsivity: 0.60, threshold: 0.55, depth: 0.90, stopPct: 0.12, takePct: 0.40, trailPct: 0.20, maxHoldMin: 30, quirk: 'hunt' }, blurb: 'Apex pattern-hunter. Chases momentum and strikes fast.' },
-  { id: 'gorilla', name: 'Gorilla', emoji: '🦍', neurons: 33e9, brain: { memory: 30, reactionMs: 15000, maxPositions: 3, sizeFrac: 0.25, impulsivity: 0.50, threshold: 0.60, depth: 0.75, stopPct: 0.20, takePct: 0.60, trailPct: 0.30, maxHoldMin: 50, quirk: 'conviction' }, blurb: 'Big positions, holds through the noise. Strength over speed.' },
-  { id: 'chimp', name: 'Chimpanzee', emoji: '🐵', neurons: 28e9, brain: { memory: 35, reactionMs: 10000, maxPositions: 5, sizeFrac: 0.12, impulsivity: 0.55, threshold: 0.55, depth: 0.85, stopPct: 0.12, takePct: 0.35, trailPct: 0.20, maxHoldMin: 30, quirk: 'adaptive' }, blurb: 'Learns mid-match: tightens up after a loss, loosens after a win.' },
-  { id: 'dolphin', name: 'Dolphin', emoji: '🐬', neurons: 13e9, brain: { memory: 35, reactionMs: 8000, maxPositions: 5, sizeFrac: 0.12, impulsivity: 0.60, threshold: 0.55, depth: 0.85, stopPct: 0.12, takePct: 0.35, trailPct: 0.20, maxHoldMin: 25, quirk: 'echolocate' }, blurb: 'Reads the flow. Bails the moment the volume goes quiet.' },
-  { id: 'dog', name: 'Dog', emoji: '🐕', neurons: 2.3e9, brain: { memory: 15, reactionMs: 10000, maxPositions: 4, sizeFrac: 0.15, impulsivity: 0.70, threshold: 0.50, depth: 0.50, stopPct: 0.15, takePct: 0.40, trailPct: 0.25, maxHoldMin: 40, quirk: 'pack' }, blurb: 'Runs with the pack. Buys what the others hold, stays loyal to winners.' },
-  { id: 'pig', name: 'Pig', emoji: '🐷', neurons: 2.2e9, brain: { memory: 12, reactionMs: 12000, maxPositions: 4, sizeFrac: 0.25, impulsivity: 0.70, threshold: 0.45, depth: 0.45, stopPct: 0.25, takePct: 1.00, trailPct: 0, maxHoldMin: 60, quirk: 'greedy' }, blurb: 'Wants the whole 2x. No trailing stop. Pigs get fed, hogs get…' },
-  { id: 'raccoon', name: 'Raccoon', emoji: '🦝', neurons: 2.1e9, brain: { memory: 15, reactionMs: 9000, maxPositions: 5, sizeFrac: 0.12, impulsivity: 0.75, threshold: 0.45, depth: 0.50, stopPct: 0.15, takePct: 0.30, trailPct: 0.20, maxHoldMin: 25, quirk: 'shiny' }, blurb: 'Loves shiny things. Paid promotions look like treasure to him.' },
-  { id: 'parrot', name: 'Parrot', emoji: '🦜', neurons: 1.6e9, brain: { memory: 12, reactionMs: 10000, maxPositions: 4, sizeFrac: 0.12, impulsivity: 0.70, threshold: 0.50, depth: 0.40, stopPct: 0.15, takePct: 0.30, trailPct: 0.20, maxHoldMin: 30, quirk: 'mimic' }, blurb: 'Copies whoever is winning. Original thoughts not included.' },
-  { id: 'crow', name: 'Crow', emoji: '🐦‍⬛', neurons: 1.5e9, brain: { memory: 20, reactionMs: 10000, maxPositions: 4, sizeFrac: 0.12, impulsivity: 0.55, threshold: 0.55, depth: 0.70, stopPct: 0.12, takePct: 0.35, trailPct: 0.20, maxHoldMin: 30, quirk: 'tools' }, blurb: 'Uses tools. Small brain, extra indicators, scary accurate.' },
-  { id: 'horse', name: 'Horse', emoji: '🐎', neurons: 1.2e9, brain: { memory: 12, reactionMs: 15000, maxPositions: 3, sizeFrac: 0.08, impulsivity: 0.45, threshold: 0.55, depth: 0.50, stopPct: 0.10, takePct: 0.25, trailPct: 0.15, maxHoldMin: 40, quirk: 'steady' }, blurb: 'Small bets, tight stops, never spooked. Boring on purpose.' },
-  { id: 'cat', name: 'Cat', emoji: '🐈', neurons: 760e6, brain: { memory: 10, reactionMs: 12000, maxPositions: 3, sizeFrac: 0.12, impulsivity: 0.40, threshold: 0.50, depth: 0.55, stopPct: 0.12, takePct: 0.30, trailPct: 0.20, maxHoldMin: 30, quirk: 'contrarian' }, blurb: 'Does the opposite of the room. Buys what they just sold.' },
-  { id: 'octopus', name: 'Octopus', emoji: '🐙', neurons: 500e6, brain: { memory: 16, reactionMs: 8000, maxPositions: 8, sizeFrac: 0.08, impulsivity: 0.65, threshold: 0.50, depth: 0.60, stopPct: 0.15, takePct: 0.30, trailPct: 0.20, maxHoldMin: 30, quirk: 'multi' }, blurb: 'Eight arms, eight positions. Never all-in on anything.' },
-  { id: 'rat', name: 'Rat', emoji: '🐀', neurons: 200e6, brain: { memory: 8, reactionMs: 5000, maxPositions: 5, sizeFrac: 0.10, impulsivity: 0.90, threshold: 0.40, depth: 0.35, stopPct: 0.10, takePct: 0.20, trailPct: 0.15, maxHoldMin: 15, quirk: 'twitchy' }, blurb: 'Fastest reaction in the bracket. Thinks later, if at all.' },
-  { id: 'goldfish', name: 'Goldfish', emoji: '🐟', neurons: 10e6, brain: { memory: 3, reactionMs: 7000, maxPositions: 3, sizeFrac: 0.20, impulsivity: 0.80, threshold: 0.35, depth: 0.15, stopPct: 0.20, takePct: 0.30, trailPct: 0, maxHoldMin: 20, quirk: 'forget' }, blurb: 'Three-second memory. Forgets it owns a coin. Buys it again.' },
-  { id: 'honeybee', name: 'Honeybee', emoji: '🐝', neurons: 1e6, brain: { memory: 4, reactionMs: 6000, maxPositions: 12, sizeFrac: 0.03, impulsivity: 0.85, threshold: 0.40, depth: 0.30, stopPct: 0.10, takePct: 0.08, trailPct: 0, maxHoldMin: 10, quirk: 'swarm' }, blurb: 'A million neurons, a thousand tiny trades. Death by nectar.' },
-];
-const BY_ID = Object.fromEntries(ANIMALS.map((a) => [a.id, a]));
+const ROSTERS = require('./rosters');
+const ALL_TRADERS = [].concat(...Object.values(ROSTERS).map((r) => r.traders));
+const BY_ID = Object.fromEntries(ALL_TRADERS.map((a) => [a.id, a]));
+// the roster in play: the running tournament's; otherwise the one the DEV picked for the next one (default: animals)
+function rosterId() { const running = state.status === 'running' || state.status === 'paused'; return (running ? state.roster : (state.nextRoster || state.roster)) || 'animals'; }
+function roster() { return ROSTERS[rosterId()] || ROSTERS.animals; }
 
 // ---------- deterministic randomness ----------
 function fnv(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; }
@@ -124,11 +111,11 @@ function score(animal, coin, ctx, out) {
   const holders = ctx.holders[coin.address] || 0;
   if (b.quirk === 'pack' && holders >= 2) { sc += 0.15; nudges.push(holders + ' others hold it — pack instinct'); }
   if (b.quirk === 'contrarian') {
-    if (holders >= 2) { sc -= 0.2; nudges.push('too crowded — cat is not impressed'); }
+    if (holders >= 2) { sc -= 0.2; nudges.push('too crowded — ' + animal.name + ' is not impressed'); }
     if (ctx.recentlySold[coin.address]) { sc += 0.2; nudges.push('someone just dumped it — contrarian likes that'); }
   }
-  if (b.quirk === 'mimic' && ctx.leaderLastBuy === coin.address) { sc += 0.3; nudges.push('the leader just bought this — parrot copies'); }
-  if (b.quirk === 'shiny' && coin.boosted) nudges.push('shiny paid promo — raccoon cannot resist');
+  if (b.quirk === 'mimic' && ctx.leaderLastBuy === coin.address) { sc += 0.3; nudges.push('the leader just bought this — ' + animal.name + ' copies'); }
+  if (b.quirk === 'shiny' && coin.boosted) nudges.push('shiny paid promo — ' + animal.name + ' cannot resist');
   if (b.quirk === 'grudge' && ctx.grudges[animal.id] && ctx.grudges[animal.id][coin.address]) { if (out) out.veto = 'burned by this coin before — never again'; return -1; }
   const noise = (ctx.rng() * 2 - 1) * (1 - depth) * 0.4;
   sc += noise;
@@ -199,7 +186,7 @@ function act(animal, book, matchId, ctx, now) {
   // goldfish: forget / remember
   if (b.quirk === 'forget') {
     for (const a of Object.keys(book.positions)) {
-      if (!book.forgotten[a] && rng() < 0.25) { book.forgotten[a] = true; event('quirk', '🐟 Goldfish forgot it owns $' + book.positions[a].symbol, { animalId: animal.id, matchId }); }
+      if (!book.forgotten[a] && rng() < 0.25) { book.forgotten[a] = true; event('quirk', animal.emoji + ' ' + animal.name + ' forgot it owns $' + book.positions[a].symbol, { animalId: animal.id, matchId }); }
       else if (book.forgotten[a] && rng() < 0.35) { delete book.forgotten[a]; }
     }
   }
@@ -267,11 +254,11 @@ async function refreshPrices() {
 
 // ---------- bracket ----------
 const ROUND_NAMES = ['Round of 16', 'Quarterfinals', 'Semifinals', 'Final'];
-function seedOrder() { return ANIMALS.slice().sort((a, b) => b.neurons - a.neurons).map((a) => a.id); } // brain rank (labels only)
+function seedOrder() { return roster().traders.slice().sort((a, b) => b.stat - a.stat).map((a) => a.id); } // brain rank (labels only)
 // bracket order for the NEXT tournament: random (owner 2026-09-12: "randomize the seeds, don't keep them the same").
 // Drawn once, persisted, shown as the idle preview so early picks stay valid, consumed by startTournament.
 function bracketOrder() {
-  const ids = ANIMALS.map((a) => a.id);
+  const ids = roster().traders.map((a) => a.id);
   const ok = Array.isArray(state.nextOrder) && state.nextOrder.length === ids.length && ids.every((id) => state.nextOrder.includes(id));
   if (!ok) { const o = ids.slice(); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } state.nextOrder = o; save(); }
   return state.nextOrder.slice();
@@ -292,14 +279,15 @@ function makeRound(idx, ids, startAt) {
 }
 function startTournament() {
   Object.assign(state, { status: 'running', startedAt: Date.now(), roundIdx: 0, rounds: [], champion: null, books: {}, feed: [], pauseOffsetMs: 0, pausedAt: null });
-  for (const a of ANIMALS) state.books[a.id] = newBook(a.id);
+  state.roster = state.nextRoster || state.roster || 'animals'; state.nextRoster = null; // the DEV's pick becomes the roster in play
+  for (const a of roster().traders) state.books[a.id] = newBook(a.id);
   // Pre-bell window: the first round starts after one intermission so the
   // crowd can lock in their picks (stonkvotes.js) before anyone trades.
   const pre = config.STONK_PREGAME_MS || config.STONK_INTERMISSION_MS || 180000; // the pregame show (10 min) before round 1
   const dur = config.STONK_MATCH_MS || 3600000;
   const order = bracketOrder(); state.nextOrder = null; // consumed — the next tournament draws a fresh bracket
   state.rounds.push(makeRound(0, order, Date.now() + pre));
-  event('round', '🏟️ STONK WARS — picks are OPEN. Round of 16 bell rings in ' + Math.round(pre / 60000) + ' min. 16 brains, $1,000 each, fresh random bracket, one match at a time, ' + Math.round(dur / 60000) + ' minutes each.');
+  event('round', '🏟️ STONK WARS — ' + roster().name + ' — picks are OPEN. Round of 16 bell rings in ' + Math.round(pre / 60000) + ' min. 16 brains, $1,000 each, fresh random bracket, one match at a time, ' + Math.round(dur / 60000) + ' minutes each.');
   try { require('./stonkvotes').onTournamentStart().catch(() => {}); } catch { /* optional */ } // snapshot the creator-fee baseline
   save();
 }
@@ -333,7 +321,7 @@ function advance() {
   if (winners.length === 1) {
     state.champion = winners[0]; state.status = 'done'; state.endedAt = Date.now();
     const c = BY_ID[state.champion];
-    event('champion', '🏆 ' + c.emoji + ' ' + c.name.toUpperCase() + ' IS THE STONK WARS CHAMPION — ' + c.neurons.toExponential(1) + ' neurons of pure alpha.');
+    event('champion', '🏆 ' + c.emoji + ' ' + c.name.toUpperCase() + ' IS THE STONK WARS CHAMPION — ' + c.statText + ' of pure alpha.');
     if (config.STONK_AUTO_RESTART) event('round', '🔁 Next tournament in ' + Math.round((Number(config.STONK_RESTART_DELAY_MS == null ? 60000 : config.STONK_RESTART_DELAY_MS) + (config.STONK_PREGAME_MS || 0)) / 60000) + ' min — fresh random bracket, picks open at the bell.');
     save(); return;
   }
@@ -440,7 +428,9 @@ function status() {
     active: activeMatch(round, now),
     rounds: state.rounds, books, feed: state.feed.slice(0, 80),
     preview: state.status === 'idle' ? makeRound(0, bracketOrder(), 0) : null, // the bracket people pick on before the bell
-    animals: ANIMALS.map((a) => ({ id: a.id, name: a.name, emoji: a.emoji, neurons: a.neurons, brain: a.brain, blurb: a.blurb, image: imageFor(a.id), seed: seedOrder().indexOf(a.id) + 1 })),
+    roster: { id: rosterId(), name: roster().name, tagline: roster().tagline }, nextRoster: state.nextRoster || null,
+    rosters: Object.values(ROSTERS).map((r) => ({ id: r.id, name: r.name, tagline: r.tagline })),
+    animals: roster().traders.map((a) => ({ id: a.id, name: a.name, emoji: a.emoji, neurons: a.neurons, stat: a.stat, statText: a.statText, brain: a.brain, blurb: a.blurb, image: imageFor(a.id), seed: seedOrder().indexOf(a.id) + 1 })),
     config: { matchMs: config.STONK_MATCH_MS || 3600000, intermissionMs: config.STONK_INTERMISSION_MS || 180000, startUsd: config.STONK_START_USD || 1000, feedCoins: feedCoins().length },
     // the live market every animal is choosing from — for the showcase ticker
     market: feedCoins().slice(0, 24).map((c) => ({ symbol: c.symbol, chainId: c.chainId, priceUsd: c.priceUsd, liqUsd: Math.round(c.liqUsd), volH24: Math.round(c.volH24), chgH24: Math.round(c.chgH24 || 0), ageMin: Math.round((now - c.pairCreatedAt) / 60000), boosted: !!c.boosted, url: c.url })),
@@ -455,6 +445,14 @@ function start() {
 }
 
 // DEV skip (owner 2026-09-10): end the current wait — pregame, intermission or the breather before the next match — now
+// DEV picks the roster for the NEXT tournament (owner 2026-09-12); the running one is never switched mid-bracket
+function setRoster(id) {
+  id = String(id || '');
+  if (!ROSTERS[id]) return { ok: false, reason: 'unknown roster ' + id + ' (have: ' + Object.keys(ROSTERS).join(', ') + ')' };
+  state.nextRoster = id; state.nextOrder = null; save();
+  event('round', '🎭 Next tournament: ' + ROSTERS[id].name + ' — ' + ROSTERS[id].tagline);
+  return { ok: true, roster: id, appliesAt: state.status === 'running' ? 'next tournament' : 'next start' };
+}
 function skip() {
   if (state.status !== 'running') return { ok: false, reason: 'not running' };
   const round = state.rounds[state.roundIdx]; const now = Date.now();
@@ -467,4 +465,4 @@ function skip() {
   event('round', '⏭️ The wait is over — ' + ROUND_NAMES[state.roundIdx] + ' resumes now.');
   save(); return { ok: true };
 }
-module.exports = { start, status, startTournament, reset, pause, resume, skip, ANIMALS, onEvent, equityOf, BY_ID, _state: state };
+module.exports = { start, status, startTournament, reset, pause, resume, skip, setRoster, ANIMALS: ALL_TRADERS, ROSTERS, onEvent, equityOf, BY_ID, _state: state };

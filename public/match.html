@@ -140,7 +140,7 @@
   <a id="buyBtn" href="#" target="_blank" rel="noopener" style="display:none;margin-left:12px;background:var(--gold);color:#000;border-radius:8px;padding:8px 14px;font-weight:900;letter-spacing:1px;font-size:12px;text-decoration:none">🚀 BUY NOW</a>
   <span id="caChip" title="click to copy the contract address" style="display:none;margin-left:8px;font-size:11px;letter-spacing:1px;color:var(--gold);background:#161c2e;border:1px solid var(--gold);border-radius:8px;padding:7px 10px;cursor:pointer;font-family:ui-monospace,Consolas,monospace"></span>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
-  <div id="devWrap" style="display:flex;align-items:center;gap:6px;margin-left:12px"><button class="btn" id="devBtn" onclick="devLogin()" title="log in as the dev">👑 DEV login</button> <span id="devCtl" style="display:none;gap:6px"><button class="btn" onclick="devCtl('start')">▶ Start</button><button class="btn" onclick="devCtl('pause')">⏸ Pause</button><button class="btn" onclick="devCtl('resume')">⏵ Resume</button><button class="btn" onclick="devCtl('skip')" title="end the pregame / intermission / breather now">⏭ Skip wait</button><button class="btn" onclick="if(confirm('Reset the whole tournament?'))devCtl('reset')">⟲ Reset</button><span id="devMsg" class="sub"></span></span></div>
+  <div id="devWrap" style="display:flex;align-items:center;gap:6px;margin-left:12px"><button class="btn" id="devBtn" onclick="devLogin()" title="log in as the dev">👑 DEV login</button> <span id="devCtl" style="display:none;gap:6px"><button class="btn" onclick="devCtl('start')">▶ Start</button><button class="btn" onclick="devCtl('pause')">⏸ Pause</button><button class="btn" onclick="devCtl('resume')">⏵ Resume</button><button class="btn" onclick="devCtl('skip')" title="end the pregame / intermission / breather now">⏭ Skip wait</button> <select id="rosterSel" class="btn" title="which roster the NEXT tournament uses" onchange="devRoster(this.value)"></select><button class="btn" onclick="if(confirm('Reset the whole tournament?'))devCtl('reset')">⟲ Reset</button><span id="devMsg" class="sub"></span></span></div>
 </header>
 
 <section class="stage">
@@ -187,6 +187,7 @@
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmt(n){return '$'+Number(n).toLocaleString(undefined,{maximumFractionDigits:0})}
   function neurons(n){return n>=1e9?(n/1e9).toFixed(n>=10e9?0:1)+'B':n>=1e6?(n/1e6).toFixed(0)+'M':(n/1e3).toFixed(0)+'K'}
+  function statText(a){return (a&&a.statText)||(neurons((a&&a.neurons)||0)+' neurons')}
   function mmss(ms){ms=Math.max(0,ms);var s=Math.floor(ms/1000),m=Math.floor(s/60);s=s%60;return (m<10?'0':'')+m+':'+(s<10?'0':'')+s}
   function ago(t){var s=Math.round((Date.now()-t)/1000);return s<60?s+'s':Math.round(s/60)+'m'}
 
@@ -263,7 +264,7 @@
     var pnl=b.equity-S.config.startUsd;
     var acts=(S.feed||[]).filter(function(e){return e.animalId===id}).slice(0,6);
     var lead=b.equity>((S.books||{})[opp]||{}).equity;
-    return '<div class="fighter'+(lead?' lead':'')+'"><div class="hero">'+(a.image?'<img src="'+a.image+'">':'')+'<div class="badge">brain #'+a.seed+' · '+neurons(a.neurons||0)+' neurons · '+esc((a.brain||{}).quirk||'')+'</div></div>'+
+    return '<div class="fighter'+(lead?' lead':'')+'"><div class="hero">'+(a.image?'<img src="'+a.image+'">':'')+'<div class="badge">brain #'+a.seed+' · '+statText(a)+' · '+esc((a.brain||{}).quirk||'')+'</div></div>'+
       '<div class="body"><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+'</div>'+
       '<div><span class="eq '+(pnl>=0?'up':'dn')+'">'+fmt(b.equity)+'</span> <span class="'+(pnl>=0?'up':'dn')+'" style="font-weight:700">'+(pnl>=0?'+':'')+fmt(pnl)+'</span> <span class="sub">· '+b.trades+' trades · '+b.wins+'W/'+b.losses+'L · cash '+fmt(b.cash||0)+'</span></div>'+
       '<div class="sec">Holding</div><div class="list">'+((b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+esc(p.url||chart(p))+'" target="_blank" rel="noopener">$'+esc(p.symbol)+' ↗</a><span class="chip">'+esc(p.chainId||'')+'</span>'+(p.forgotten?' <span class="chip">🐟 forgotten</span>':'')+'</span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join('')||'<div class="sub">nothing — all cash</div>')+'</div>'+
@@ -319,6 +320,10 @@
   window.devLogin=function(){ var had=null; try{ had=localStorage.getItem('stonkChatKey'); }catch(x){} if(had){ try{ localStorage.removeItem('stonkChatKey'); }catch(x){} devUi(); return; }
     var k=prompt('DEV key (from memebot .env, STONK_CHAT_DEV_KEY):'); if(!k) return; k=k.trim();
     fetch('/api/stonkwars/devlogin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})}).then(function(r){return r.json()}).then(function(j){ if(j.ok){ try{ localStorage.setItem('stonkChatKey',k); }catch(x){} devUi(); alert('Logged in as DEV on this device.'); } else alert('Nope: '+(j.reason||'wrong key')); }).catch(function(){ alert('could not reach the server'); }); };
+  // DEV picks the roster for the next tournament (owner 2026-09-12)
+  function rosterUi(){ var sel=document.getElementById('rosterSel'); if(!sel||!window.S||!S.rosters) return; var want=S.nextRoster||(S.roster&&S.roster.id)||''; if(sel.options.length!==S.rosters.length){ sel.innerHTML=S.rosters.map(function(r){return '<option value="'+r.id+'">'+r.name+(S.roster&&S.roster.id===r.id&&S.status==='running'?' (running)':'')+'</option>'}).join(''); } if(document.activeElement!==sel) sel.value=want; }
+  setInterval(rosterUi,3000);
+  window.devRoster=function(id){ var k=null; try{ k=localStorage.getItem('stonkChatKey'); }catch(x){} var m=document.getElementById('devMsg'); m.textContent='…'; fetch('/api/stonkwars/roster',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k,roster:id})}).then(function(r){return r.json()}).then(function(j){ m.textContent=j.ok?('✓ next tournament: '+id+(j.appliesAt?' ('+j.appliesAt+')':'')):('✗ '+(j.reason||'failed')); }).catch(function(){ m.textContent='✗ no server'; }); };
   window.devCtl=function(a){ var k=null; try{ k=localStorage.getItem('stonkChatKey'); }catch(x){} var m=document.getElementById('devMsg'); m.textContent='…';
     fetch('/api/stonkwars/'+a,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})}).then(function(r){return r.json()}).then(function(j){ m.textContent=j.ok?('✓ '+a):('✗ '+(j.reason||'failed')); refresh(); }).catch(function(){ m.textContent='✗ no server'; }); };
   devUi();

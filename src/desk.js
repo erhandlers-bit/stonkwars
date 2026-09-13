@@ -37,6 +37,22 @@ const BIOS = {
   rat: 'Rat — 200 million neurons, a twitchy night-shift barista who has bought and sold the same coin four times since you started reading this',
   goldfish: 'Goldfish — 10 million neurons, a notary public from Tulsa who forgets he owns a coin roughly every eleven seconds',
   honeybee: 'Honeybee — 1 million neurons, a swarm of interns in a trench coat trading on pure vibes and pollen',
+  pepe: 'Pepe — meme power 98, a green frog from the comments section who buys whatever you just sold out of spite and calls it a strategy',
+  doge: 'Doge — meme power 100, a Shiba Inu from Japan who speaks in Comic Sans, buys what the pack buys and has never sold anything, wow',
+  trollface: 'Trollface — meme power 90, an MS Paint grin from 2008 who changes his own rules mid-trade and asks if you have a problem with that',
+  wojak: 'Wojak — meme power 93, a bald outline of a man who buys every top, sells every bottom and feels all of it',
+  gigachad: 'Gigachad — meme power 91, a jawline with a brokerage account who bets half the stack and has never heard of a stop loss',
+  grumpycat: 'Grumpy Cat — meme power 88, a permanent scowl who says NO to nearly every coin and never forgives the one that burned her',
+  nyancat: 'Nyan Cat — meme power 82, a Pop-Tart cat trailing a rainbow who scalps momentum at speeds that violate several treaties',
+  badluckbrian: 'Bad Luck Brian — meme power 78, braces and a plaid vest, who hears every pump exactly one minute after it ends',
+  successkid: 'Success Kid — meme power 84, a fist-clenched toddler on a beach who takes twenty percent, pumps his fist and does it again',
+  harold: 'Hide the Pain Harold — meme power 86, a stock-photo grandfather who smiles through every drawdown and sells the instant it turns green',
+  distracted: 'Distracted Boyfriend — meme power 87, a stock-photo man who drops whatever he is holding the moment a shinier coin walks past',
+  harambe: 'Harambe — meme power 85, a gorilla and a martyr who holds every bag with both hands, out for him',
+  spongebob: 'Mocking SpongeBob — meme power 89, a sea sponge in a chicken pose who copies the leader\'s trades in alternating caps and worse timing',
+  rageguy: 'Rage Guy — meme power 80, a screaming stick figure running twelve tiny positions and one very loud emotion',
+  smudge: 'Smudge the Cat — meme power 83, a confused white cat at a dinner table holding eight coins he did not order',
+  shrek: 'Shrek — meme power 92, an ogre with layers who reads every chart slowly from his swamp and misses nothing once he arrives',
 };
 const NAME = { stonks: 'STONKS MAN', notstonks: 'NOT STONKS MAN' };
 const PERSONA = {
@@ -50,7 +66,7 @@ const PERSONA = {
     'The man to your left is STONKS MAN, literally the same man as you, the professional. You call him "other me", you answer his setups with a tag ("Right you are, other me. Unfortunately."), you mock his optimism, his tie, and his enthusiasm for the goldfish.',
 };
 const RULES =
-  'STONK WARS is a live bracket show: 16 animal traders with brains scaled to their real neuron counts each start with $1,000 and trade fresh meme coins for ' + Math.round((config.STONK_MATCH_MS || 900000) / 60000) + ' minutes per match; the higher equity wins and advances. It is a game show. You two are the announcers dubbed over it. ' +
+  'STONK WARS is a live bracket show: 16 contestants — a roster of animals with brains scaled to their real neuron counts, or a roster of famous meme characters with brains built from their personalities — each start with $1,000 and trade fresh meme coins for ' + Math.round((config.STONK_MATCH_MS || 900000) / 60000) + ' minutes per match; the higher equity wins and advances. It is a game show. You two are the announcers dubbed over it. ' +
   'You are on air, spoken aloud by text-to-speech. Reply with exactly ONE line to say (under 30 words) — or the single token [silent] if nothing is worth saying right now. Silence is fine; do not fill air with filler. ' +
   'EVERY LINE IS A JOKE. Fake-serious sportscaster delivery about absurd events: a $12 loss is a career-ending injury, a take-profit is an Olympic dismount, a rug pull is the ground opening up, a goldfish forgetting its position is a medical event. Be SPECIFIC: use the real names, coins and dollar amounts you are given; the comedy is in treating the exact numbers with total gravity. ' +
   'Two-man rhythm: the left seat sets up, the right seat tags; answer each other by name ("other me"); run callbacks to earlier bits in the transcript; keep a bit alive for a few exchanges then drop it. Catchphrases sparingly. ' +
@@ -119,7 +135,7 @@ async function turn(who) {
     if (!intro.done.includes(key) && now - intro.lastAt >= 8000) {
       const a = sw.BY_ID[mine]; const br = a.brain; const opp = sw.BY_ID[mine === fm.a ? fm.b : fm.a];
       const seed = st.animals ? (st.animals.find((x) => x.id === mine) || {}).seed : '';
-      matchIntro = 'THE BELL JUST RANG — INTRODUCE YOUR CONTESTANT NOW: ' + a.name.toUpperCase() + ' — seed #' + seed + ', ' + a.neurons.toLocaleString() + ' neurons, memory ' + br.memory + ' coins, reacts in ' + (br.reactionMs / 1000) + 's, up to ' + br.maxPositions + ' positions, bets ' + Math.round(br.sizeFrac * 100) + '% per trade, impulsivity ' + Math.round(br.impulsivity * 100) + '%, stop -' + Math.round(br.stopPct * 100) + '%, take +' + Math.round(br.takePct * 100) + '%, patience ' + br.maxHoldMin + ' min, quirk: ' + br.quirk + '. Press kit: ' + (BIOS[mine] || '') + '. Facing ' + opp.name + ' for the next hour. ONE line, under 45 words, in your voice, quoting at least three of those exact numbers. Do not say [silent].';
+      matchIntro = 'THE BELL JUST RANG — INTRODUCE YOUR CONTESTANT NOW: ' + a.name.toUpperCase() + ' — seed #' + seed + ', ' + a.statText + ', memory ' + br.memory + ' coins, reacts in ' + (br.reactionMs / 1000) + 's, up to ' + br.maxPositions + ' positions, bets ' + Math.round(br.sizeFrac * 100) + '% per trade, impulsivity ' + Math.round(br.impulsivity * 100) + '%, stop -' + Math.round(br.stopPct * 100) + '%, take +' + Math.round(br.takePct * 100) + '%, patience ' + br.maxHoldMin + ' min, quirk: ' + br.quirk + '. Press kit: ' + (BIOS[mine] || '') + '. Facing ' + opp.name + ' for the next hour. ONE line, under 45 words, in your voice, quoting at least three of those exact numbers. Do not say [silent].';
       intro.done.push(key); intro.lastAt = now;
     }
   }
@@ -138,7 +154,7 @@ async function turn(who) {
     if (next && now - intro.lastAt >= Number(config.STONK_INTRO_GAP_MS || 22000)) {
       const a = sw.BY_ID[next]; const br = a.brain; const m = r0.matches.find((x) => x.a === next || x.b === next); const opp = sw.BY_ID[m.a === next ? m.b : m.a];
       const seed = st.animals ? (st.animals.find((x) => x.id === next) || {}).seed : '';
-      introLine = 'INTRODUCE THIS CONTENDER NOW (the crowd is meeting the field before the bell): ' + a.name.toUpperCase() + ' — seed #' + seed + ', ' + a.neurons.toLocaleString() + ' neurons, memory ' + br.memory + ' coins, reacts in ' + (br.reactionMs / 1000) + 's, up to ' + br.maxPositions + ' positions, bets ' + Math.round(br.sizeFrac * 100) + '% per trade, impulsivity ' + Math.round(br.impulsivity * 100) + '%, pattern depth ' + Math.round(br.depth * 100) + '%, stop -' + Math.round(br.stopPct * 100) + '%, take +' + Math.round(br.takePct * 100) + '%, patience ' + br.maxHoldMin + ' min, quirk: ' + br.quirk + '. Press kit: ' + (BIOS[next] || '') + '. Scouting note: ' + (a.blurb || '') + '. Round-of-16 opponent: ' + opp.name + '. ' +
+      introLine = 'INTRODUCE THIS CONTENDER NOW (the crowd is meeting the field before the bell): ' + a.name.toUpperCase() + ' — seed #' + seed + ', ' + a.statText + ', memory ' + br.memory + ' coins, reacts in ' + (br.reactionMs / 1000) + 's, up to ' + br.maxPositions + ' positions, bets ' + Math.round(br.sizeFrac * 100) + '% per trade, impulsivity ' + Math.round(br.impulsivity * 100) + '%, pattern depth ' + Math.round(br.depth * 100) + '%, stop -' + Math.round(br.stopPct * 100) + '%, take +' + Math.round(br.takePct * 100) + '%, patience ' + br.maxHoldMin + ' min, quirk: ' + br.quirk + '. Press kit: ' + (BIOS[next] || '') + '. Scouting note: ' + (a.blurb || '') + '. Round-of-16 opponent: ' + opp.name + '. ' +
         'Do the full fake-serious broadcast introduction in ONE line, under 45 words, quoting at least three of those exact numbers and what they mean for how it trades. Do not say [silent].';
       intro.done.push(next); intro.lastAt = now;
     } else if (next && !newChat.length && !otherSpoke) return; // between introductions: only chat or a reply to the other man

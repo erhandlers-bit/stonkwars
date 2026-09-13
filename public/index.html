@@ -162,7 +162,7 @@
   <img src="/stonkwars/logo.png" alt="" style="width:56px;height:56px;border-radius:12px;box-shadow:0 0 0 1px var(--border)">
   <h1>STONK <span>WARS</span></h1>
   <div>
-    <div class="sub">16 animals · 16 virtual brains · $1,000 each · 20 minutes to trade memecoins · winner advances</div>
+    <div class="sub" id="tagline">16 traders · $1,000 each · 20 minutes to trade memecoins · winner advances</div>
     <div class="sub"><span id="feedN"></span> <a href="#director" style="color:var(--blue);text-decoration:none;font-weight:700">🎥 live stream · director mode</a></div>
   </div>
   <div class="admin" id="admin">
@@ -241,6 +241,7 @@
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmt(n){return '$'+Number(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})}
   function neurons(n){return n>=1e9?(n/1e9).toFixed(n>=10e9?0:1)+'B':n>=1e6?(n/1e6).toFixed(0)+'M':(n/1e3).toFixed(0)+'K'}
+  function statText(a){return (a&&a.statText)||(neurons((a&&a.neurons)||0)+' neurons')}
   function av(a){return '<div class="av">'+(a.image?'<img src="'+a.image+'" alt="">':a.emoji)+'</div>'}
   window.ctl=function(k){var t=localStorage.getItem('stonkAdmin')||prompt('admin token');if(t)localStorage.setItem('stonkAdmin',t);fetch('/api/stonkwars/'+k,{method:'POST',headers:{'x-admin-token':t||''}}).then(function(r){return r.json()}).then(function(j){if(!j.ok&&j.reason)alert(j.reason);refresh();})};
   function side(id,m,isLive,pickable){
@@ -249,7 +250,7 @@
     var cls='side'; if(m.winner){cls+=m.winner===id?' win':' lose';}
     var final=m.finalEq&&m.finalEq[id]!=null?m.finalEq[id]:null; if(final!=null){eq=final;pnl=final-S.config.startUsd;}
     var tl=pickable?tallyPct(m.id,id):null; if(pickable&&PK.sel[m.id]===id) cls+=' sel';
-    return '<div class="'+cls+'" onclick="openCard(\''+id+'\',\''+m.id+'\','+(pickable?'true':'false')+')">'+av(a)+'<div><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+(tl!=null?' <span class="tl">'+tl+'% picked</span>':'')+'</div><div class="sd">#'+a.seed+' · '+neurons(a.neurons)+' neurons</div></div>'+
+    return '<div class="'+cls+'" onclick="openCard(\''+id+'\',\''+m.id+'\','+(pickable?'true':'false')+')">'+av(a)+'<div><div class="nm">'+esc(a.name)+(m.winner===id?' 🏆':'')+(tl!=null?' <span class="tl">'+tl+'% picked</span>':'')+'</div><div class="sd">#'+a.seed+' · '+statText(a)+'</div></div>'+
       '<div class="eq"><div class="v">'+fmt(eq)+'</div><div class="p '+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</div></div>'+(pickable?'<button class="vote'+(PK.sel[m.id]===id?' on':'')+'" onclick="event.stopPropagation();pkSel(\''+m.id+'\',\''+id+'\')">'+(PK.sel[m.id]===id?'✓ PICKED':'VOTE')+'</button>':'')+'</div>';
   }
   function render(){
@@ -277,9 +278,10 @@
     var ch=S.champion?A[S.champion]:null;
     document.getElementById('champ').querySelector('.av').innerHTML=ch?(ch.image?'<img src="'+ch.image+'">':ch.emoji):'🏆';
     document.getElementById('champName').textContent=ch?ch.name.toUpperCase():'TBD';
-    document.getElementById('champSub').textContent=ch?(neurons(ch.neurons)+' neurons · '+fmt((S.books[ch.id]||{}).equity||0)):'';
+    document.getElementById('champSub').textContent=ch?(statText(ch)+' · '+fmt((S.books[ch.id]||{}).equity||0)):'';
     // clock
     var rn=document.getElementById('roundName'), ck=document.getElementById('clock');
+      var tg=document.getElementById('tagline'); if(tg&&S.roster) tg.textContent=S.roster.name+' · '+S.roster.tagline+' · $1,000 each · '+Math.round(((S.config&&S.config.matchMs)||1200000)/60000)+' minutes to trade memecoins · winner advances';
     if(S.status==='done'){rn.textContent='FINAL RESULT';ck.textContent='🏆';}
     else if(S.status==='paused'){rn.textContent='PAUSED';ck.textContent='⏸';}
     else if(S.status==='running'){
@@ -297,7 +299,7 @@
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeCard(); });
   window.openCard=function(id,mid,pickable){ var a=A[id]; if(!a) return; var b=(S.books||{})[id]; var br=a.brain||{};
     var traits=[['memory',br.memory+' coins'],['reaction',(br.reactionMs/1000)+'s'],['positions',br.maxPositions],['bet size',Math.round(br.sizeFrac*100)+'%'],['impulsivity',Math.round(br.impulsivity*100)+'%'],['pattern depth',Math.round(br.depth*100)+'%'],['stop','-'+Math.round(br.stopPct*100)+'%'],['take','+'+Math.round(br.takePct*100)+'%'],['patience',br.maxHoldMin+' min'],['quirk',br.quirk]];
-    var html=(a.image?'<img src="'+a.image+'" alt="">':'')+'<div class="in"><h2>'+esc(a.name)+' <span class="sub">brain #'+a.seed+' · '+neurons(a.neurons)+' neurons</span></h2>'+
+    var html=(a.image?'<img src="'+a.image+'" alt="">':'')+'<div class="in"><h2>'+esc(a.name)+' <span class="sub">brain #'+a.seed+' · '+statText(a)+'</span></h2>'+
       '<div class="bio">'+esc(a.blurb||'')+'</div><div>'+traits.map(function(t){return '<span class="trait">'+t[0]+' <b>'+esc(t[1])+'</b></span>'}).join('')+'</div>';
     if(b){ var pnl=b.equity-S.config.startUsd; html+='<div style="margin:12px 0 4px;font-weight:700;font-size:16px">'+fmt(b.equity)+' <span class="'+(pnl>=0?'up':'dn')+'">'+(pnl>=0?'+':'')+fmt(pnl)+'</span> <span class="sub">· '+b.trades+' trades · '+b.wins+'W/'+b.losses+'L</span></div>'+(b.positions||[]).map(function(p){return '<div class="pos"><span><a href="'+p.url+'" target="_blank" style="color:var(--blue)">$'+esc(p.symbol)+'</a></span><span class="'+(p.pnlPct>=0?'up':'dn')+'">'+fmt(p.valueUsd)+' ('+(p.pnlPct>=0?'+':'')+p.pnlPct+'%)</span></div>'}).join(''); }
     if(pickable) html+='<button class="vote" onclick="pkSel(\''+mid+'\',\''+id+'\');closeCard();">🗳️ VOTE '+esc(a.name.toUpperCase())+' TO WIN</button>';
@@ -305,7 +307,7 @@
   function detail(id){
     var a=A[id]; if(!a) return; var b=(S.books||{})[id]; var br=a.brain;
     var traits=[['memory',br.memory+' coins'],['reaction',(br.reactionMs/1000)+'s'],['positions',br.maxPositions],['bet size',Math.round(br.sizeFrac*100)+'%'],['impulsivity',Math.round(br.impulsivity*100)+'%'],['pattern depth',Math.round(br.depth*100)+'%'],['stop','-'+Math.round(br.stopPct*100)+'%'],['take','+'+Math.round(br.takePct*100)+'%'],['patience',br.maxHoldMin+'m'],['quirk',br.quirk]];
-    var html='<div class="big">'+av(a)+'<div><div style="font-size:16px;font-weight:900">'+esc(a.name)+' <span class="sub">brain #'+a.seed+'</span></div><div class="sub">'+neurons(a.neurons)+' neurons · '+esc(a.blurb)+'</div></div></div>';
+    var html='<div class="big">'+av(a)+'<div><div style="font-size:16px;font-weight:900">'+esc(a.name)+' <span class="sub">brain #'+a.seed+'</span></div><div class="sub">'+statText(a)+' · '+esc(a.blurb)+'</div></div></div>';
     html+='<div>'+traits.map(function(t){return '<span class="trait">'+t[0]+' <b>'+esc(t[1])+'</b></span>'}).join('')+'</div>';
     if(b){
       var pnl=b.equity-S.config.startUsd;
