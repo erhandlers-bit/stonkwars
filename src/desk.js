@@ -60,7 +60,7 @@ const BIOS = {
   cented: 'Cented — clout 90, hears the flow before it prints and is already gone',
   sumfattytuna: 'Sumfattytuna — clout 99, a big fish with so many bags he occasionally forgets one is still swimming',
   bigwarz: 'Bigwarz — clout 100, commands an army and moves where the army moves',
-  hodlo: 'Hodlo — clout 88, has never sold anything and considers stop losses a rumor',
+  hodlo: 'Hodlo — clout 95, has never sold anything and considers stop losses a rumor',
   kook: 'Kook Capital — clout 87, fades the crowd at full volume and is right just often enough',
   orangie: 'Orangie — clout 86, the thoughtful one, adjusts his rules after every trade like a scientist with a bag',
   lynk: 'Lynk — clout 90, just tryna make it, cannot walk past a fresh launch without picking it up',
