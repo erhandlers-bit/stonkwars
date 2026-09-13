@@ -10,6 +10,11 @@ module.exports = {
   STONK_INTERMISSION_MS: Number(process.env.STONK_INTERMISSION_MS) || 5 * 60_000, // owner 2026-09-10: 5-minute bell between rounds
   STONK_AUTO_RESTART: true,         // owner 2026-09-12: when a champion is crowned the next tournament starts by itself, fresh random bracket
   STONK_RESTART_DELAY_MS: 60_000,   // champion celebration before the next pregame (then STONK_PREGAME_MS of promo before the bell)
+  // X AUTO-POSTER (owner 2026-09-13): a card with both contestants, their stats and the winner crowned. Posts only when the
+  // X app keys are in .env (X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET); otherwise dry-run into data/xposts/.
+  STONK_XPOST: 'final',             // 'final' = the final only (~4/day, free tier) | 'sf' | 'match' (needs a paid tier) | 'champion' | 'off'
+  STONK_XPOST_MONTHLY_CAP: 450,     // hard stop per calendar month (X free tier); raise if the app is on Basic
+  STONK_XPOST_SITE: 'https://stonkwars.org',
   STONK_MATCH_GAP_MS: process.env.STONK_MATCH_GAP_MS != null ? Number(process.env.STONK_MATCH_GAP_MS) : 60_000,       // breather between consecutive matches of a round (the desk previews the next one)
   STONK_BUST_USD: 30,                 // equity at/under this = busted, match lost immediately
   STONK_PICK_WINDOW_MS: 5 * 60_000,   // owner 2026-09-10: picks for a match stay open until 5 minutes into it (a third of the 15-minute match, as 20/60 was)

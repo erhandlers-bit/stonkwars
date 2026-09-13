@@ -310,6 +310,7 @@ function decideMatch(m) {
     m.winner = ea > eb ? m.a : eb > ea ? m.b : (state.books[m.a].realized >= state.books[m.b].realized ? m.a : m.b);
     const w = BY_ID[m.winner], l = BY_ID[m.winner === m.a ? m.b : m.a];
     event('result', w.emoji + ' ' + w.name + ' beats ' + l.emoji + ' ' + l.name + ' — $' + m.finalEq[m.winner].toFixed(0) + ' vs $' + m.finalEq[l.id].toFixed(0), { matchId: m.id, winner: m.winner });
+    try { require('./xpost').onMatch(state, m).catch(() => {}); } catch { /* poster optional */ } // X card (owner 2026-09-13)
     // per-match payout (owner 2026-09-10): runs in the background, never stalls the bracket
     try {
       require('./stonkvotes').settleMatch(state.roundIdx, m)
@@ -333,6 +334,7 @@ function advance() {
     state.champion = winners[0]; state.status = 'done'; state.endedAt = Date.now();
     const c = BY_ID[state.champion];
     event('champion', '🏆 ' + c.emoji + ' ' + c.name.toUpperCase() + ' IS THE STONK WARS CHAMPION — ' + c.statText + ' of pure alpha.');
+    try { require('./xpost').onChampion(state, state.champion).catch(() => {}); } catch { /* poster optional */ }
     if (config.STONK_AUTO_RESTART) event('round', '🔁 Next tournament in ' + Math.round((Number(config.STONK_RESTART_DELAY_MS == null ? 60000 : config.STONK_RESTART_DELAY_MS) + (config.STONK_PREGAME_MS || 0)) / 60000) + ' min — fresh random bracket, picks open at the bell.');
     save(); return;
   }
