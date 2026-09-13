@@ -63,12 +63,12 @@ const BIOS = {
   hodlo: 'Hodlo — clout 88, has never sold anything and considers stop losses a rumor',
   kook: 'Kook Capital — clout 87, fades the crowd at full volume and is right just often enough',
   orangie: 'Orangie — clout 86, the thoughtful one, adjusts his rules after every trade like a scientist with a bag',
-  west: 'West — clout 85, cannot walk past a fresh launch without picking it up',
-  casino: 'Casino — clout 84, spreads the chips across twelve tables and calls it risk management',
+  lynk: 'Lynk — clout 90, just tryna make it, cannot walk past a fresh launch without picking it up',
+  threadguy: 'Threadguy — clout 91, live at 8:30 every morning, running twelve positions at once because chat picked all of them',
   gainzy: 'Gainzy — clout 83, takes twenty percent, posts the screenshot, does it again',
   danny: 'Danny — clout 82, copies the leader with a heart emoji and a thread',
   sapijiju: 'Sapijiju — clout 81, eight positions open and a hot take for each',
-  jijo: 'Jijo — clout 80, forgives people but never a coin that rugged him',
+  sibel: 'Sibel — clout 86, just a girl trading memes who remembers every coin that ever rugged her',
 };
 const NAME = { stonks: 'STONKS MAN', notstonks: 'NOT STONKS MAN' };
 const PERSONA = {
