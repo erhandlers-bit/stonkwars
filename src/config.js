@@ -18,7 +18,7 @@ module.exports = {
   STONK_MATCH_GAP_MS: process.env.STONK_MATCH_GAP_MS != null ? Number(process.env.STONK_MATCH_GAP_MS) : 60_000,       // breather between consecutive matches of a round (the desk previews the next one)
   STONK_BUST_USD: 30,                 // equity at/under this = busted, match lost immediately
   STONK_PICK_WINDOW_MS: 5 * 60_000,   // owner 2026-09-10: picks for a match stay open until 5 minutes into it (a third of the 15-minute match, as 20/60 was)
-  STONK_SETTLE_PER_MATCH: true,      // owner 2026-09-10: payout after every match (each hour of trades), not at round end
+  STONK_SETTLE_PER_MATCH: false,    // owner 2026-09-13: payouts no longer depend on picks — holders are paid directly (see STONK_HOLDER_AIRDROP)
   STONK_CHAINS: ['solana', 'base', 'bsc'], // chains the shared coin feed watches
 
   // Paper fill model: round-trip cost by chain (fee + typical impact floor).
@@ -78,7 +78,17 @@ module.exports = {
   STONK_PRIZE_SYMBOL: 'STONK',
   STONK_BUYBACK_SPLIT: 0.5,         // share of the buyback pool (STONK_BUYBACK_PCT of F) that buys the own coin; the rest buys the prize token
   STONK_PARTNER_WALLET: 'BrPV21YMAthuQC2A4AzboghZCNRnsXeVN9HCsKE9P3oz',
-  STONK_PARTNER_SHARE: 0.25,        // of THIS settlement's SOL reserve (F minus the buyback pool), sent right after the buybacks
+  STONK_PARTNER_SHARE: 0,           // retired: this was a share of the old SOL reserve. The split below is a share of TOTAL fees.
+  // FEE SPLIT (owner 2026-09-13) — of every batch of creator fees claimed: 50% owner / 25% partner / 25% holders.
+  // The holder slice buys STONK_PRIZE_MINT and is airdropped to every holder of the project's coin at or above
+  // STONK_HOLDER_MIN_TOKENS, weighted by how much they hold. No picking and no wallet connect required.
+  // The owner's 50% and the partner's 25% are plain SOL. No buybacks of the project's own coin.
+  STONK_HOLDER_AIRDROP: true,
+  STONK_AIRDROP_PCT: 0.25,          // holders
+  STONK_PARTNER_PCT: 0.25,          // STONK_PARTNER_WALLET, sent as SOL in the same settlement
+  STONK_HOLDER_MIN_TOKENS: 5_000_000,
+  STONK_AIRDROP_EVERY: 'tournament', // 'tournament' (once per bracket) | 'round' | 'match'
+  STONK_AIRDROP_EXCLUDE: '',        // extra wallets to skip; the dev wallet and every off-curve owner (pools, curves) are skipped already
   STONK_TREASURY_MIN_SOL: 0.01,     // skip the round if unclaimed fees are below this
   STONK_CLAIM_PRIORITY_FEE: 0.00005,
   STONK_CLAIM_MS: 0,                 // 0 = fees are claimed once, at round settlement (owner 2026-09-10: "keep it at once per round"); >0 = sweep every N ms

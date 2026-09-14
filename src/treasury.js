@@ -148,7 +148,7 @@ async function airdrop(conn, kp, winners, perShare, mintStr = config.STONK_BUYBA
     const amounts = {};
     for (const e of batch) {
       const w = typeof e === 'string' ? e : e.wallet; const shares = typeof e === 'string' ? 1 : (e.shares || 1);
-      const amt = perShare * BigInt(shares); amounts[w] = { amt, shares };
+      const amt = e && e.amount != null ? BigInt(e.amount) : perShare * BigInt(shares); amounts[w] = { amt, shares }; // amount = pay this wallet exactly (weighted holder drops)
       let owner; try { owner = new PublicKey(w); } catch { out.push({ wallet: w, shares, error: 'bad address' }); continue; }
       const dest = ata(owner, mint, prog);
       // create the recipient's token account if missing (idempotent: instruction data [1])
@@ -292,6 +292,99 @@ function finish(rec) {
 
 // what leaves this process: the prize token's address stays private (owner's request)
 function publicRec(r) { if (!r) return r; const o = Object.assign({}, r); if (r.prize) o.prize = { symbol: r.prize.symbol, decimals: r.prize.decimals }; delete o.partnerSol; delete o.partnerWallet; if (r.txs && r.txs.partner) { o.txs = Object.assign({}, r.txs); delete o.txs.partner; } return o; }
+// ---- HOLDER AIRDROP (owner 2026-09-13) ----
+// Every holder of the project's coin at or above the threshold, weighted by balance. Off-curve owners are program
+// accounts (the pump.fun bonding curve, AMM pools, vaults) — paying them would just push the drop back into the pool.
+async function holderList(conn) {
+  const { PublicKey } = w3();
+  const mintStr = String(config.STONK_BUYBACK_MINT || '');
+  if (!mintStr) return [];
+  const mint = new PublicKey(mintStr);
+  const prog = await tokenProgramOf(conn, mint);
+  const dec = await mintDecimals(conn, mint);
+  const accs = await conn.getProgramAccounts(new PublicKey(prog), { commitment: 'confirmed', encoding: 'base64', filters: [{ memcmp: { offset: 0, bytes: mintStr } }] });
+  const min = BigInt(Math.max(0, Math.round(Number(config.STONK_HOLDER_MIN_TOKENS || 0)))) * (10n ** BigInt(dec));
+  const skip = new Set(String(config.STONK_AIRDROP_EXCLUDE || '').split(',').map((s) => s.trim()).filter(Boolean));
+  const dev = devPubkey(); if (dev) skip.add(dev.toBase58());
+  const rows = [];
+  for (const a of accs) {
+    const d = a.account.data;
+    if (!d || d.length < 72) continue;
+    const owner = new PublicKey(d.slice(32, 64));
+    const raw = d.readBigUInt64LE(64);
+    if (raw < min || raw === 0n) continue;
+    const o = owner.toBase58();
+    if (skip.has(o)) continue;
+    if (!PublicKey.isOnCurve(owner.toBytes())) continue; // a pool/curve/vault, not a person
+    rows.push({ wallet: o, raw, tokens: Number(raw) / 10 ** dec });
+  }
+  return rows.sort((x, y) => y.tokens - x.tokens);
+}
+
+let holderChain = Promise.resolve();
+function settleHolders(label) { const p = holderChain.then(() => settleHoldersInner(label)); holderChain = p.catch(() => {}); return p; }
+async function settleHoldersInner(label) {
+  const rec = { kind: 'holders', label: label || '', at: Date.now(), mode: isLive() ? 'live' : 'dry', claimedSol: 0, airdropSol: 0, keptSol: 0,
+    holders: 0, boughtPrize: 0, sentPrize: 0, txs: {}, transfers: [], notes: [] };
+  if (!config.STONK_HOLDER_AIRDROP) { rec.notes.push('holder airdrop disabled'); return finish(rec); }
+  const conn = rpc();
+  const dev = devPubkey();
+  const prizeMint = String(config.STONK_PRIZE_MINT || '');
+  if (!dev || !config.STONK_BUYBACK_MINT || !prizeMint) { rec.notes.push('dev wallet, coin mint or prize mint not configured'); return finish(rec); }
+  try {
+    // 1. COLLECT every creator fee sitting in the vault
+    let unclaimed = (await conn.getBalance(creatorVault(dev))) / 1e9;
+    if (process.env.STONK_TREASURY_SIMULATE_SOL && !isLive()) unclaimed = Number(process.env.STONK_TREASURY_SIMULATE_SOL);
+    const swept = isLive() ? Number((state.accrued && state.accrued.sol) || 0) : 0;
+    const minSol = Number(config.STONK_TREASURY_MIN_SOL || 0.01);
+    const claimNow = unclaimed >= minSol;
+    const fees = swept + (claimNow ? unclaimed : 0);
+    rec.sweptSol = +swept.toFixed(6);
+    if (fees < minSol) { rec.notes.push('fees this cycle ' + fees.toFixed(4) + ' SOL below minimum ' + minSol); return finish(rec); }
+    rec.claimedSol = +fees.toFixed(6);
+    const lamports = Math.floor(fees * 1e9);
+    const airdropLamports = Math.floor(lamports * Number(config.STONK_AIRDROP_PCT ?? 0.25));
+    const partnerWallet = String(config.STONK_PARTNER_WALLET || '');
+    const partnerLamports = partnerWallet ? Math.floor(lamports * Number(config.STONK_PARTNER_PCT ?? 0)) : 0;
+    rec.airdropSol = +(airdropLamports / 1e9).toFixed(6);
+    rec.partnerSol = +(partnerLamports / 1e9).toFixed(6);
+    rec.keptSol = +((lamports - airdropLamports - partnerLamports) / 1e9).toFixed(6);
+    // 2. WHO QUALIFIES (read fresh from the chain at settlement time)
+    const holders = await holderList(conn);
+    rec.holders = holders.length;
+    rec.snapshot = holders.slice(0, 50).map((h) => ({ wallet: h.wallet, tokens: +h.tokens.toFixed(2) }));
+    if (!isLive()) {
+      const dec = await mintDecimals(conn, new (w3().PublicKey)(prizeMint)).catch(() => 9);
+      const q = holders.length ? await quote(airdropLamports, prizeMint).catch(() => null) : null;
+      rec.boughtPrize = q ? Number(q.outAmount) / 10 ** dec : 0;
+      const total = holders.reduce((s, h) => s + h.raw, 0n);
+      if (holders.length) rec.transfers = holders.map((h) => ({ wallet: h.wallet, tokens: h.tokens, share: +(Number(h.raw) / Number(total)).toFixed(6), prize: rec.boughtPrize * (Number(h.raw) / Number(total)), owed: true }));
+      rec.notes.push('DRY RUN — claim ' + rec.claimedSol + ' SOL -> ' + rec.airdropSol + ' to ' + holders.length + ' holders, ' + rec.partnerSol + ' to the partner, ' + rec.keptSol + ' kept');
+      return finish(rec);
+    }
+    // 3. LIVE: claim everything, pay the partner in SOL, then buy the prize token and split it by weight
+    const kp = keypair();
+    if (claimNow) rec.txs.claim = await claim(conn, kp);
+    state.accrued.sol = 0; save();
+    if (partnerLamports > 0) {
+      try { rec.txs.partner = await sendSol(conn, kp, new (w3().PublicKey)(partnerWallet), partnerLamports); }
+      catch (e) { rec.notes.push('partner transfer failed: ' + String(e.message).slice(0, 100)); }
+    }
+    if (!holders.length) { rec.notes.push('no wallet holds ' + Number(config.STONK_HOLDER_MIN_TOKENS || 0).toLocaleString() + '+ — the holder slice stays in the dev wallet'); return finish(rec); }
+    const dec = await mintDecimals(conn, new (w3().PublicKey)(prizeMint));
+    const bought = await buyback(conn, kp, airdropLamports, prizeMint);
+    rec.txs.swap = bought.sig;
+    rec.boughtPrize = Number(bought.received) / 10 ** dec;
+    rec.prize = { mint: prizeMint, symbol: config.STONK_PRIZE_SYMBOL || 'PRIZE', decimals: dec };
+    const total = holders.reduce((s, h) => s + h.raw, 0n);
+    if (total === 0n || bought.received <= 0n) { rec.notes.push('nothing to split'); return finish(rec); }
+    const entries = holders.map((h) => ({ wallet: h.wallet, shares: 1, tokens: h.tokens, amount: (bought.received * h.raw) / total }));
+    rec.transfers = (await airdrop(conn, kp, entries, 0n, prizeMint)).map((t, i) => Object.assign({}, t, { tokens: entries[i] ? entries[i].tokens : undefined, prize: t.pro, pro: undefined }));
+    rec.sentPrize = rec.transfers.filter((t) => t.txid).reduce((s, t) => s + (t.prize || 0), 0);
+  } catch (e) { rec.notes.push('FAILED: ' + String(e.message).slice(0, 180)); }
+  return finish(rec);
+}
+
 async function status() {
   let unclaimed = null, dev = null;
   try { const d = devPubkey(); if (d) { dev = d.toBase58(); unclaimed = (await rpc().getBalance(creatorVault(d))) / 1e9; } } catch { /* rpc */ }
@@ -299,6 +392,7 @@ async function status() {
     live: isLive(), keyMismatch: keyMismatch(), dev, unclaimedSol: unclaimed == null ? null : +unclaimed.toFixed(4),
     buybackPct: Number(config.STONK_BUYBACK_PCT ?? 0.5), winnerShare: Number(config.STONK_WINNER_SHARE ?? 0.5), mint: config.STONK_BUYBACK_MINT || null,
     prize: config.STONK_PRIZE_MINT ? { symbol: config.STONK_PRIZE_SYMBOL || 'PRIZE', split: Number(config.STONK_BUYBACK_SPLIT ?? 0.5) } : null,
+    holderAirdrop: { on: !!config.STONK_HOLDER_AIRDROP, pct: Number(config.STONK_AIRDROP_PCT ?? 0.25), minTokens: Number(config.STONK_HOLDER_MIN_TOKENS || 0), every: String(config.STONK_AIRDROP_EVERY || 'tournament') },
     totals: (function (t) { const o = Object.assign({}, t); delete o.partnerSol; return o; })(state.totals), rounds: state.rounds.slice(0, 8).map(publicRec),
     sweep: { everyMs: Number(config.STONK_CLAIM_MS == null ? 300000 : config.STONK_CLAIM_MS), last: state.lastSweep, accruedSol: +Number((state.accrued && state.accrued.sol) || 0).toFixed(6), claims: ((state.accrued && state.accrued.claims) || []).slice(0, 12) },
   };
@@ -328,4 +422,4 @@ function start() {
   const ms = Number(config.STONK_CLAIM_MS == null ? 300000 : config.STONK_CLAIM_MS);
   if (ms > 0 && devPubkey()) { setInterval(() => sweep().catch((e) => console.log('[treasury] sweep: ' + String(e.message).slice(0, 100))), ms).unref(); console.log('[treasury] claiming creator fees every ' + Math.round(ms / 60000) + ' min (' + (isLive() ? 'LIVE' : 'dry run') + ')'); } else if (devPubkey()) console.log('[treasury] fees are claimed at each match settlement (' + (isLive() ? 'LIVE' : 'dry run') + ')' + (config.STONK_BUYBACK_MINT ? '' : ' — no buyback mint set, payouts are recorded only'));
 }
-module.exports = { start, settleRound, status, quote, sweep };
+module.exports = { start, settleRound, settleHolders, holderList, status, quote, sweep };

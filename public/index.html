@@ -204,7 +204,7 @@
       <span id="lkCount">pick a winner in every match</span>
       <button class="go" id="lkBtn" onclick="pkLock()">🗳️ Lock in my picks</button>
       <span id="lkMsg" style="font-size:12px"></span>
-      <span class="sub" style="margin-left:auto">to get paid you must hold <b id="lkHold" style="color:var(--gold)">1M $STONK</b> · <a href="#flywheel">how the flywheel works</a> · <a href="#payouts">payouts ledger</a></span>
+      <span class="sub" style="margin-left:auto">picks are just for fun — airdrops go to anyone holding <b id="lkHold" style="color:var(--gold)">5M $STONK</b> · <a href="#flywheel">how the flywheel works</a> · <a href="#payouts">payouts ledger</a></span>
     </div>
   </div>
   <div class="detail" id="detail"><span class="sub">Click an animal to see its brain and its positions.</span></div>
@@ -213,10 +213,10 @@
 <footer>
   <div id="flywheel"><h3>The flywheel</h3><div class="fly">
     <div><b>1</b>16 traders trade meme coins for 20 minutes per match; the bracket is drawn at random every tournament and the next tournament starts by itself. You pick the winner of every match and lock the set with your wallet. Free.</div>
-    <div><b>2</b>At the end of every match, every creator fee $STONK has earned is claimed into the dev wallet. Call it F.</div>
-    <div><b>3</b><b>50% of F</b> stays in reserve as SOL. <b>25% of F</b> buys $STONK on the open market — a buyback every match, kept by the project.</div>
-    <div><b>4</b><b>The other 25% of F</b> buys the STONK prize token, and <b>all of it</b> is split among everyone who picked that match's winner — one share per correct pick. To be paid you must hold at least <span id="flyHold">1M $STONK</span> in the wallet you picked with. No correct pickers? That 25% buys $STONK instead.</div>
-    <div><b>5</b>Every claim, buyback and airdrop is an on-chain transaction — every airdrop is listed below. More volume → more fees → bigger buybacks → bigger prizes. Line go up.</div>
+    <div><b>2</b>At the end of every tournament, every creator fee $STONK has earned is collected. Call it F.</div>
+    <div><b>3</b><b>25% of F</b> is spent on the STONK prize token and airdropped straight to holders. The other 75% runs the show.</div>
+    <div><b>4</b>Hold at least <span id="flyHold">5M $STONK</span> and you are in. <b>No voting, no signing, no connecting a wallet.</b> The airdrop is split by how much you hold, so a bigger bag gets a bigger share.</div>
+    <div><b>5</b>Holders are read straight off the chain the moment a tournament ends — liquidity pools and the dev wallet are excluded. Every airdrop is an on-chain transaction, listed below. More volume → more fees → bigger airdrops. Line go up.</div>
   </div><div class="sub" id="flyLive" style="margin-top:8px"></div></div>
   <div id="payouts"><h3>Airdrops — every wallet, every amount</h3><div id="ledger" style="max-height:380px;overflow:auto"><span class="sub">no settlements yet</span></div></div>
 </footer>
@@ -359,7 +359,7 @@
       PK.votes=v; var pool=v.pool||{}; var hg=v.holdGate||{};
       var SYM=(v.coin&&v.coin.symbol)||'COIN'; var coin='$'+SYM; window.__coin=SYM;
       var PZ=(v.prize&&v.prize.enabled)?v.prize:null; var PSYM=PZ?(PZ.symbol||'STONK')+' (prize token)':'';
-      document.getElementById('pkPool').innerHTML='prize this match <b style="color:var(--gold)">paid in '+(PZ?PSYM:'$'+SYM)+'</b> <span class="sub">— '+(PZ?'after every match the creator fees are claimed: <b>50%</b> stays in reserve as SOL, <b>25%</b> buys back $'+SYM+' (kept by the project), <b>25%</b> buys '+PSYM+' and <b>all of it</b> is airdropped to everyone who picked that winner (one share per correct pick)':'every round the creator fees are claimed, half buys back $'+SYM+', and half of that $'+SYM+' is split among everyone who picked winners (one share per correct pick)')+(pool.paying?' · auto-airdrop ON':' · payouts recorded')+'</span>';
+      document.getElementById('pkPool').innerHTML='airdrop <b style="color:var(--gold)">paid in '+(PZ?PSYM:'$'+SYM)+'</b> <span class="sub">— every tournament the creator fees are collected and <b>25%</b> of them is airdropped to everyone holding <b>5M+ $'+SYM+'</b>, split by how much you hold. No voting and no wallet connect needed — just hold. Picks below are for bragging rights.</span>';
       var lock=document.getElementById('pkLock');
       if(v.open&&v.preview){lock.innerHTML='<b style="color:var(--green)">picks are OPEN</b> — lock at the opening bell';}
       else if(v.open){lock.innerHTML='picks open — each match locks <b>'+Math.round((v.pickWindowMs||300000)/60000)+' min</b> after its bell'+(v.locksAt?' · next lock in <b>'+mmss(v.locksAt-Date.now())+'</b>':'');}

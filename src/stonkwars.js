@@ -335,12 +335,23 @@ function advance() {
     const c = BY_ID[state.champion];
     event('champion', '🏆 ' + c.emoji + ' ' + c.name.toUpperCase() + ' IS THE STONK WARS CHAMPION — ' + c.statText + ' of pure alpha.');
     try { require('./xpost').onChampion(state, state.champion).catch(() => {}); } catch { /* poster optional */ }
+    // HOLDER AIRDROP (owner 2026-09-13): collect the tournament's fees, 25% goes out to the coin's holders
+    if (config.STONK_HOLDER_AIRDROP && String(config.STONK_AIRDROP_EVERY || 'tournament') === 'tournament') {
+      try {
+        require('./treasury').settleHolders(ROUND_NAMES[state.roundIdx] ? 'tournament' : 'tournament')
+          .then((r) => { if (r && r.claimedSol) event('picks', '🪂 Airdrop: ' + r.airdropSol.toFixed(4) + ' SOL of creator fees split across ' + r.holders + ' holder' + (r.holders === 1 ? '' : 's') + (r.mode === 'live' ? '' : ' (dry run)')); else if (r && r.notes.length) event('picks', '🪂 No airdrop this tournament — ' + r.notes[0]); })
+          .catch((e) => event('error', 'holder airdrop failed: ' + String(e.message).slice(0, 80)));
+      } catch { /* treasury optional */ }
+    }
     if (config.STONK_AUTO_RESTART) event('round', '🔁 Next tournament in ' + Math.round((Number(config.STONK_RESTART_DELAY_MS == null ? 60000 : config.STONK_RESTART_DELAY_MS) + (config.STONK_PREGAME_MS || 0)) / 60000) + ' min — fresh random bracket, picks open at the bell.');
     save(); return;
   }
   // winners keep their book (cash + open positions) — it is one continuous hour-by-hour run
   const startAt = Date.now() + (config.STONK_INTERMISSION_MS || 180000);
   state.roundIdx++;
+  if (config.STONK_HOLDER_AIRDROP && String(config.STONK_AIRDROP_EVERY || 'tournament') === 'round') {
+    try { require('./treasury').settleHolders(ROUND_NAMES[state.roundIdx - 1] || 'round').catch(() => {}); } catch { /* optional */ }
+  }
   state.rounds.push(makeRound(state.roundIdx, winners, startAt));
   event('round', '⏸️ Intermission. ' + ROUND_NAMES[state.roundIdx] + ' starts in ' + Math.round((config.STONK_INTERMISSION_MS || 180000) / 60000) + ' min.');
   save();
