@@ -136,7 +136,7 @@
   <img src="/stonkwars/logo.png" alt="">
   <h1>STONK <span>WARS</span></h1>
   <div><div class="sub" id="matchTitle">LIVE MATCH</div><div class="sub links"><a href="/" style="color:var(--blue)">bracket</a> · <a href="/match.html?auto=1" style="color:var(--blue)">director mode</a></div></div>
-  <div class="pot" id="pot" title="creator fees waiting in the vault → 50% reserve (SOL) · 25% buys $STONK · 25% buys the prize token, airdropped to the correct pickers"><div class="r">THE POT</div><div class="v" id="potFees">— SOL</div><div class="s" id="potSplit">buyback — · payouts —</div></div>
+  <div class="pot" id="pot" title="creator fees waiting in the pump.fun vault — collected at the end of each tournament to fund the show"><div class="r">THE POT</div><div class="v" id="potFees">— SOL</div><div class="s" id="potSplit">buyback — · payouts —</div></div>
   <a id="buyBtn" href="#" target="_blank" rel="noopener" style="display:none;margin-left:12px;background:var(--gold);color:#000;border-radius:8px;padding:8px 14px;font-weight:900;letter-spacing:1px;font-size:12px;text-decoration:none">🚀 BUY NOW</a>
   <span id="caChip" title="click to copy the contract address" style="display:none;margin-left:8px;font-size:11px;letter-spacing:1px;color:var(--gold);background:#161c2e;border:1px solid var(--gold);border-radius:8px;padding:7px 10px;cursor:pointer;font-family:ui-monospace,Consolas,monospace"></span>
   <div class="clock"><div class="r" id="roundName">—</div><div class="t" id="clock">--:--</div></div>
@@ -340,7 +340,7 @@
   try{ var sn=localStorage.getItem('stonkChatName'); if(sn) document.getElementById('chatName').value=sn; if(localStorage.getItem('stonkChatKey')) document.getElementById('chatName').value='DEV'; }catch(x){}
   // the pot: fees in the creator vault right now -> buyback -> winners (polled every 30s)
   function potRefresh(){ fetch('/api/stonkwars/treasury').then(function(r){return r.json()}).then(function(t){ var fees=Number(t.unclaimedSol||0)+Number((t.sweep&&t.sweep.accruedSol)||0); var bb=fees*Number(t.buybackPct||0.5); var pay=bb*Number(t.winnerShare||0.5);
-    document.getElementById('potFees').textContent=fees.toFixed(3)+' SOL'; document.getElementById('potSplit').textContent='buyback '+bb.toFixed(3)+' SOL · payouts '+pay.toFixed(3)+' SOL in '+(window.__prize||('$'+((window.__coin)||'STONK')))+(t.live?'':' · dry run'); }).catch(function(){}); }
+    document.getElementById('potFees').textContent=fees.toFixed(3)+' SOL'; document.getElementById('potSplit').textContent='creator fees waiting to be collected'+(t.live?'':' · dry run'); }).catch(function(){}); }
   potRefresh(); setInterval(potRefresh,30000);
   pollChat(); setInterval(pollChat,2000);
   refresh(); setInterval(refresh,3000); pollCommentary(); setInterval(pollCommentary,2000); pollPump(); setInterval(pollPump,4000);

@@ -330,7 +330,10 @@ async function settleHoldersInner(label) {
   const conn = rpc();
   const dev = devPubkey();
   const prizeMint = String(config.STONK_PRIZE_MINT || '');
-  if (!dev || !config.STONK_BUYBACK_MINT || !prizeMint) { rec.notes.push('dev wallet, coin mint or prize mint not configured'); return finish(rec); }
+  // the coin and prize mints only matter when something is actually being paid out (owner 2026-09-14: payouts are off)
+  const wantsPayout = Number(config.STONK_AIRDROP_PCT ?? 0) > 0 || Number(config.STONK_PARTNER_PCT ?? 0) > 0;
+  if (!dev) { rec.notes.push('no dev wallet configured'); return finish(rec); }
+  if (wantsPayout && (!config.STONK_BUYBACK_MINT || !prizeMint)) { rec.notes.push('coin mint or prize mint not configured'); return finish(rec); }
   try {
     // 1. COLLECT every creator fee sitting in the vault
     let unclaimed = (await conn.getBalance(creatorVault(dev))) / 1e9;
@@ -349,6 +352,12 @@ async function settleHoldersInner(label) {
     rec.airdropSol = +(airdropLamports / 1e9).toFixed(6);
     rec.partnerSol = +(partnerLamports / 1e9).toFixed(6);
     rec.keptSol = +((lamports - airdropLamports - partnerLamports) / 1e9).toFixed(6);
+    // COLLECT-ONLY (owner 2026-09-14): nothing is paid out, so claim the fees and stop before any swap or transfer
+    if (airdropLamports <= 0 && partnerLamports <= 0) {
+      if (isLive()) { const kp = keypair(); if (claimNow) rec.txs.claim = await claim(conn, kp); state.accrued.sol = 0; save(); }
+      rec.notes.push((isLive() ? 'collected ' : 'DRY RUN — would collect ') + rec.claimedSol + ' SOL of creator fees — 100% kept, no payouts configured');
+      return finish(rec);
+    }
     // 2. WHO QUALIFIES (read fresh from the chain at settlement time)
     const holders = await holderList(conn);
     rec.holders = holders.length;

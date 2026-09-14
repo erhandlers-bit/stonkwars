@@ -65,7 +65,7 @@ module.exports = {
   // STONK WARS coin mint here at launch. Empty = no buyback; settlements are recorded as owed.
   STONK_BUYBACK_MINT: 'Eg4eG7B1VjajeHbmFRBo3uTP37BbCZrFyqZpsL75pump', // the STONK WARS coin, relaunched 2026-09-10 (creator = dev wallet 4HukHCev…; the first coin AJ273Xah… is retired)
   STONK_COIN_SYMBOL: 'STONK',       // ticker shown on the site until the mint is set (then Dexscreener's symbol wins)
-  STONK_BUYBACK_PCT: 0.5,           // half of claimed fees buy the coin
+  STONK_BUYBACK_PCT: 0,             // owner 2026-09-14: no buybacks either
   STONK_WINNER_SHARE: 0.5,          // half of the coin bought goes to the correct pickers
   STONK_SWAP_SLIPPAGE_BPS: 300,     // 3% on the Jupiter swap
   // PRIZE TOKEN + PARTNER (owner 2026-09-12, "option A"): of each match's claimed fees F —
@@ -74,18 +74,19 @@ module.exports = {
   //   25% buys STONK_PRIZE_MINT (the prize token), airdropped in full to the correct pickers; with no eligible pickers
   //   that 25% buys the own coin instead. Empty STONK_PRIZE_MINT = the old flow (pickers get STONK_WINNER_SHARE of the own coin).
   //   The prize token's address is never published by the site (owner's request).
-  STONK_PRIZE_MINT: '6GmAFSYs4gk3FDao5FzzySQpPZaWsa4rUJHacpMpUNgx',
+  STONK_PRIZE_MINT: '',             // owner 2026-09-14: no prize token is bought — there are no payouts at all now
   STONK_PRIZE_SYMBOL: 'STONK',
   STONK_BUYBACK_SPLIT: 0.5,         // share of the buyback pool (STONK_BUYBACK_PCT of F) that buys the own coin; the rest buys the prize token
-  STONK_PARTNER_WALLET: 'BrPV21YMAthuQC2A4AzboghZCNRnsXeVN9HCsKE9P3oz',
+  STONK_PARTNER_WALLET: '',         // owner 2026-09-14: cleared so nothing can be sent there by accident (was BrPV21YM…P3oz)
   STONK_PARTNER_SHARE: 0,           // retired: this was a share of the old SOL reserve. The split below is a share of TOTAL fees.
   // FEE SPLIT (owner 2026-09-13) — of every batch of creator fees claimed: 50% owner / 25% partner / 25% holders.
   // The holder slice buys STONK_PRIZE_MINT and is airdropped to every holder of the project's coin at or above
   // STONK_HOLDER_MIN_TOKENS, weighted by how much they hold. No picking and no wallet connect required.
   // The owner's 50% and the partner's 25% are plain SOL. No buybacks of the project's own coin.
-  STONK_HOLDER_AIRDROP: true,
-  STONK_AIRDROP_PCT: 0.25,          // holders
-  STONK_PARTNER_PCT: 0.25,          // STONK_PARTNER_WALLET, sent as SOL in the same settlement
+  STONK_HOLDER_AIRDROP: true,       // kept ON as the fee COLLECTOR only: with the two percentages at 0 it just claims
+                                    // every creator fee into the dev wallet at the end of a tournament and sends nothing out.
+  STONK_AIRDROP_PCT: 0,             // owner 2026-09-14: "keep all 100% of the fees" — holders get nothing. >0 turns the airdrop back on.
+  STONK_PARTNER_PCT: 0,             // owner 2026-09-14: partner cut off. >0 turns it back on.
   STONK_HOLDER_MIN_TOKENS: 5_000_000,
   STONK_AIRDROP_EVERY: 'tournament', // 'tournament' (once per bracket) | 'round' | 'match'
   STONK_AIRDROP_EXCLUDE: '',        // extra wallets to skip; the dev wallet and every off-curve owner (pools, curves) are skipped already
