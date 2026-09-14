@@ -370,14 +370,6 @@
       render(); pkCount();
     }).catch(function(){});
   }
-  function ledgerRefresh(){
-    fetch('/api/stonkwars/payouts').then(function(r){return r.json()}).then(function(l){
-      var el=document.getElementById('ledger'); if(!el) return; var rows=l.rows||[]; var LSYM=(l.coin&&l.coin.symbol)||'COIN'; var LPZ=((l.prize&&l.prize.symbol)||'STONK')+' (prize token)';
-      if(!rows.length){ el.innerHTML='<span class="sub">payouts are switched off — the show keeps its creator fees. Anything listed here is from an earlier format.</span>'; return; }
-      el.innerHTML='<table class="led"><tr><th>round</th><th>wallet</th><th>shares</th><th>amount</th><th>status</th><th>tx</th></tr>'+rows.map(function(r){
-        return '<tr><td>'+(['R16','QF','SF','Final'][r.round]||r.round)+'</td><td><a href="https://solscan.io/account/'+esc(r.wallet)+'" target="_blank" rel="noopener">'+short(r.wallet)+'</a></td><td>'+r.shares+'</td><td><b>'+(r.currency==='COIN'?Math.round(r.amount).toLocaleString()+' $'+LSYM:r.currency==='PRIZE'?Number(r.amount).toLocaleString(undefined,{maximumFractionDigits:2})+' '+LPZ:Number(r.amount).toFixed(4)+' SOL')+'</b></td><td class="'+(r.status==='paid'?'up':(r.status==='failed'?'dn':'sub'))+'">'+r.status+'</td><td>'+(r.txid?'<a href="https://solscan.io/tx/'+esc(r.txid)+'" target="_blank" rel="noopener">'+r.txid.slice(0,6)+'…</a>':'—')+'</td></tr>'}).join('')+'</table>';
-    }).catch(function(){});
-  }
   // the pot: fees in the creator vault right now -> buyback -> winners (polled every 30s)
   function potRefresh(){ fetch('/api/stonkwars/treasury').then(function(r){return r.json()}).then(function(t){ var fees=Number(t.unclaimedSol||0)+Number((t.sweep&&t.sweep.accruedSol)||0); var bb=fees*Number(t.buybackPct||0.5); var pay=bb*Number(t.winnerShare||0.5);
     document.getElementById('potFees').textContent=fees.toFixed(3)+' SOL'; document.getElementById('potSplit').textContent='creator fees waiting to be collected'+(t.live?'':' · dry run'); }).catch(function(){}); }
