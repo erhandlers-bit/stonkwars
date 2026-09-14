@@ -204,15 +204,12 @@
       <span id="lkCount">pick a winner in every match</span>
       <button class="go" id="lkBtn" onclick="pkLock()">🗳️ Lock in my picks</button>
       <span id="lkMsg" style="font-size:12px"></span>
-      <span class="sub" style="margin-left:auto">picks are free and just for bragging rights <b id="lkHold" style="color:var(--gold)">no payout</b> · <a href="#payouts">payouts ledger</a></span>
+      <span class="sub" style="margin-left:auto">picks are free and just for bragging rights <b id="lkHold" style="color:var(--gold)">no payout</b></span>
     </div>
   </div>
   <div class="detail" id="detail"><span class="sub">Click an animal to see its brain and its positions.</span></div>
 </main>
 <div class="card-bg" id="cardBg" onclick="if(event.target===this)closeCard()"><div class="x" onclick="closeCard()">×</div><div class="card" id="card"></div></div>
-<footer>
-  <div id="payouts"><h3>Past payouts — the archive</h3><div id="ledger" style="max-height:380px;overflow:auto"><span class="sub">no settlements yet</span></div></div>
-</footer>
 <script>
 (function(){
   var S=null, sel=null;
@@ -385,7 +382,7 @@
   function potRefresh(){ fetch('/api/stonkwars/treasury').then(function(r){return r.json()}).then(function(t){ var fees=Number(t.unclaimedSol||0)+Number((t.sweep&&t.sweep.accruedSol)||0); var bb=fees*Number(t.buybackPct||0.5); var pay=bb*Number(t.winnerShare||0.5);
     document.getElementById('potFees').textContent=fees.toFixed(3)+' SOL'; document.getElementById('potSplit').textContent='creator fees waiting to be collected'+(t.live?'':' · dry run'); }).catch(function(){}); }
   potRefresh(); setInterval(potRefresh,30000);
-  pkRefresh(); setInterval(pkRefresh,5000); ledgerRefresh(); setInterval(ledgerRefresh,30000);
+  pkRefresh(); setInterval(pkRefresh,5000);
   refresh(); setInterval(refresh,3000);
   setInterval(function(){ if(S&&S.status==='running'){S.now+=1000;var rn=document.getElementById('roundName'),ck=document.getElementById('clock');var am=S.active||{};var toStart=(am.startAt||S.roundStartAt)-S.now,toEnd=(am.endAt||S.roundEndAt)-S.now;ck.textContent=mmss(toStart>0?toStart:toEnd);} },1000);
 })();
