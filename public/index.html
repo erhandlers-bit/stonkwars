@@ -70,7 +70,7 @@
   .lockbar .go{background:var(--gold);color:#000;border:0;border-radius:8px;padding:10px 16px;font-weight:900;cursor:pointer;letter-spacing:1px;font-size:13px}
   .lockbar .go[disabled]{opacity:.5;cursor:default}
   .lockbar a{color:var(--blue);text-decoration:none;font-weight:700}
-  footer{padding:22px;border-top:1px solid var(--border);background:#07090f;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  footer{padding:22px;border-top:1px solid var(--border);background:#07090f;display:grid;grid-template-columns:1fr;gap:24px}
   footer h3{margin:0 0 8px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
   footer a{color:var(--blue);text-decoration:none}
   .fly{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
@@ -204,20 +204,13 @@
       <span id="lkCount">pick a winner in every match</span>
       <button class="go" id="lkBtn" onclick="pkLock()">🗳️ Lock in my picks</button>
       <span id="lkMsg" style="font-size:12px"></span>
-      <span class="sub" style="margin-left:auto">picks are free and just for bragging rights <b id="lkHold" style="color:var(--gold)">no payout</b> · <a href="#flywheel">how the flywheel works</a> · <a href="#payouts">payouts ledger</a></span>
+      <span class="sub" style="margin-left:auto">picks are free and just for bragging rights <b id="lkHold" style="color:var(--gold)">no payout</b> · <a href="#payouts">payouts ledger</a></span>
     </div>
   </div>
   <div class="detail" id="detail"><span class="sub">Click an animal to see its brain and its positions.</span></div>
 </main>
 <div class="card-bg" id="cardBg" onclick="if(event.target===this)closeCard()"><div class="x" onclick="closeCard()">×</div><div class="card" id="card"></div></div>
 <footer>
-  <div id="flywheel"><h3>The flywheel</h3><div class="fly">
-    <div><b>1</b>16 traders trade meme coins for 20 minutes per match; the bracket is drawn at random every tournament and the next tournament starts by itself. You pick the winner of every match and lock the set with your wallet. Free.</div>
-    <div><b>2</b>At the end of every tournament, every creator fee $STONK has earned is collected. Call it F.</div>
-    <div><b>3</b>Those fees fund the show — the servers, the traders, the two men at the desk. There is no airdrop and no payout.</div>
-    <div><b>4</b>$STONK is the coin of the show. Holding it does not entitle you to a payout. <b>Buy it because you want to, not because you expect a return.</b></div>
-    <div><b>5</b>Picks are free and always will be. Call the bracket, win nothing but bragging rights, and watch sixteen animals lose money on your behalf. Line go up.</div>
-  </div><div class="sub" id="flyLive" style="margin-top:8px"></div></div>
   <div id="payouts"><h3>Past payouts — the archive</h3><div id="ledger" style="max-height:380px;overflow:auto"><span class="sub">no settlements yet</span></div></div>
 </footer>
 <script>
